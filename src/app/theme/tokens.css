@@ -1,0 +1,49 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css");
+@import url("https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap");
+
+/** DESIGN TOKENS — 대표님 confirmed palette "B" (navy / coral / mint / white).
+    This is the ONE source of truth. Change colors/fonts here for the whole app.
+    (global.css is now retired — delete it; keep tokens.css + base.css.) **/
+:root {
+  /* surfaces */
+  --paper: #ffffff; /* page background (crisp white) */
+  --card: #fffefa; /* cards / inputs (warm white) */
+  --card-2: #f7f3ec; /* alt surface / soft cream panel */
+  --line: #d6dedb; /* default border */
+  --line-soft: #e6e9e7; /* faint divider */
+  --field-line: #a8b2b5; /* form input borders */
+
+  /* text */
+  --ink: #143f56; /* navy — headings, body, 로그인/확인 buttons */
+  --ink-2: #1d2e38; /* darker label / icon ink */
+  --muted: #7d888c; /* sub-text */
+  --placeholder: #9ca4a7; /* input placeholder */
+
+  /* coral (primary CTA) */
+  --accent: #f48678;
+  --accent-light: #f7a89c;
+  --accent-deep: #de665a; /* pressed / error coral */
+  --accent-soft: #fff7f4; /* coral tint (CTA box, error bg) */
+  --accent-line: #ffd2cb; /* coral hairline border */
+
+  /* mint (secondary) */
+  --mint: #9fceb4;
+  --mint-deep: #58a468; /* mic-on, 완료 */
+  --mint-soft: #edf8f3; /* mint tint badges */
+  --mint-line: #cce8dd; /* mint hairline border */
+
+  /* status / misc */
+  --ok: #58a468;
+  --bad: #d65a4f;
+  --gold: #f0d292;
+  --gold-soft: #fbf2da;
+  --navy: #143f56;
+
+  /* type */
+  --serif: "Gowun Batang", serif;
+  --sans: "Pretendard", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* shape */
+  --radius: 16px;
+  --shadow: 0 16px 42px rgba(42, 55, 60, 0.08);
+}

@@ -6,7 +6,7 @@ import { theme } from "./app/theme";
 import { AuthProvider } from "./app/context/AuthContext";
 import { SocketProvider } from "./app/context/SocketContext";
 import App from "./App";
-import "./styles/global.css";
+import "./app/theme/tokens.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

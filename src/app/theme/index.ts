@@ -3,27 +3,95 @@ import { createTheme } from "@mui/material/styles";
 export const theme = createTheme({
   palette: {
     mode: "light",
-    primary: { main: "#c2693a", dark: "#9a4f2a", contrastText: "#ffffff" },
-    background: { default: "#f6efe4", paper: "#fffdf9" },
-    text: { primary: "#2b2117", secondary: "#8a7c69" },
-    success: { main: "#3f8a5b" },
-    error: { main: "#c0492f" },
-    divider: "#e2d6c3",
+    primary: {
+      main: "#143f56",
+      dark: "#0d2f43",
+      light: "#2b5f78",
+      contrastText: "#ffffff",
+    },
+    secondary: {
+      main: "#f48678",
+      dark: "#de665a",
+      light: "#ffe2dd",
+      contrastText: "#ffffff",
+    },
+    background: {
+      default: "#ffffff",
+      paper: "#fffefa",
+    },
+    text: {
+      primary: "#143f56",
+      secondary: "#7d888c",
+    },
+    success: {
+      main: "#4d9a68",
+      light: "#e4f5ed",
+    },
+    error: {
+      main: "#d65a4f",
+      light: "#ffe3df",
+    },
+    divider: "#d8ddd9",
   },
+
   typography: {
     fontFamily: "Pretendard, system-ui, -apple-system, sans-serif",
     h1: {
-      fontFamily: '"Gowun Batang", serif',
       fontWeight: 700,
-      letterSpacing: "-0.5px",
+      letterSpacing: "0px",
+      color: "#143f56",
     },
-    h2: { fontFamily: '"Gowun Batang", serif', fontWeight: 700 },
-    h3: { fontFamily: '"Gowun Batang", serif', fontWeight: 700 },
-    button: { textTransform: "none", fontWeight: 700 },
+    h2: {
+      fontWeight: 700,
+      letterSpacing: "0px",
+      color: "#143f56",
+    },
+    h3: {
+      fontWeight: 700,
+      letterSpacing: "0px",
+      color: "#143f56",
+    },
+    body1: {
+      fontWeight: 400,
+      letterSpacing: "0px",
+    },
+    body2: {
+      fontWeight: 400,
+      letterSpacing: "0px",
+    },
+    button: {
+      textTransform: "none",
+      fontWeight: 600,
+      letterSpacing: "0px",
+    },
   },
-  shape: { borderRadius: 12 },
+
+  shape: {
+    borderRadius: 10,
+  },
+
   components: {
-    MuiButton: { defaultProps: { disableElevation: true } },
-    MuiPaper: { styleOverrides: { root: { backgroundImage: "none" } } },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          minHeight: 44,
+          fontSize: 15,
+          fontWeight: 600,
+        },
+      },
+    },
+
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+          backgroundColor: "#fffefa",
+        },
+      },
+    },
   },
 });
