@@ -146,15 +146,90 @@
   box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.08);
 }
 
-.reg-select {
-  padding-right: 52px;
-  appearance: none;
-  -webkit-appearance: none;
-  color: var(--placeholder);
+..reg-branch-field {
+  position: relative;
+  z-index: 5;
 }
 
-.reg-select:valid {
+.reg-branch-button {
+  appearance: none;
+  width: 100%;
+  height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--placeholder);
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 400;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.reg-branch-button.is-selected {
   color: var(--ink);
+}
+
+.reg-branch-button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.reg-branch-icon {
+  color: var(--ink-2);
+  font-size: 30px !important;
+}
+
+.reg-branch-chev {
+  color: var(--ink-2);
+  font-size: 29px !important;
+  transition: transform 0.16s ease;
+}
+
+.reg-branch-chev.is-open {
+  transform: rotate(180deg);
+}
+
+.reg-branch-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 18px 38px rgba(20, 63, 86, 0.14);
+  padding: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.reg-branch-option {
+  appearance: none;
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.reg-branch-option:hover,
+.reg-branch-option.is-active {
+  background: var(--mint-soft);
 }
 
 .reg-eye {
@@ -304,7 +379,7 @@
   cursor: pointer;
 }
 
-.app-foot {
+.reg .app-foot {
   display: none;
 }
 
@@ -354,61 +429,24 @@
 }
 
 @media (max-width: 520px) {
-  .reg {
-    max-width: none;
-    min-height: 100vh;
-    margin: 0;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+  .reg-branch-button {
+    height: 60px;
+    font-size: 16px;
+    grid-template-columns: 32px minmax(0, 1fr) 26px;
+    padding: 0 17px;
   }
 
-  .reg-top {
-    min-height: 64px;
-    padding: 0 20px;
+  .reg-branch-icon {
+    font-size: 28px !important;
   }
 
-  .reg-back {
+  .reg-branch-chev {
+    font-size: 27px !important;
+  }
+
+  .reg-branch-option {
+    min-height: 50px;
     font-size: 15px;
-  }
-
-  .reg-back svg {
-    font-size: 23px;
-  }
-
-  .reg-title {
-    font-size: 22px;
-  }
-
-  .reg-body {
-    padding: 14px 28px 28px;
-  }
-
-  .reg-logo-pic {
-    width: min(280px, 82%);
-    margin: 0 auto 26px;
-  }
-
-  .reg-label {
-    margin-top: 15px;
-    font-size: 15px;
-  }
-
-  .reg-input {
-    height: 56px;
-    font-size: 15px;
-    padding-left: 56px;
-    border-radius: 10px;
-  }
-
-  .reg-field-icon {
-    left: 17px;
-    font-size: 26px !important;
-  }
-
-  .reg-submit {
-    height: 56px;
-    font-size: 21px;
   }
 }
 
@@ -469,6 +507,9 @@
   }
 
   .reg-input {
+    height: 54px;
+  }
+  .reg-select {
     height: 54px;
   }
 }

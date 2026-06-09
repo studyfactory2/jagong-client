@@ -20,13 +20,14 @@ export default function Register() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [name, setName] = useState("");
   const [branchId, setBranchId] = useState("");
+  const [branchOpen, setBranchOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [showPin2, setShowPin2] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const [noInfo, setNoInfo] = useState(false); // "등록 정보가 없습니다" modal
+  const [noInfo, setNoInfo] = useState(false);
 
   useEffect(() => {
     getBranches()
@@ -34,16 +35,37 @@ export default function Register() {
       .catch(() => {});
   }, []);
 
+  const selectedBranch = branches.find((b) => b.id === branchId);
+
+  function resetForm() {
+    setName("");
+    setBranchId("");
+    setBranchOpen(false);
+    setPin("");
+    setPin2("");
+    setShowPin(false);
+    setShowPin2(false);
+    setErr("");
+  }
+
+  function closeNoInfoModal() {
+    setNoInfo(false);
+    resetForm();
+  }
+
   async function submit() {
     setErr("");
+
     if (!name.trim()) return setErr("이름을 입력해주세요.");
     if (!branchId) return setErr("지역을 선택해주세요.");
     if (!/^\d{4}$/.test(pin)) return setErr("비밀번호는 숫자 4자리예요.");
     if (pin !== pin2) return setErr("비밀번호가 일치하지 않습니다.");
 
     setBusy(true);
+
     try {
       const res = await registerApi(name.trim(), branchId, pin);
+
       if (res.token) {
         login({ token: res.token, user: res.user }, false);
         navigate("/");
@@ -51,7 +73,6 @@ export default function Register() {
         navigate("/login");
       }
     } catch {
-      // most common cause: admin hasn't pre-registered this member yet
       setNoInfo(true);
     } finally {
       setBusy(false);
@@ -64,7 +85,9 @@ export default function Register() {
         <button className="reg-back" onClick={() => navigate("/login")}>
           <ArrowBackIcon /> 뒤로가기
         </button>
+
         <h1 className="reg-title">사원등록</h1>
+
         <span className="reg-top-spacer" />
       </header>
 
@@ -74,6 +97,7 @@ export default function Register() {
             media="(prefers-reduced-motion: reduce)"
             srcSet="/logo/logo-2.png"
           />
+
           <img
             className="reg-logo"
             src="/logo/logo-register1.png"
@@ -84,6 +108,7 @@ export default function Register() {
         <label className="reg-label">이름</label>
         <div className="reg-field">
           <PersonOutlineIcon className="reg-field-icon" />
+
           <input
             className="reg-input"
             placeholder="이름을 입력하세요"
@@ -93,28 +118,48 @@ export default function Register() {
         </div>
 
         <label className="reg-label">지역</label>
-        <div className="reg-field">
-          <PlaceOutlinedIcon className="reg-field-icon" />
-          <select
-            className="reg-input reg-select"
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
+        <div className="reg-field reg-branch-field">
+          <button
+            type="button"
+            className={`reg-branch-button${branchId ? " is-selected" : ""}`}
+            onClick={() => setBranchOpen((open) => !open)}
           >
-            <option value="" disabled>
-              지역을 선택하세요
-            </option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-          <ExpandMoreIcon className="reg-field-chev" />
+            <PlaceOutlinedIcon className="reg-branch-icon" />
+
+            <span>
+              {selectedBranch ? selectedBranch.name : "지역을 선택하세요"}
+            </span>
+
+            <ExpandMoreIcon
+              className={`reg-branch-chev${branchOpen ? " is-open" : ""}`}
+            />
+          </button>
+
+          {branchOpen && (
+            <div className="reg-branch-menu">
+              {branches.map((b) => (
+                <button
+                  type="button"
+                  key={b.id}
+                  className={`reg-branch-option${
+                    b.id === branchId ? " is-active" : ""
+                  }`}
+                  onClick={() => {
+                    setBranchId(b.id);
+                    setBranchOpen(false);
+                  }}
+                >
+                  {b.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <label className="reg-label">비밀번호 4자리</label>
         <div className="reg-field">
           <LockOutlinedIcon className="reg-field-icon" />
+
           <input
             className="reg-input"
             type={showPin ? "text" : "password"}
@@ -123,6 +168,7 @@ export default function Register() {
             value={pin}
             onChange={(e) => setPin(e.target.value)}
           />
+
           <button
             type="button"
             className="reg-eye"
@@ -136,6 +182,7 @@ export default function Register() {
         <label className="reg-label">비밀번호 확인</label>
         <div className="reg-field">
           <LockOutlinedIcon className="reg-field-icon" />
+
           <input
             className="reg-input"
             type={showPin2 ? "text" : "password"}
@@ -145,6 +192,7 @@ export default function Register() {
             onChange={(e) => setPin2(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
           />
+
           <button
             type="button"
             className="reg-eye"
@@ -154,6 +202,7 @@ export default function Register() {
             {showPin2 ? <VisibilityOffIcon /> : <VisibilityIcon />}
           </button>
         </div>
+
         <p className="reg-help">본인만 아는 비밀번호 4자리를 입력해주세요</p>
 
         {err && <div className="reg-error">{err}</div>}
@@ -164,18 +213,21 @@ export default function Register() {
       </div>
 
       {noInfo && (
-        <div className="reg-modal-overlay" onClick={() => setNoInfo(false)}>
+        <div className="reg-modal-overlay" onClick={closeNoInfoModal}>
           <div className="reg-modal" onClick={(e) => e.stopPropagation()}>
             <div className="reg-modal-icon">
               <PriorityHighIcon />
             </div>
+
             <h2 className="reg-modal-title">등록 정보가 없습니다</h2>
+
             <p className="reg-modal-text">
               사전 등록 된 정보가 없습니다.
               <br />
               관리자에게 문의하세요.
             </p>
-            <button className="reg-modal-btn" onClick={() => setNoInfo(false)}>
+
+            <button className="reg-modal-btn" onClick={closeNoInfoModal}>
               확인
             </button>
           </div>
