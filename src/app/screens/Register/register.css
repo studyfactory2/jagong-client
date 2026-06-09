@@ -9,6 +9,22 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.reg button,
+.reg label,
+.reg-title,
+.reg-label,
+.reg-help,
+.reg-branch-button,
+.reg-branch-option {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.reg button:focus {
+  outline: none;
 }
 
 @media (min-width: 481px) {
@@ -146,7 +162,7 @@
   box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.08);
 }
 
-..reg-branch-field {
+.reg-branch-field {
   position: relative;
   z-index: 5;
 }
@@ -228,8 +244,10 @@
 }
 
 .reg-branch-option:hover,
+.reg-branch-option:focus,
 .reg-branch-option.is-active {
   background: var(--mint-soft);
+  outline: none;
 }
 
 .reg-eye {
@@ -304,6 +322,8 @@
 }
 
 .reg-back:focus-visible,
+.reg-branch-button:focus-visible,
+.reg-branch-option:focus-visible,
 .reg-submit:focus-visible,
 .reg-eye:focus-visible,
 .reg-modal-btn:focus-visible {

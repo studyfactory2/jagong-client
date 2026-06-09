@@ -1,3 +1,5 @@
+import { ConsultationInputType } from "./enums";
+
 export interface Branch {
   id: string;
   name: string;
@@ -26,3 +28,17 @@ export interface TimetableSlot {
   isBreak: boolean;
   messages?: string[];
 }
+
+export type ConsultationInput = {
+  name: string;
+  age: number;
+  phone: string;
+  examType: string;
+  studyPeriod?: string;
+  studyPlace?: string;
+  fullTime: boolean;
+  reason?: string;
+  date: string;
+  timeSlot: string;
+  type: ConsultationInputType;
+};

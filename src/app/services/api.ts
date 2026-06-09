@@ -1,5 +1,10 @@
 import { http } from "./http";
-import type { Branch, AuthUser, TimetableSlot } from "../../lib/types";
+import type {
+  Branch,
+  AuthUser,
+  TimetableSlot,
+  ConsultationInput,
+} from "../../lib/types";
 
 export async function getBranches(): Promise<Branch[]> {
   const { data } = await http.get<Branch[]>("/branches");
@@ -38,7 +43,18 @@ export async function register(
   return data;
 }
 
+export async function createConsultation(
+  input: ConsultationInput,
+): Promise<void> {
+  await http.post("/consultation", input);
+}
+
 export async function getTimetable(): Promise<TimetableSlot[]> {
   const { data } = await http.get<TimetableSlot[]>("/timetable");
+  return data;
+}
+
+export async function getOnlineCount(): Promise<{ count: number }> {
+  const { data } = await http.get<{ count: number }>("/users/online-count");
   return data;
 }

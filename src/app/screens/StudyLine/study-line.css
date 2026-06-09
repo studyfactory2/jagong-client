@@ -1,0 +1,268 @@
+.sl {
+  font-family: var(--sans);
+  color: var(--ink);
+  max-width: 560px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--card);
+}
+
+@media (min-width: 481px) {
+  .sl {
+    margin: 18px auto;
+    min-height: auto;
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+}
+
+.sl-head {
+  min-height: 70px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sl-back,
+.sl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sl-back svg {
+  font-size: 26px;
+}
+
+.sl-head h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.sl-pill {
+  justify-self: end;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
+.sl-body {
+  padding: 13px 14px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sl-card {
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.sl-intro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.sl-intro strong {
+  display: block;
+  font-size: 17px;
+}
+
+.sl-intro p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sl-intro span {
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  background: var(--gold-soft);
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sl-intro svg {
+  font-size: 20px;
+}
+
+.sl-line {
+  padding: 8px;
+}
+
+.sl-row {
+  min-height: 38px;
+  border-radius: 999px;
+  display: grid;
+  grid-template-columns: 25px 24px 58px 1fr 58px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.sl-row i {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.sl-row svg {
+  font-size: 20px;
+}
+
+.sl-row strong {
+  font-weight: 700;
+}
+
+.sl-row span {
+  font-variant-numeric: tabular-nums;
+}
+
+.sl-row em {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+  text-align: center;
+  font-style: normal;
+  font-size: 11px;
+}
+
+.sl-row.is-now {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.sl-row.is-now i,
+.sl-row.is-now em {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.sl-note {
+  margin: 8px 2px 0;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--ink-2);
+  padding: 8px 10px;
+  font-size: 11px;
+  text-align: center;
+}
+
+.sl-notice {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.sl-notice span {
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 6px 12px;
+  font-weight: 700;
+}
+
+.sl-notice svg {
+  margin-left: auto;
+  color: var(--mint-deep);
+  font-size: 18px;
+}
+
+.sl-bottom {
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.sl-bottom > div {
+  padding: 13px;
+}
+
+.sl-bottom > div + div {
+  border-left: 1px solid var(--ink);
+}
+
+.sl-bottom span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sl-bottom strong {
+  display: block;
+  margin: 6px 0;
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.sl-bottom em {
+  display: block;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+}
+
+.sl-bottom div div {
+  height: 11px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sl-bottom i {
+  display: block;
+  width: 10%;
+  height: 100%;
+  background: var(--accent);
+}
+
+.sl .app-foot {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .sl-row {
+    grid-template-columns: 23px 22px 46px 1fr 50px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .sl-intro {
+    display: block;
+  }
+
+  .sl-intro span {
+    margin-top: 10px;
+  }
+}
