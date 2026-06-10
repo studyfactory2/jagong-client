@@ -36,7 +36,7 @@ export default function StudyRoom() {
   return (
     <div className="sr">
       <header className="sr-head">
-        <button className="sr-back" onClick={() => navigate("/")}>
+        <button className="sr-back" onClick={() => navigate("/waiting-room")}>
           <ArrowBackIcon /> 대기장
         </button>
 

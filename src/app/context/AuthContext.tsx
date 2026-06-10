@@ -5,12 +5,14 @@ interface AuthContextValue {
   session: Session | null;
   login: (s: Session, remember?: boolean) => void;
   logout: () => void;
+  refreshUser: (user: Session["user"]) => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
   login: () => {},
   logout: () => {},
+  refreshUser: () => {},
 });
 
 const KEY = "jagong_session";
@@ -45,8 +47,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   };
 
+  const refreshUser = (user: Session["user"]) => {
+    setSession((current) => {
+      if (!current) return current;
+      const next = { ...current, user };
+      const store = localStorage.getItem(KEY) ? localStorage : sessionStorage;
+      store.setItem(KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ session, login, logout }}>
+    <AuthContext.Provider value={{ session, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

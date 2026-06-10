@@ -42,3 +42,43 @@ export type ConsultationInput = {
   timeSlot: string;
   type: ConsultationInputType;
 };
+
+export interface MembershipPlan {
+  months: number;
+  days: number;
+  total: number;
+}
+
+export interface MembershipStatus {
+  startDate: string | null;
+  membershipEnd: string | null;
+  daysLeft: number | null;
+  active: boolean;
+  reEnrollPeriod: boolean;
+}
+
+export interface PaymentRecord {
+  id: string;
+  userId: string;
+  planMonths: number;
+  amount: number;
+  method: string | null;
+  status: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
+  receiptUrl: string | null;
+  receiptSignedUrl?: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  pgTxId: string | null;
+  refundAmount?: number | null;
+  refundCharge?: number | null;
+  refundUsedDays?: number | null;
+  refundedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckoutResult {
+  paymentId: string;
+  amount: number;
+  planMonths: number;
+}

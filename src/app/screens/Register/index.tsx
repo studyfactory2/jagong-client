@@ -68,7 +68,7 @@ export default function Register() {
 
       if (res.token) {
         login({ token: res.token, user: res.user }, false);
-        navigate("/");
+        navigate("/waiting-room");
       } else {
         navigate("/login");
       }

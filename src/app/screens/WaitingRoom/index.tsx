@@ -239,11 +239,8 @@ export default function WaitingRoom() {
     [slots, nowSec],
   );
 
-  const nextWorkSlot = useMemo(
-    () =>
-      slots.find(
-        (slot) => !slot.isBreak && toSec(slot.startTime) > nowSec,
-      ) ?? null,
+  const nextSlot = useMemo(
+    () => slots.find((slot) => toSec(slot.startTime) > nowSec) ?? null,
     [slots, nowSec],
   );
 
@@ -251,16 +248,30 @@ export default function WaitingRoom() {
     (slot) => !slot.isBreak && toSec(slot.endTime) <= nowSec,
   ).length;
   const totalWorkSlots = slots.filter((slot) => !slot.isBreak).length || 1;
+  const elapsedWorkSeconds = slots.reduce((sum, slot) => {
+    if (slot.isBreak) return sum;
+    const start = toSec(slot.startTime);
+    const end = toSec(slot.endTime);
+    if (nowSec <= start) return sum;
+    if (nowSec >= end) return sum + end - start;
+    return sum + nowSec - start;
+  }, 0);
+  const totalWorkSeconds =
+    slots.reduce((sum, slot) => {
+      if (slot.isBreak) return sum;
+      return sum + Math.max(0, toSec(slot.endTime) - toSec(slot.startTime));
+    }, 0) || 1;
   const progress = Math.min(
     100,
-    Math.round((completedWorkSlots / totalWorkSlots) * 100),
+    Math.round((elapsedWorkSeconds / totalWorkSeconds) * 100),
   );
   const connectedCount = online ?? onlineFallback ?? 13;
-  const countdownTarget = nextWorkSlot
-    ? toSec(nextWorkSlot.startTime) - nowSec
-    : current
-      ? toSec(current.endTime) - nowSec
+  const countdownTarget = current
+    ? toSec(current.endTime) - nowSec
+    : nextSlot
+      ? toSec(nextSlot.startTime) - nowSec
       : null;
+  const canEnterRoom = !current || current.isBreak;
 
   return (
     <div className="wr">
@@ -402,19 +413,27 @@ export default function WaitingRoom() {
         </div>
 
         <section className="wr-entry">
-          <button className="wr-entry-btn is-private" onClick={() => navigate("/study-line")}>
+          <button
+            className="wr-entry-btn is-private"
+            disabled={!canEnterRoom}
+            onClick={() => navigate("/study-line")}
+          >
             <DoorFrontOutlinedIcon />
             <span>
               <strong>개인 작업실 입장</strong>
-              <em>나만의 집중 작업실</em>
+              <em>{canEnterRoom ? "나만의 집중 작업실" : "교시중 입장 불가"}</em>
             </span>
           </button>
 
-          <button className="wr-entry-btn is-group" onClick={() => navigate("/study-room")}>
+          <button
+            className="wr-entry-btn is-group"
+            disabled={!canEnterRoom}
+            onClick={() => navigate("/study-room")}
+          >
             <GroupsOutlinedIcon />
             <span>
               <strong>단체 작업장 입장</strong>
-              <em>전국 사원과 함께 입장</em>
+              <em>{canEnterRoom ? "전국 사원과 함께 입장" : "교시중 입장 불가"}</em>
             </span>
           </button>
         </section>

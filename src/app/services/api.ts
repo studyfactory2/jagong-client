@@ -4,6 +4,10 @@ import type {
   AuthUser,
   TimetableSlot,
   ConsultationInput,
+  MembershipPlan,
+  MembershipStatus,
+  PaymentRecord,
+  CheckoutResult,
 } from "../../lib/types";
 
 export async function getBranches(): Promise<Branch[]> {
@@ -27,6 +31,11 @@ export async function login(
   return data;
 }
 
+export async function getMe(): Promise<AuthUser> {
+  const { data } = await http.get<AuthUser>("/users/me");
+  return data;
+}
+
 export async function register(
   name: string,
   branchId: string,
@@ -46,7 +55,7 @@ export async function register(
 export async function createConsultation(
   input: ConsultationInput,
 ): Promise<void> {
-  await http.post("/consultation", input);
+  await http.post("/consultations", input);
 }
 
 export async function getTimetable(): Promise<TimetableSlot[]> {
@@ -56,5 +65,37 @@ export async function getTimetable(): Promise<TimetableSlot[]> {
 
 export async function getOnlineCount(): Promise<{ count: number }> {
   const { data } = await http.get<{ count: number }>("/users/online-count");
+  return data;
+}
+
+export async function getMembershipPlans(): Promise<MembershipPlan[]> {
+  const { data } = await http.get<MembershipPlan[]>("/memberships/plans");
+  return data;
+}
+
+export async function getMyMembership(): Promise<MembershipStatus> {
+  const { data } = await http.get<MembershipStatus>("/memberships/me");
+  return data;
+}
+
+export async function getMyPayments(): Promise<PaymentRecord[]> {
+  const { data } = await http.get<PaymentRecord[]>("/memberships/me/payments");
+  return data;
+}
+
+export async function checkoutMembership(
+  planMonths: number,
+): Promise<CheckoutResult> {
+  const { data } = await http.post<CheckoutResult>("/memberships/checkout", {
+    planMonths,
+  });
+  return data;
+}
+
+export async function confirmMembershipPayment(input: {
+  paymentId: string;
+  pgKey: string;
+}): Promise<PaymentRecord> {
+  const { data } = await http.post<PaymentRecord>("/memberships/confirm", input);
   return data;
 }

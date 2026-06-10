@@ -7,6 +7,7 @@ import { AuthProvider } from "./app/context/AuthContext";
 import { SocketProvider } from "./app/context/SocketContext";
 import App from "./App";
 import "./app/theme/tokens.css";
+import "./styles/base.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

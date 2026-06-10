@@ -24,7 +24,7 @@ export default function StudyLine() {
   return (
     <div className="sl">
       <header className="sl-head">
-        <button className="sl-back" onClick={() => navigate("/")}>
+        <button className="sl-back" onClick={() => navigate("/waiting-room")}>
           <ArrowBackIcon /> 뒤로가기
         </button>
         <h1>개인작업실</h1>

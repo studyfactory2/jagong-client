@@ -11,10 +11,20 @@ import LeaveRequest from "./app/screens/LeaveRequest";
 import Inquiry from "./app/screens/Inquiry";
 import VideoConsult from "./app/screens/VideoConsult";
 import PaymentHistory from "./app/screens/PaymentHistory";
+import PaymentSuccess from "./app/screens/PaymentSuccess";
+import PaymentFail from "./app/screens/PaymentFail";
+import { useAuth } from "./app/context/AuthContext";
+
+function RootRedirect() {
+  const { session } = useAuth();
+  return <Navigate to={session ? "/waiting-room" : "/login"} replace />;
+}
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<RootRedirect />} />
+
       {/* public */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -22,7 +32,7 @@ export default function App() {
 
       {/* behind login */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<WaitingRoom />} />
+        <Route path="/waiting-room" element={<WaitingRoom />} />
         <Route path="/study-line" element={<StudyLine />} />
         <Route path="/study-room" element={<StudyRoom />} />
         <Route path="/weekly-plan" element={<WeeklyPlan />} />
@@ -30,6 +40,8 @@ export default function App() {
         <Route path="/inquiry" element={<Inquiry />} />
         <Route path="/video-consult" element={<VideoConsult />} />
         <Route path="/payments" element={<PaymentHistory />} />
+        <Route path="/payments/success" element={<PaymentSuccess />} />
+        <Route path="/payments/fail" element={<PaymentFail />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -35,7 +35,7 @@ export default function Inquiry() {
   return (
     <div className="iq">
       <header className="iq-head">
-        <button onClick={() => navigate("/")}>
+        <button onClick={() => navigate("/waiting-room")}>
           <ArrowBackIcon /> 대기장
         </button>
         <h1>게시판</h1>

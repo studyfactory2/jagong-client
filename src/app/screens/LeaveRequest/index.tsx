@@ -19,7 +19,7 @@ export default function LeaveRequest() {
   return (
     <div className="lv">
       <header className="lv-head">
-        <button onClick={() => navigate("/")}>
+        <button onClick={() => navigate("/waiting-room")}>
           <ArrowBackIcon /> 대기실
         </button>
         <h1>휴가신청</h1>

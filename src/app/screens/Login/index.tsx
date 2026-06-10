@@ -102,7 +102,7 @@ export default function Login() {
     try {
       const { token, user } = await loginApi(name, branchId, pin);
       login({ token, user }, autoLogin);
-      navigate("/");
+      navigate("/waiting-room");
     } catch (e) {
       setError((e as Error).message);
     } finally {

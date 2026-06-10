@@ -463,6 +463,13 @@
   transform: translateY(1px);
 }
 
+.wr-entry-btn:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+  opacity: 0.62;
+  transform: none;
+}
+
 .wr-entry-btn svg {
   font-size: 41px;
 }

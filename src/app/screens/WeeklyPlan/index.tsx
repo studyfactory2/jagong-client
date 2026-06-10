@@ -31,7 +31,7 @@ export default function WeeklyPlan() {
   return (
     <div className="wp">
       <header className="wp-head">
-        <button onClick={() => navigate("/")}>
+        <button onClick={() => navigate("/waiting-room")}>
           <ArrowBackIcon /> 대기장
         </button>
         <h1>{boardMode ? "주간학습장" : "나의 주간 작업계획"}</h1>
