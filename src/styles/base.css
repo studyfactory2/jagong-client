@@ -16,13 +16,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* mobile-first: app lives in a centered phone-width column */
+/* Screens own their responsive shells. Mobile pages can stay app-sized,
+   while desktop work screens can use the full 1300px dashboard width. */
 #root {
-  max-width: 480px;
-  margin: 0 auto;
+  width: 100%;
   min-height: 100vh;
   background: var(--paper);
-  box-shadow: 0 0 50px rgba(30, 58, 79, 0.08);
 }
 
 button {
