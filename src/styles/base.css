@@ -48,3 +48,43 @@ a {
   color: var(--muted);
   padding: 14px 0 20px;
 }
+
+
+.socket-warning {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 1000;
+  width: min(360px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  background: #fffefa;
+  box-shadow: 0 18px 44px rgba(20, 63, 86, 0.2);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  color: var(--ink);
+}
+
+.socket-warning strong {
+  font-size: 13px;
+}
+
+.socket-warning span {
+  grid-column: 1 / -1;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.socket-warning button {
+  grid-column: 2;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 900;
+}

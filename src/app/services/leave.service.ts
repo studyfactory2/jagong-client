@@ -1,5 +1,5 @@
 import { http } from "./http";
-import type { LeaveRecord, SpecialLeaveRecord } from "../../lib/types";
+import type { LeaveRecord, PaginatedResult, SpecialLeaveRecord } from "../../lib/types";
 
 /** MEMBER LEAVE API **/
 
@@ -28,8 +28,10 @@ export async function getAdminLeaves(input?: {
   status?: string;
   branchId?: string;
   date?: string;
-}): Promise<LeaveRecord[]> {
-  const { data } = await http.get<LeaveRecord[]>("/leaves", { params: input });
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResult<LeaveRecord>> {
+  const { data } = await http.get<PaginatedResult<LeaveRecord>>("/leaves", { params: input });
   return data;
 }
 

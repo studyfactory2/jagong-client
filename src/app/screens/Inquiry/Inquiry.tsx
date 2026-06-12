@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import { useAuth } from "../../context/AuthContext";
+import { useSocket } from "../../context/SocketContext";
+import { getMyChatRoom, sendMyChatMessage } from "../../services/chat.service";
+import type { ChatRoom, ChatRoomMessage } from "../../../lib/types";
 import "./inquiry.css";
 
 const NOTICES = [
@@ -14,32 +18,105 @@ const NOTICES = [
   ["공지", "휴가 신청 규칙 안내", "2026.06.06 (토) 09:30"],
 ];
 
-const INITIAL_MESSAGES = [
-  ["admin", "안녕하세요. 오늘 캠 각도를 조금만 더 책상 쪽으로 내려주세요 :)", "09:12"],
-  ["me", "네! 조정했습니다. 확인 부탁드려요.", "09:15"],
-  ["admin", "좋아요. 3교시에는 계획표에 적은 기출풀이 먼저 진행해주세요.", "09:17"],
-  ["me", "선생님, 오늘 오후 모의고사 외출 가능한가요?", "10:03"],
-];
+function timeText(value?: string) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function dateLabel(value?: string) {
+  const date = value ? new Date(value) : new Date();
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  }).format(date);
+}
 
 export default function Inquiry() {
+  /** STATE **/
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const { socket } = useSocket();
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
+  const [room, setRoom] = useState<ChatRoom | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  function send() {
-    if (!message.trim()) return;
-    setMessages((prev) => [...prev, ["me", message.trim(), "지금"]]);
-    setMessage("");
+  /** DERIVED **/
+  const myId = session?.user.userId ?? session?.user.id;
+  const messages = useMemo(() => room?.messages ?? [], [room]);
+
+  /** EFFECTS **/
+  useEffect(() => {
+    loadRoom();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewMessage = (payload: { message?: ChatRoomMessage }) => {
+      const incoming = payload.message;
+      if (!incoming) return;
+      setRoom((current) =>
+        current
+          ? { ...current, messages: [...(current.messages ?? []), incoming] }
+          : current,
+      );
+    };
+    socket.on("chat:new-message", handleNewMessage);
+    return () => {
+      socket.off("chat:new-message", handleNewMessage);
+    };
+  }, [socket]);
+
+  /** HANDLERS **/
+  async function loadRoom() {
+    setLoading(true);
+    setError("");
+    try {
+      setRoom(await getMyChatRoom());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "문의 대화를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }
 
+  async function send() {
+    if (!message.trim() || sending) return;
+    const content = message.trim();
+    setSending(true);
+    setError("");
+    try {
+      const sent = await sendMyChatMessage(content);
+      setRoom((current) =>
+        current
+          ? { ...current, messages: [...(current.messages ?? []), sent] }
+          : current,
+      );
+      setMessage("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "문의 전송에 실패했습니다.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  /** RENDER **/
   return (
     <div className="iq">
       <header className="iq-head">
-        <button onClick={() => navigate("/waiting-room")}>
+        <button onClick={() => navigate("/waiting-room")} type="button">
           <ArrowBackIcon /> 대기장
         </button>
         <h1>게시판</h1>
-        <button onClick={() => navigate("/video-consult")}>상담실 →</button>
+        <button onClick={() => navigate("/video-consult")} type="button">
+          상담실 →
+        </button>
       </header>
 
       <main className="iq-body">
@@ -50,12 +127,12 @@ export default function Inquiry() {
               <strong>관리자 공지</strong>
               <p>공지표시 · 제목 · 등록날짜/요일/시간을 최신순으로 확인해요</p>
             </div>
-            <button>전체보기 ›</button>
+            <button type="button">전체보기 ›</button>
           </div>
 
           <div className="iq-notices">
             {NOTICES.map(([tag, title, date]) => (
-              <button key={title}>
+              <button key={title} type="button">
                 <span className={tag === "중요" ? "is-hot" : ""}>{tag}</span>
                 <div>
                   <strong>{title}</strong>
@@ -69,32 +146,45 @@ export default function Inquiry() {
 
         <section className="iq-panel iq-chat">
           <div className="iq-chat-head">
-            <span>🌙</span>
+            <span>1:1</span>
             <div>
               <strong>1:1 문의 게시판</strong>
-              <p>관리자와 해당 학원만 보는 카톡형 형식의 대화창</p>
+              <p>관리자와 나만 보는 대화방입니다.</p>
             </div>
-            <button>지난 대화 접기</button>
+            <button onClick={loadRoom} type="button">
+              새로고침
+            </button>
           </div>
 
           <div className="iq-chat-meta">
-            <span>지난 대화 12개가 자동으로 접혀 있어요</span>
-            <button>펼쳐보기⌄</button>
+            <span>{loading ? "대화를 불러오는 중입니다." : `전체 대화 ${messages.length}개`}</span>
+            <button type="button">히스토리</button>
           </div>
 
-          <div className="iq-chat-date">오늘 2026.06.08 (월)</div>
+          {error && <p className="iq-error">{error}</p>}
+
+          <div className="iq-chat-date">{dateLabel(messages.at(-1)?.createdAt)}</div>
 
           <div className="iq-messages">
-            {messages.map(([who, text, time], index) => (
-              <div className={`iq-msg ${who === "me" ? "is-me" : ""}`} key={`${text}-${index}`}>
-                {who !== "me" && <span className="iq-avatar">🐱</span>}
-                <div>
-                  {who !== "me" && <em>관리자</em>}
-                  <p>{text}</p>
+            {messages.map((item) => {
+              const isMe = item.senderId === myId;
+              return (
+                <div className={`iq-msg ${isMe ? "is-me" : ""}`} key={item.id}>
+                  {!isMe && <span className="iq-avatar">관리자</span>}
+                  <div>
+                    {!isMe && <em>{item.sender?.name ?? "관리자"}</em>}
+                    <p>{item.content}</p>
+                  </div>
+                  <time>{timeText(item.createdAt)}</time>
                 </div>
-                <time>{time}</time>
+              );
+            })}
+
+            {!messages.length && !loading && (
+              <div className="iq-empty-chat">
+                아직 문의 내역이 없습니다. 궁금한 내용을 편하게 남겨주세요.
               </div>
-            ))}
+            )}
           </div>
 
           <div className="iq-input">
@@ -105,7 +195,7 @@ export default function Inquiry() {
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="문의 내용을 입력해 주세요"
             />
-            <button onClick={send}>
+            <button disabled={sending || !message.trim()} onClick={send} type="button">
               <SendOutlinedIcon />
               전송
             </button>

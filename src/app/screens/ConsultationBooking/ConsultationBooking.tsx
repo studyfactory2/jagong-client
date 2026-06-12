@@ -60,6 +60,7 @@ export default function ConsultationBooking() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [phone, setPhone] = useState("");
+  const [residenceArea, setResidenceArea] = useState("");
   const [exam, setExam] = useState("");
   const [examOpen, setExamOpen] = useState(false);
   const [period, setPeriod] = useState("");
@@ -109,6 +110,7 @@ export default function ConsultationBooking() {
     const a = Number(age);
     if (!a || a < 21 || a > 40) return "연령은 21~40세만 가능해요.";
     if (!phone.trim()) return "연락처를 입력해 주세요.";
+    if (!residenceArea.trim()) return "거주지역을 입력해 주세요.";
     if (!exam) return "시험 종류를 선택해 주세요.";
     if (!fullTime) return "전업 수험생 여부를 선택해 주세요.";
     if (!date) return "희망 상담 날짜를 선택해 주세요.";
@@ -131,6 +133,7 @@ export default function ConsultationBooking() {
         name: name.trim(),
         age: Number(age),
         phone: phone.trim(),
+        residenceArea: residenceArea.trim(),
         examType: exam,
         studyPeriod: period,
         studyPlace: place,
@@ -230,6 +233,20 @@ export default function ConsultationBooking() {
               onChange={(e) => setPhone(e.target.value)}
             />
           </div>
+          <div className="bk-field">
+            <HomeOutlinedIcon className="bk-fi" />
+            <span className="bk-fl">거주지역</span>
+            <span className="bk-fdiv" />
+            <input
+              className="bk-fin"
+              placeholder="예) 서울 / 부산 / 수원"
+              value={residenceArea}
+              onChange={(e) => setResidenceArea(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="bk-grid2">
           <div className="bk-field bk-select-field" ref={examMenuRef}>
             <FormatListBulletedIcon className="bk-fi" />
             <span className="bk-fl">시험종류</span>

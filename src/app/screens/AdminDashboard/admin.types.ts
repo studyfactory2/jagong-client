@@ -1,13 +1,15 @@
 import type {
   AdminUser,
   CamSessionRecord,
-  ChatMessage,
+  ChatRoom,
   ConsultationRecord,
+  PageMeta,
   LeaveRecord,
   PaymentRecord,
 } from "../../../lib/types";
 
 export type AdminTabKey =
+  | "profile"
   | "overview"
   | "members"
   | "consultations"
@@ -21,9 +23,13 @@ export type AdminData = {
   consultations: ConsultationRecord[];
   payments: PaymentRecord[];
   leaves: LeaveRecord[];
-  chats: ChatMessage[];
+  chats: ChatRoom[];
   camSessions: CamSessionRecord[];
 };
+
+export type AdminPageKey = "users" | "consultations" | "payments" | "leaves" | "chats";
+
+export type AdminPageMeta = Record<AdminPageKey, PageMeta>;
 
 export type AdminStats = {
   activeMembers: number;
@@ -32,6 +38,21 @@ export type AdminStats = {
   pendingLeaves: number;
   unanswered: number;
   working: number;
+};
+
+export const emptyPageMeta: PageMeta = {
+  total: 0,
+  page: 1,
+  limit: 12,
+  totalPages: 1,
+};
+
+export const emptyAdminPageMeta: AdminPageMeta = {
+  users: emptyPageMeta,
+  consultations: emptyPageMeta,
+  payments: emptyPageMeta,
+  leaves: emptyPageMeta,
+  chats: emptyPageMeta,
 };
 
 export const emptyAdminData: AdminData = {
@@ -44,6 +65,7 @@ export const emptyAdminData: AdminData = {
 };
 
 export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
+  { key: "profile", label: "내 정보" },
   { key: "overview", label: "대시보드" },
   { key: "members", label: "회원" },
   { key: "consultations", label: "상담" },
@@ -51,4 +73,11 @@ export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
   { key: "leaves", label: "휴가" },
   { key: "chat", label: "문의" },
   { key: "camera", label: "캠" },
+];
+
+
+export const staffTabs: Array<{ key: AdminTabKey; label: string }> = [
+  { key: "profile", label: "내 정보" },
+  { key: "camera", label: "캠" },
+  { key: "chat", label: "문의" },
 ];

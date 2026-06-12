@@ -31,3 +31,16 @@ export async function getMe(): Promise<AuthUser> {
   const { data } = await http.get<AuthUser>("/users/me");
   return data;
 }
+
+
+export async function updateMyProfile(input: {
+  name?: string;
+  phone?: string;
+  residenceArea?: string;
+  examType?: string;
+  prepDuration?: string;
+  password?: string;
+}): Promise<AuthUser> {
+  const { data } = await http.post<AuthUser>("/users/update-me", input);
+  return data;
+}

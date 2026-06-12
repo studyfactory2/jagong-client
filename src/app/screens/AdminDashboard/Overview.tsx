@@ -16,11 +16,14 @@ type OverviewProps = {
   manualUserId: string;
   manualMonths: number;
   manualName: string;
+  manualReceiptFile: File | null;
+  savingManualPayment: boolean;
   onNoticeTitleChange: (value: string) => void;
   onNoticeContentChange: (value: string) => void;
   onManualUserChange: (value: string) => void;
   onManualMonthsChange: (value: number) => void;
   onManualNameChange: (value: string) => void;
+  onManualReceiptChange: (file: File | null) => void;
   onSaveNotice: () => void;
   onSaveManualPayment: () => void;
 };
@@ -34,11 +37,14 @@ export default function Overview(props: OverviewProps) {
     manualUserId,
     manualMonths,
     manualName,
+    manualReceiptFile,
+    savingManualPayment,
     onNoticeTitleChange,
     onNoticeContentChange,
     onManualUserChange,
     onManualMonthsChange,
     onManualNameChange,
+    onManualReceiptChange,
     onSaveNotice,
     onSaveManualPayment,
   } = props;
@@ -124,8 +130,17 @@ export default function Overview(props: OverviewProps) {
           onChange={(event) => onManualNameChange(event.target.value)}
           placeholder="입금자명"
         />
-        <button onClick={onSaveManualPayment} type="button">
-          수동 결제 등록
+        <label className="admin-payment-upload">
+          <span>입금 확인 사진</span>
+          <strong>{manualReceiptFile?.name ?? "사진 선택"}</strong>
+          <input
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) => onManualReceiptChange(event.target.files?.[0] ?? null)}
+            type="file"
+          />
+        </label>
+        <button disabled={savingManualPayment} onClick={onSaveManualPayment} type="button">
+          {savingManualPayment ? "등록중" : "수동 결제 등록"}
         </button>
       </section>
     </section>

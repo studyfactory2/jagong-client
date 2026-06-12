@@ -28,6 +28,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [online, setOnline] = useState<number | null>(null);
+  const [warning, setWarning] = useState<{ message: string; type?: string | null } | null>(null);
 
   useEffect(() => {
     if (!session) {
@@ -42,6 +43,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     s.on("connect", () => setConnected(true));
     s.on("disconnect", () => setConnected(false));
     s.on("onlineCount", (d: { count: number }) => setOnline(d.count));
+    s.on("cam:warning", (payload: { message: string; type?: string | null }) => {
+      setWarning({ message: payload.message, type: payload.type });
+    });
     setSocket(s);
 
     return () => {
@@ -52,6 +56,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   return (
     <SocketContext.Provider value={{ socket, connected, online }}>
       {children}
+      {warning && (
+        <div className="socket-warning" role="alert">
+          <strong>관리자 알림</strong>
+          <span>{warning.message}</span>
+          <button onClick={() => setWarning(null)} type="button">
+            확인
+          </button>
+        </div>
+      )}
     </SocketContext.Provider>
   );
 }

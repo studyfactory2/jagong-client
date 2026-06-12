@@ -3,6 +3,7 @@ import type {
   CheckoutResult,
   MembershipPlan,
   MembershipStatus,
+  PaginatedResult,
   PaymentRecord,
   PaymentStatus,
 } from "../../lib/types";
@@ -46,8 +47,10 @@ export async function confirmMembershipPayment(input: {
 export async function getAdminPayments(input?: {
   status?: PaymentStatus;
   userId?: string;
-}): Promise<PaymentRecord[]> {
-  const { data } = await http.get<PaymentRecord[]>("/memberships", {
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResult<PaymentRecord>> {
+  const { data } = await http.get<PaginatedResult<PaymentRecord>>("/memberships", {
     params: input,
   });
   return data;
@@ -80,6 +83,22 @@ export async function previewRefund(paymentId: string): Promise<{
 export async function refundPayment(paymentId: string): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>(
     "/memberships/" + paymentId + "/refund",
+  );
+  return data;
+}
+
+
+export async function attachPaymentReceipt(
+  paymentId: string,
+  file: File,
+): Promise<PaymentRecord> {
+  const form = new FormData();
+  form.append("file", file);
+
+  const { data } = await http.post<PaymentRecord>(
+    "/memberships/" + paymentId + "/receipt",
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return data;
 }

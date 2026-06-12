@@ -104,7 +104,11 @@ export default function Login() {
     try {
       const { token, user } = await loginApi(name, branchId, pin);
       login({ token, user }, autoLogin);
-      navigate("/waiting-room");
+      navigate(
+        user.role === "ADMIN" || user.role === "STAFF"
+          ? "/admin"
+          : "/waiting-room",
+      );
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -132,7 +136,7 @@ export default function Login() {
             />
             <img
               className="login-logo"
-              src="/logo/logo-2.webp"
+              src="/logo/logo-blush.webp"
               alt="온라인 관리형독서실 · 자격증공장 재택근무반"
             />
           </picture>

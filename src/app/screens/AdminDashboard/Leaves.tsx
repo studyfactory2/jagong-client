@@ -1,16 +1,22 @@
-import type { AdminUser, LeaveRecord } from "../../../lib/types";
+import type { AdminUser, LeaveRecord, PageMeta } from "../../../lib/types";
+import AdminPager from "./AdminPager";
 import { dateText, userName } from "./admin.utils";
 
 type LeavesProps = {
   leaves: LeaveRecord[];
   users: AdminUser[];
   onAction: (id: string, action: "approve" | "reject") => void;
+  pageMeta: PageMeta;
+  onPageChange: (page: number) => void;
 };
 
-export default function Leaves({ leaves, users, onAction }: LeavesProps) {
+export default function Leaves({ leaves, users, onAction, pageMeta, onPageChange }: LeavesProps) {
   return (
     <section className="admin-card">
-      <h2>휴가 신청</h2>
+      <div className="admin-section-head">
+        <h2>휴가 신청</h2>
+        <span>{pageMeta.total}건</span>
+      </div>
       <div className="admin-table">
         {leaves.map((leave) => (
           <div className="admin-row is-action" key={leave.id}>
@@ -28,6 +34,7 @@ export default function Leaves({ leaves, users, onAction }: LeavesProps) {
           </div>
         ))}
       </div>
+      <AdminPager meta={pageMeta} onPageChange={onPageChange} />
     </section>
   );
 }

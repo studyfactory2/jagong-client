@@ -1,18 +1,24 @@
-import type { ConsultationRecord } from "../../../lib/types";
+import type { ConsultationRecord, PageMeta } from "../../../lib/types";
+import AdminPager from "./AdminPager";
 import { dateText } from "./admin.utils";
 
 type ConsultationsProps = {
   consultations: ConsultationRecord[];
   onConfirm: (id: string) => void;
   onComplete: (id: string) => void;
+  pageMeta: PageMeta;
+  onPageChange: (page: number) => void;
 };
 
 export default function Consultations(props: ConsultationsProps) {
-  const { consultations, onConfirm, onComplete } = props;
+  const { consultations, onConfirm, onComplete, pageMeta, onPageChange } = props;
 
   return (
     <section className="admin-card">
-      <h2>상담 예약</h2>
+      <div className="admin-section-head">
+        <h2>상담 예약</h2>
+        <span>{pageMeta.total}건</span>
+      </div>
       <div className="admin-table">
         {consultations.map((item) => (
           <div className="admin-row is-action" key={item.id}>
@@ -32,6 +38,7 @@ export default function Consultations(props: ConsultationsProps) {
           </div>
         ))}
       </div>
+      <AdminPager meta={pageMeta} onPageChange={onPageChange} />
     </section>
   );
 }

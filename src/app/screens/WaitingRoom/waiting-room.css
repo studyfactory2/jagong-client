@@ -760,8 +760,8 @@
 
 @media (min-width: 900px) {
   .wr {
-    width: min(100%, 1300px);
-    max-width: 1300px;
+    width: min(100%, 960px);
+    max-width: 960px;
     min-height: 100vh;
     margin: 0 auto;
     padding: 0 24px 30px;
@@ -769,49 +769,168 @@
     box-shadow: none;
     overflow: visible;
     background:
-      radial-gradient(circle at 18% 8%, rgba(159, 206, 180, 0.12), transparent 32%),
-      radial-gradient(circle at 82% 14%, rgba(244, 134, 120, 0.1), transparent 30%),
+      radial-gradient(circle at 18% 8%, rgba(159, 206, 180, 0.1), transparent 32%),
+      radial-gradient(circle at 82% 14%, rgba(244, 134, 120, 0.08), transparent 30%),
       var(--paper);
   }
 
   .wr-head {
-    grid-template-columns: 180px minmax(0, 1fr) 180px;
-    min-height: 96px;
-    padding: 20px 8px 18px;
+    grid-template-columns: 150px minmax(0, 1fr) 150px;
+    min-height: 92px;
+    padding: 18px 0 16px;
     border-bottom: 0;
   }
 
   .wr-back {
     width: fit-content;
-    min-height: 42px;
+    min-height: 40px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: rgba(255, 254, 250, 0.86);
-    padding: 0 14px 0 10px;
+    padding: 0 13px 0 10px;
     font-size: 13px;
   }
 
   .wr-title {
-    font-size: 31px;
+    font-size: 27px;
     font-weight: 800;
   }
 
   .wr-sub {
     margin-top: 8px;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .wr-icon-btn {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border: 1px solid var(--line);
     background: rgba(255, 254, 250, 0.86);
   }
 
   .wr-body {
     padding: 0 0 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .wr-panel,
+  .wr-progress,
+  .wr-notice,
+  .wr-entry-btn,
+  .wr-shortcuts button {
+    box-shadow: 0 14px 34px rgba(20, 63, 86, 0.07);
+  }
+
+  .wr-panel {
+    border-radius: 18px;
+    padding: 16px;
+    background: rgba(255, 254, 250, 0.94);
+  }
+
+  .wr-panel-title {
+    font-size: 19px;
+  }
+
+  .wr-worker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .wr-worker {
+    aspect-ratio: 16 / 10.5;
+    border-radius: 14px;
+  }
+
+  .wr-worker-name {
+    left: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 46px);
+    border-radius: 9px;
+    font-size: 11px;
+    padding: 7px 8px;
+  }
+
+  .wr-worker-mic {
+    right: 8px;
+    bottom: 8px;
+    width: 27px;
+    height: 27px;
+    border: 2px solid rgba(255, 255, 255, 0.82);
+  }
+
+  .wr-time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+  }
+
+  .wr-time-row {
+    min-height: 34px;
+    grid-template-columns: 24px 50px minmax(0, 1fr) 48px;
+    gap: 6px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .wr-progress {
+    border-radius: 18px;
+    grid-template-columns: minmax(0, 1fr) 178px;
+    background: rgba(255, 254, 250, 0.94);
+  }
+
+  .wr-progress-card strong {
+    font-size: 30px;
+  }
+
+  .wr-notice {
+    min-height: 44px;
+    background: rgba(255, 254, 250, 0.92);
+  }
+
+  .wr-entry-btn {
+    min-height: 86px;
+    border-radius: 18px;
+    grid-template-columns: 52px minmax(0, 1fr);
+    padding: 15px 20px;
+  }
+
+  .wr-entry-btn strong {
+    font-size: 20px;
+  }
+
+  .wr-shortcuts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .wr-shortcuts button {
+    min-height: 60px;
+    border-radius: 15px;
+    background: rgba(255, 254, 250, 0.92);
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 1180px) {
+  .wr {
+    width: min(100%, 1300px);
+    max-width: 1300px;
+  }
+
+  .wr-head {
+    grid-template-columns: 180px minmax(0, 1fr) 180px;
+    min-height: 96px;
+    padding-block: 20px 18px;
+  }
+
+  .wr-title {
+    font-size: 31px;
+  }
+
+  .wr-body {
     display: grid;
-    grid-template-columns: minmax(620px, 1.5fr) minmax(360px, 0.9fr);
+    grid-template-columns: minmax(720px, 1.55fr) minmax(420px, 0.95fr);
     grid-template-areas:
       "workers time"
       "workers progress"
@@ -832,103 +951,7 @@
   .wr-user { grid-area: user; }
 
   .wr-panel {
-    border-radius: 18px;
     padding: 18px;
-    background: rgba(255, 254, 250, 0.94);
-    box-shadow: 0 18px 48px rgba(20, 63, 86, 0.08);
-  }
-
-  .wr-panel-title {
-    font-size: 20px;
-  }
-
-  .wr-worker-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 13px;
-  }
-
-  .wr-worker {
-    aspect-ratio: 16 / 10.5;
-    border-radius: 14px;
-    box-shadow: 0 10px 24px rgba(20, 63, 86, 0.12);
-  }
-
-  .wr-worker-name {
-    left: 9px;
-    bottom: 9px;
-    max-width: calc(100% - 48px);
-    border-radius: 9px;
-    font-size: 12px;
-    padding: 7px 9px;
-  }
-
-  .wr-worker-mic {
-    right: 9px;
-    bottom: 9px;
-    width: 28px;
-    height: 28px;
-    border: 2px solid rgba(255, 255, 255, 0.82);
-  }
-
-  .wr-time-grid {
-    grid-template-columns: 1fr;
-    gap: 5px;
-  }
-
-  .wr-time-row {
-    min-height: 35px;
-    grid-template-columns: 28px 52px minmax(0, 1fr) 52px;
-    gap: 7px;
-    padding: 0 10px;
-    font-size: 13px;
-  }
-
-  .wr-progress {
-    border-radius: 18px;
-    grid-template-columns: minmax(0, 1fr) 178px;
-    background: rgba(255, 254, 250, 0.94);
-    box-shadow: 0 18px 48px rgba(20, 63, 86, 0.08);
-  }
-
-  .wr-progress-card strong {
-    font-size: 32px;
-  }
-
-  .wr-notice {
-    min-height: 46px;
-    background: rgba(255, 254, 250, 0.92);
-    box-shadow: 0 14px 36px rgba(20, 63, 86, 0.06);
-  }
-
-  .wr-entry-btn {
-    min-height: 94px;
-    border-radius: 18px;
-    grid-template-columns: 58px minmax(0, 1fr);
-    padding: 16px 22px;
-    box-shadow: 0 18px 42px rgba(20, 63, 86, 0.1);
-  }
-
-  .wr-entry-btn strong {
-    font-size: 22px;
-  }
-
-  .wr-shortcuts {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .wr-shortcuts button {
-    min-height: 64px;
-    border-radius: 15px;
-    background: rgba(255, 254, 250, 0.92);
-    box-shadow: 0 12px 32px rgba(20, 63, 86, 0.06);
-    font-size: 14px;
-  }
-}
-
-@media (min-width: 1180px) {
-  .wr-body {
-    grid-template-columns: minmax(760px, 1.6fr) minmax(420px, 0.9fr);
   }
 
   .wr-worker-grid {
@@ -944,6 +967,11 @@
     grid-template-columns: 24px 48px minmax(0, 1fr) 48px;
     font-size: 12px;
     padding-inline: 8px;
+  }
+
+  .wr-shortcuts {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
   }
 }
 

@@ -20,3 +20,22 @@ export function userName(users: AdminUser[], userId: string) {
     "-"
   );
 }
+
+
+export function dDayText(value?: string | null) {
+  if (!value) return "결제일 없음";
+  const end = new Date(value);
+  if (Number.isNaN(end.getTime())) return "결제일 없음";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  const diff = Math.ceil((end.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return "만료";
+  if (diff === 0) return "D-Day";
+  return "D-" + diff;
+}
+
+export function userDetail(value?: string | number | null, fallback = "-") {
+  if (value === null || value === undefined || value === "") return fallback;
+  return String(value);
+}

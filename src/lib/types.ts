@@ -11,11 +11,30 @@ export interface AuthUser {
   name: string;
   role: string;
   branchId?: string;
+  phone?: string | null;
+  residenceArea?: string | null;
+  age?: number | null;
+  examType?: string | null;
+  prepDuration?: string | null;
+  notes?: string | null;
+  isActive?: boolean;
+  membershipEnd?: string | null;
 }
 
 export interface Session {
   token: string;
   user: AuthUser;
+}
+
+export interface PageMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> extends PageMeta {
+  list: T[];
 }
 
 export interface TimetableSlot {
@@ -33,6 +52,7 @@ export type ConsultationInput = {
   name: string;
   age: number;
   phone: string;
+  residenceArea: string;
   examType: string;
   studyPeriod?: string;
   studyPlace?: string;
@@ -98,8 +118,10 @@ export interface AdminUser extends AuthUser {
   userId?: string;
   role: RoleName;
   phone?: string | null;
+  residenceArea?: string | null;
   age?: number | null;
   examType?: string | null;
+  prepDuration?: string | null;
   notes?: string | null;
   isActive?: boolean;
   startDate?: string | null;
@@ -108,16 +130,14 @@ export interface AdminUser extends AuthUser {
   createdAt?: string;
 }
 
-export interface AdminUsersResult {
-  list: AdminUser[];
-  total: number;
-}
+export interface AdminUsersResult extends PaginatedResult<AdminUser> {}
 
 export interface ConsultationRecord {
   id: string;
   name: string;
   age?: number | null;
   phone: string;
+  residenceArea?: string | null;
   examType?: string | null;
   studyPeriod?: string | null;
   studyPlace?: string | null;
@@ -179,6 +199,33 @@ export interface ChatMessage {
   user?: AdminUser;
 }
 
+export interface ChatRoomSender {
+  id: string;
+  name: string;
+  role: RoleName;
+}
+
+export interface ChatRoomMessage {
+  id: string;
+  roomId: string;
+  senderId: string;
+  content: string;
+  isRead: boolean;
+  createdAt: string;
+  sender?: ChatRoomSender;
+}
+
+export interface ChatRoom {
+  id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: AdminUser;
+  messages?: ChatRoomMessage[];
+  latestMessage?: ChatRoomMessage | null;
+  unreadCount?: number;
+}
+
 export interface NoticeRecord {
   id: string;
   title: string;
@@ -196,6 +243,15 @@ export interface CamSessionRecord {
   leftAt?: string | null;
   alerts?: unknown;
   user?: AdminUser;
+}
+
+export interface CamWarningRecord {
+  id: string;
+  userId: string;
+  adminId?: string;
+  type?: string | null;
+  message: string;
+  createdAt: string;
 }
 
 export interface MonthlyGoalRecord {
