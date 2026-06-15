@@ -52,6 +52,15 @@ import {
 } from "./admin.types";
 import "./admin-dashboard.css";
 
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 export default function AdminDashboard() {
   /** STATE **/
   const { session, refreshUser } = useAuth();
@@ -75,6 +84,9 @@ export default function AdminDashboard() {
     chats: "",
     camera: "",
   });
+  // Camera filters client-side, so it stays instant; server-backed searches
+  // read from the debounced value to avoid refetching on every keystroke.
+  const debouncedSearch = useDebouncedValue(search, 350);
   const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -125,11 +137,11 @@ export default function AdminDashboard() {
     pages.payments,
     pages.leaves,
     pages.chats,
-    search.users,
-    search.consultations,
-    search.payments,
-    search.leaves,
-    search.chats,
+    debouncedSearch.users,
+    debouncedSearch.consultations,
+    debouncedSearch.payments,
+    debouncedSearch.leaves,
+    debouncedSearch.chats,
   ]);
 
   useEffect(() => {
@@ -165,10 +177,18 @@ export default function AdminDashboard() {
         allMembers,
         statsResult,
       ] = await Promise.all([
-        getAdminUsers({ page: pages.users, limit: 12, text: search.users }),
+        getAdminUsers({
+          page: pages.users,
+          limit: 12,
+          text: debouncedSearch.users,
+        }),
         getBranches(),
         getTimetable(),
-        getAdminChatRooms({ page: pages.chats, limit: 12, text: search.chats }),
+        getAdminChatRooms({
+          page: pages.chats,
+          limit: 12,
+          text: debouncedSearch.chats,
+        }),
         getCamSessions(),
         getMe(),
         getAllAdminMembers(),
@@ -180,17 +200,17 @@ export default function AdminDashboard() {
             getAdminConsultations({
               page: pages.consultations,
               limit: 10,
-              text: search.consultations,
+              text: debouncedSearch.consultations,
             }),
             getAdminPayments({
               page: pages.payments,
               limit: 10,
-              text: search.payments,
+              text: debouncedSearch.payments,
             }),
             getAdminLeaves({
               page: pages.leaves,
               limit: 10,
-              text: search.leaves,
+              text: debouncedSearch.leaves,
             }),
           ])
         : [
@@ -246,7 +266,11 @@ export default function AdminDashboard() {
     try {
       const [camSessions, chatsResult, statsResult] = await Promise.all([
         getCamSessions(),
-        getAdminChatRooms({ page: pages.chats, limit: 12, text: search.chats }),
+        getAdminChatRooms({
+          page: pages.chats,
+          limit: 12,
+          text: debouncedSearch.chats,
+        }),
         getAdminStats(),
       ]);
       setStats(statsResult);
@@ -428,6 +452,9 @@ export default function AdminDashboard() {
   }
 
   function markChatRoomRead(userId: string) {
+    const unread =
+      data.chats.find((room) => room.userId === userId)?.unreadCount ?? 0;
+    if (!unread) return;
     setData((current) => ({
       ...current,
       chats: current.chats.map((room) =>
@@ -436,7 +463,7 @@ export default function AdminDashboard() {
     }));
     setStats((current) => ({
       ...current,
-      unanswered: Math.max(0, current.unanswered - 1),
+      unanswered: Math.max(0, current.unanswered - unread),
     }));
   }
 
