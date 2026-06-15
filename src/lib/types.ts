@@ -229,9 +229,10 @@ export interface ChatRoom {
 export interface NoticeRecord {
   id: string;
   title: string;
-  content: string;
+  body: string;
+  level?: "NOTICE" | "IMPORTANT";
+  authorId?: string;
   createdAt: string;
-  createdBy?: string;
 }
 
 export interface CamSessionRecord {

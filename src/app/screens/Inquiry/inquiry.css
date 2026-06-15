@@ -403,3 +403,15 @@
     grid-column: 1 / -1;
   }
 }
+
+/* real notice body */
+.iq-notices small {
+  display: block;
+  max-width: 100%;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

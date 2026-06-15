@@ -1,75 +1,271 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import {
+  getMonthlyGoal,
+  getWeeklyPlan,
+  saveMonthlyGoal,
+  saveWeeklyPlan,
+} from "../../services/study-plan.service";
+import type { DayOfWeekName, WeeklyPlanTaskRecord } from "../../../lib/types";
 import "./weekly-plan.css";
 
-const DAYS = ["월", "화", "수", "목", "금", "토", "일"];
-const PERIODS = ["1교시", "2교시", "점심", "3교시", "4교시", "5교시", "저녁", "6교시", "7교시"];
-
-const seedTasks = [
-  "기본서 p.20",
-  "강의 2개",
-  "회계 복습",
-  "문제 15개",
-  "오답 정리",
-  "모의고사",
-  "기출 30분",
-  "세법 회독",
-  "약점 정리",
-  "내일 계획",
+const DAYS: Array<{ key: DayOfWeekName; label: string }> = [
+  { key: "MONDAY", label: "월" },
+  { key: "TUESDAY", label: "화" },
+  { key: "WEDNESDAY", label: "수" },
+  { key: "THURSDAY", label: "목" },
+  { key: "FRIDAY", label: "금" },
+  { key: "SATURDAY", label: "토" },
+  { key: "SUNDAY", label: "일" },
 ];
+
+const PERIODS = [
+  { slot: 1, label: "1교시", minutes: 90 },
+  { slot: 2, label: "2교시", minutes: 80 },
+  { slot: 0, label: "점심", minutes: 75, break: true },
+  { slot: 3, label: "3교시", minutes: 70 },
+  { slot: 4, label: "4교시", minutes: 90 },
+  { slot: 5, label: "5교시", minutes: 80 },
+  { slot: 0, label: "저녁", minutes: 75, break: true },
+  { slot: 6, label: "6교시", minutes: 80 },
+  { slot: 7, label: "7교시", minutes: 80 },
+];
+
+type DraftTask = {
+  dayOfWeek: DayOfWeekName;
+  slot: number;
+  title: string;
+  isDone: boolean;
+};
+
+type DraftMap = Record<string, DraftTask[]>;
+
+function dateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function monthKey(date: Date) {
+  return dateKey(date).slice(0, 7);
+}
+
+function startOfWeek(date: Date) {
+  const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffToMonday = (copy.getDay() + 6) % 7;
+  copy.setDate(copy.getDate() - diffToMonday);
+  return copy;
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function taskKey(dayOfWeek: DayOfWeekName, slot: number) {
+  return dayOfWeek + ":" + slot;
+}
+
+function emptyTask(dayOfWeek: DayOfWeekName, slot: number): DraftTask {
+  return { dayOfWeek, slot, title: "", isDone: false };
+}
+
+function toDraft(tasks: WeeklyPlanTaskRecord[]): DraftMap {
+  return [...tasks]
+    .sort((a, b) => a.order - b.order)
+    .reduce<DraftMap>((acc, task) => {
+      const key = taskKey(task.dayOfWeek, task.slot);
+      acc[key] = [
+        ...(acc[key] ?? []),
+        {
+          dayOfWeek: task.dayOfWeek,
+          slot: task.slot,
+          title: task.title,
+          isDone: task.isDone,
+        },
+      ];
+      return acc;
+    }, {});
+}
+
+function filledTasks(tasks: DraftMap) {
+  return Object.values(tasks)
+    .flat()
+    .filter((task) => task.title.trim());
+}
 
 export default function WeeklyPlan() {
   const navigate = useNavigate();
   const [boardMode, setBoardMode] = useState(false);
+  const [weekStart, setWeekStart] = useState(() => dateKey(startOfWeek(new Date())));
   const [goal, setGoal] = useState("");
-  const [tasks, setTasks] = useState(seedTasks);
+  const [memo, setMemo] = useState("");
+  const [tasks, setTasks] = useState<DraftMap>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const weekStartDate = useMemo(() => new Date(weekStart + "T00:00:00"), [weekStart]);
+  const weekEndDate = useMemo(() => addDays(weekStartDate, 6), [weekStartDate]);
+  const weekDays = useMemo(
+    () => DAYS.map((day, index) => ({ ...day, date: addDays(weekStartDate, index) })),
+    [weekStartDate],
+  );
+  const month = monthKey(weekStartDate);
+  const taskList = filledTasks(tasks);
+  const doneCount = taskList.filter((task) => task.isDone).length;
+  const membershipLocked = error.includes("이용권 결제");
+
+  useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      setLoading(true);
+      setError("");
+      try {
+        const [goalData, weekData] = await Promise.all([
+          getMonthlyGoal(month),
+          getWeeklyPlan(weekStart),
+        ]);
+        if (!alive) return;
+        setGoal(goalData?.goal ?? "");
+        setMemo(weekData?.memo ?? "");
+        setTasks(toDraft(weekData?.tasks ?? []));
+      } catch (err) {
+        if (!alive) return;
+        setError(err instanceof Error ? err.message : "주간계획을 불러오지 못했습니다.");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [month, weekStart]);
+
+  function moveWeek(delta: number) {
+    setWeekStart(dateKey(addDays(weekStartDate, delta * 7)));
+  }
+
+  function updateTask(dayOfWeek: DayOfWeekName, slot: number, index: number, value: string) {
+    const key = taskKey(dayOfWeek, slot);
+    setTasks((current) => {
+      const next = current[key] ? [...current[key]] : [emptyTask(dayOfWeek, slot)];
+      next[index] = { ...(next[index] ?? emptyTask(dayOfWeek, slot)), title: value };
+      return { ...current, [key]: next };
+    });
+  }
+
+  function toggleTask(dayOfWeek: DayOfWeekName, slot: number, index: number) {
+    const key = taskKey(dayOfWeek, slot);
+    setTasks((current) => {
+      const next = current[key] ? [...current[key]] : [];
+      const task = next[index];
+      if (!task?.title.trim()) return current;
+      next[index] = { ...task, isDone: !task.isDone };
+      return { ...current, [key]: next };
+    });
+  }
+
+  function addTask(dayOfWeek: DayOfWeekName, slot: number) {
+    const key = taskKey(dayOfWeek, slot);
+    setTasks((current) => ({
+      ...current,
+      [key]: [...(current[key] ?? []), emptyTask(dayOfWeek, slot)],
+    }));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    try {
+      if (goal.trim()) {
+        await saveMonthlyGoal({ month, goal: goal.trim() });
+      }
+
+      await saveWeeklyPlan({
+        weekStart,
+        memo: memo.trim() || undefined,
+        tasks: Object.values(tasks).flatMap((cellTasks) =>
+          cellTasks
+            .filter((task) => task.title.trim())
+            .map((task, order) => ({
+              dayOfWeek: task.dayOfWeek,
+              slot: task.slot,
+              title: task.title.trim(),
+              isDone: task.isDone,
+              order,
+            })),
+        ),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "주간계획을 저장하지 못했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="wp">
       <header className="wp-head">
-        <button onClick={() => navigate("/waiting-room")}>
+        <button onClick={() => navigate("/waiting-room")} type="button">
           <ArrowBackIcon /> 대기장
         </button>
         <h1>{boardMode ? "주간학습장" : "나의 주간 작업계획"}</h1>
-        <button className="wp-save" onClick={() => setBoardMode((v) => !v)}>
+        <button className="wp-save" onClick={() => setBoardMode((value) => !value)} type="button">
           {boardMode ? <SaveOutlinedIcon /> : <EditNoteOutlinedIcon />}
-          {boardMode ? "저장" : "주간학습장 →"}
+          {boardMode ? "계획보기" : "학습장 →"}
         </button>
       </header>
+
+      {error && (
+        <div className="wp-error">
+          <span>{error}</span>
+          {membershipLocked && (
+            <button onClick={() => navigate("/payments")} type="button">
+              이용권 결제하기
+            </button>
+          )}
+        </div>
+      )}
 
       {!boardMode ? (
         <main className="wp-body">
           <section className="wp-guide">
-            <span>🐰</span>
+            <span>목표</span>
             <div>
               <strong>이번 주 공부를 직접 설계해요</strong>
-              <p>월 목표 → 주간 계획 → 교시별 할 일까지 한번에 관리할 수 있어요.</p>
+              <p>월 목표와 교시별 할 일을 저장하고 완료율을 확인합니다.</p>
             </div>
           </section>
 
           <section className="wp-calendar">
             <div className="wp-cal-head">
-              <button>{"<"}</button>
-              <strong>2026년 6월</strong>
-              <button>{">"}</button>
+              <button onClick={() => moveWeek(-1)} type="button">{"<"}</button>
+              <strong>{month.replace("-", "년 ")}월</strong>
+              <button onClick={() => moveWeek(1)} type="button">{">"}</button>
             </div>
             <div className="wp-weekdays">
-              {DAYS.map((day) => (
-                <span key={day}>{day}</span>
-              ))}
+              {weekDays.map((day) => <span key={day.key}>{day.label}</span>)}
             </div>
             <div className="wp-days">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((day) => (
-                <button className={day === 10 ? "is-picked" : ""} key={day}>
-                  {day}
+              {weekDays.map((day) => (
+                <button className="is-picked" key={day.key} type="button">
+                  {day.date.getDate()}
                 </button>
               ))}
             </div>
-            <p>선택된 주: 6월 2주차 06.08 - 06.14</p>
+            <p>
+              선택된 주: {weekStart} - {dateKey(weekEndDate)}
+            </p>
           </section>
 
           <section className="wp-month-goal">
@@ -79,14 +275,33 @@ export default function WeeklyPlan() {
             </label>
             <input
               value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="예) 6월 목표: 재무회계 2회독 + 기출 300문제 완료"
+              onChange={(event) => setGoal(event.target.value)}
+              placeholder="예) 재무회계 2회독 + 기출 300문제 완료"
+            />
+          </section>
+
+          <section className="wp-month-goal">
+            <label>
+              <MenuBookOutlinedIcon />
+              이번 주 메모
+            </label>
+            <input
+              value={memo}
+              onChange={(event) => setMemo(event.target.value)}
+              placeholder="예) 오전에는 기출, 오후에는 오답 정리"
             />
           </section>
 
           <section className="wp-actions">
-            <button className="wp-week-select">6월 2주차 06.08 - 06.14⌄</button>
-            <button className="wp-main-action" onClick={() => setBoardMode(true)}>
+            <button className="wp-week-select" type="button">
+              {weekStart} - {dateKey(weekEndDate)}
+            </button>
+            <button
+              className="wp-main-action"
+              disabled={membershipLocked}
+              onClick={() => setBoardMode(true)}
+              type="button"
+            >
               <EditNoteOutlinedIcon /> 주간학습장 작성하기 →
             </button>
           </section>
@@ -94,75 +309,83 @@ export default function WeeklyPlan() {
           <section className="wp-stats">
             <div>
               <span>작성한 할 일</span>
-              <strong>35개</strong>
+              <strong>{taskList.length}개</strong>
             </div>
             <div>
               <span>완료 체크</span>
-              <strong>12개</strong>
+              <strong>{doneCount}개</strong>
             </div>
           </section>
 
           <section className="wp-help">
-            <span>🐻</span>
+            <span>안내</span>
             <div>
-              <strong>주간학습장 사용법</strong>
-              <p>각 교시 칸마다 할 일을 여러 개 적고, 투두리스트처럼 완료 체크할 수 있어요.</p>
+              <strong>{loading ? "불러오는 중" : "주간학습장 사용법"}</strong>
+              <p>각 교시 칸에 할 일을 여러 개 적고 저장하면 관리자도 확인할 수 있어요.</p>
             </div>
           </section>
         </main>
       ) : (
         <main className="wp-board">
           <section className="wp-board-top">
-            <span>🐶</span>
+            <span>계획</span>
             <div>
-              <strong>6월 2주차 목표 작업량</strong>
-              <p>매 교시마다 할 일을 추가하고, 완료 체크해요.</p>
+              <strong>{month} 목표 작업량</strong>
+              <p>{goal || "이번 달 목표를 먼저 작성해 주세요."}</p>
             </div>
-            <button>06.08 - 06.14⌄</button>
+            <button onClick={save} disabled={saving || membershipLocked} type="button">
+              {saving ? "저장중" : "저장"}
+            </button>
           </section>
 
           <div className="wp-board-note">
             <MenuBookOutlinedIcon />
-            각 칸은 투두리스트처럼 여러 개 작성 가능 · 체크박스로 완료 표시 가능
+            각 칸은 여러 줄 할 일을 작성하고 체크박스로 완료 표시합니다.
           </div>
 
           <section className="wp-table">
             <div className="wp-table-head">
               <b>교시</b>
-              {DAYS.map((day, index) => (
-                <b key={day}>
-                  {day}
-                  <small>6/{8 + index}</small>
+              {weekDays.map((day) => (
+                <b key={day.key}>
+                  {day.label}
+                  <small>{day.date.getMonth() + 1}/{day.date.getDate()}</small>
                 </b>
               ))}
             </div>
 
-            {PERIODS.map((period, row) =>
-              period === "점심" || period === "저녁" ? (
-                <div className="wp-break" key={period}>
-                  {period}시간 (75분)
+            {PERIODS.map((period) =>
+              period.break ? (
+                <div className="wp-break" key={period.label}>
+                  {period.label}시간 ({period.minutes}분)
                 </div>
               ) : (
-                <div className="wp-table-row" key={period}>
+                <div className="wp-table-row" key={period.label}>
                   <div className="wp-period">
-                    <strong>{period}</strong>
-                    <span>{row === 0 || row === 3 ? "90분" : "80분"}</span>
+                    <strong>{period.label}</strong>
+                    <span>{period.minutes}분</span>
                   </div>
-                  {DAYS.map((day, col) => {
-                    const task = tasks[(row + col) % tasks.length];
+                  {weekDays.map((day) => {
+                    const key = taskKey(day.key, period.slot);
+                    const cellTasks = tasks[key]?.length ? tasks[key] : [emptyTask(day.key, period.slot)];
                     return (
-                      <button
-                        key={`${period}-${day}`}
-                        onClick={() =>
-                          setTasks((prev) =>
-                            prev.map((t) =>
-                              t === task ? (t.startsWith("✓ ") ? t.slice(2) : `✓ ${t}`) : t,
-                            ),
-                          )
-                        }
-                      >
-                        {task.startsWith("✓ ") ? "☑" : "☐"} {task}
-                      </button>
+                      <div className="wp-cell" key={key}>
+                        {cellTasks.map((task, index) => (
+                          <div className="wp-cell-task" key={index}>
+                            <button onClick={() => toggleTask(day.key, period.slot, index)} type="button">
+                              {task.isDone ? "✓" : ""}
+                            </button>
+                            <input
+                              value={task.title}
+                              onChange={(event) => updateTask(day.key, period.slot, index, event.target.value)}
+                              placeholder="+ 할 일"
+                            />
+                          </div>
+                        ))}
+                        <button className="wp-add-task" onClick={() => addTask(day.key, period.slot)} type="button">
+                          + 추가
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -171,9 +394,11 @@ export default function WeeklyPlan() {
           </section>
 
           <section className="wp-board-actions">
-            <button>지난주 불러오기</button>
-            <button>임시저장</button>
-            <button className="is-save">이번 주 계획 저장하기</button>
+            <button onClick={() => moveWeek(-1)} type="button">지난주</button>
+            <button onClick={() => moveWeek(1)} type="button">다음주</button>
+            <button className="is-save" onClick={save} disabled={saving || membershipLocked} type="button">
+              이번 주 계획 저장하기
+            </button>
           </section>
         </main>
       )}

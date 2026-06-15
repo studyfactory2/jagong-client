@@ -185,6 +185,12 @@ export default function WaitingRoom() {
   const [bellMsg, setBellMsg] = useState("");
 
   useEffect(() => {
+    if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
+      navigate("/admin", { replace: true });
+    }
+  }, [navigate, session?.user.role]);
+
+  useEffect(() => {
     getTimetable()
       .then((items) => {
         if (!items.length) return;

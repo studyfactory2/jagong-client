@@ -357,3 +357,111 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* real weekly plan fields */
+.wp-error {
+  margin: 10px 18px 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wp-cell {
+  min-height: 68px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 4px;
+  align-items: center;
+  padding: 6px;
+}
+
+.wp-cell button {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  text-align: center;
+}
+
+.wp-cell input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  outline: none;
+}
+
+/* multi task weekly plan cells */
+.wp-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wp-cell-task {
+  display: grid;
+  grid-template-columns: 24px minmax(74px, 1fr);
+  align-items: center;
+  gap: 5px;
+}
+
+.wp-cell-task button {
+  width: 24px;
+  min-height: 24px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--mint-deep);
+}
+
+.wp-cell-task input {
+  min-height: 28px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.wp-cell .wp-add-task {
+  min-height: 26px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* membership lock callout */
+.wp-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wp-error button {
+  min-height: 34px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.wp-main-action:disabled,
+.wp-board-top button:disabled,
+.wp-board-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

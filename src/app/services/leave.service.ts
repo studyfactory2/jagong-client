@@ -3,6 +3,19 @@ import type { LeaveRecord, PaginatedResult, SpecialLeaveRecord } from "../../lib
 
 /** MEMBER LEAVE API **/
 
+export async function getLeaveCalendar(month: string): Promise<{
+  month: string;
+  leaves: LeaveRecord[];
+  specialLeaves: SpecialLeaveRecord[];
+}> {
+  const { data } = await http.get<{
+    month: string;
+    leaves: LeaveRecord[];
+    specialLeaves: SpecialLeaveRecord[];
+  }>("/leaves/calendar", { params: { month } });
+  return data;
+}
+
 export async function getMyLeaves(): Promise<LeaveRecord[]> {
   const { data } = await http.get<LeaveRecord[]>("/leaves/me");
   return data;

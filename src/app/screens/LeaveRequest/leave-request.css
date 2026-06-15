@@ -282,3 +282,56 @@
     font-size: 12px;
   }
 }
+
+/* real leave request fields */
+.lv-error,
+.lv-empty {
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lv-reason {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.lv-list-row button:disabled {
+  opacity: 0.5;
+}
+
+/* membership lock callout */
+.lv-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lv-error button {
+  min-height: 34px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.lv-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

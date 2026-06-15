@@ -447,3 +447,24 @@
     margin: 7px 0 0;
   }
 }
+
+/* real study room join state */
+.sr-join {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.sr-error {
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}

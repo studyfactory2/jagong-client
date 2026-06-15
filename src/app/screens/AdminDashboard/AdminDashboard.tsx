@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import AppShell from "../../components/ui/AppShell";
 import { useAuth } from "../../context/AuthContext";
@@ -63,7 +65,8 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 
 export default function AdminDashboard() {
   /** STATE **/
-  const { session, refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const { session, refreshUser, logout } = useAuth();
   const { socket } = useSocket();
   const [tab, setTab] = useState<AdminTabKey>("camera");
   const [data, setData] = useState<AdminData>(emptyAdminData);
@@ -301,7 +304,7 @@ export default function AdminDashboard() {
   async function saveNotice() {
     if (!isAdmin || !noticeTitle.trim() || !noticeContent.trim()) return;
     await runAdminAction(async () => {
-      await createNotice({ title: noticeTitle, content: noticeContent });
+      await createNotice({ title: noticeTitle, body: noticeContent });
       setNoticeTitle("");
       setNoticeContent("");
     }, "공지를 등록하지 못했습니다.");
@@ -479,10 +482,20 @@ export default function AdminDashboard() {
   }
 
   /** RENDER **/
+  function handleLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
   const actions = (
-    <button className="admin-refresh" onClick={load} type="button">
-      <RefreshOutlinedIcon /> 새로고침
-    </button>
+    <>
+      <button className="admin-refresh" onClick={load} type="button">
+        <RefreshOutlinedIcon /> 새로고침
+      </button>
+      <button className="admin-logout" onClick={handleLogout} type="button">
+        <LogoutOutlinedIcon /> 로그아웃
+      </button>
+    </>
   );
 
   if (!allowed) {
@@ -490,6 +503,7 @@ export default function AdminDashboard() {
       <AppShell
         title="관리자"
         subtitle="접근 권한이 필요합니다"
+        backTo="/admin"
         wide
         actions={actions}
       >
@@ -504,6 +518,7 @@ export default function AdminDashboard() {
     <AppShell
       title="관리자 작업실"
       subtitle="회원 · 상담 · 결제 · 휴가 · 캠 상태 관리"
+      backTo="/admin"
       wide
       actions={actions}
     >

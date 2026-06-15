@@ -10,7 +10,8 @@ export async function getNotices(): Promise<NoticeRecord[]> {
 
 export async function createNotice(input: {
   title: string;
-  content: string;
+  body: string;
+  level?: "NOTICE" | "IMPORTANT";
 }): Promise<NoticeRecord> {
   const { data } = await http.post<NoticeRecord>("/notices", input);
   return data;

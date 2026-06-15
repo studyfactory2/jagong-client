@@ -1734,3 +1734,67 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* admin header logout and tablet camera polish */
+.admin-logout {
+  color: var(--accent-deep) !important;
+}
+
+.admin-logout svg,
+.admin-refresh svg {
+  font-size: 18px;
+}
+
+@media (max-width: 1080px) and (min-width: 721px) {
+  .admin-camera-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .admin-camera-video {
+    aspect-ratio: 16 / 8.8;
+  }
+
+  .admin-camera-video strong {
+    max-width: 68px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-camera-meta dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .app-shell-actions {
+    gap: 6px;
+  }
+
+  .app-shell-actions .admin-refresh,
+  .app-shell-actions .admin-logout {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .admin-camera-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-camera-stats {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell-actions .admin-refresh {
+    display: none;
+  }
+
+  .admin-camera-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

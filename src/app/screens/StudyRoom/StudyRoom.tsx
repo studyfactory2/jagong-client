@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
@@ -8,6 +8,7 @@ import MicNoneIcon from "@mui/icons-material/MicNone";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import { joinCam, leaveCam } from "../../services/cam.service";
 import "./study-room.css";
 
 const WORKERS = [
@@ -32,6 +33,29 @@ const WORKERS = [
 export default function StudyRoom() {
   const navigate = useNavigate();
   const [visibleCount, setVisibleCount] = useState(16);
+  const [joined, setJoined] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (joined) void leaveCam(0);
+    };
+  }, [joined]);
+
+  async function toggleJoin() {
+    setError("");
+    try {
+      if (joined) {
+        await leaveCam(0);
+        setJoined(false);
+      } else {
+        await joinCam(0);
+        setJoined(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "작업장 입장 상태를 변경하지 못했습니다.");
+    }
+  }
 
   return (
     <div className="sr">
@@ -101,6 +125,10 @@ export default function StudyRoom() {
             })}
           </div>
 
+          {error && <p className="sr-error">{error}</p>}
+          <button className="sr-join" onClick={toggleJoin} type="button">
+            {joined ? "단체 작업장 퇴장" : "단체 작업장 입장"}
+          </button>
           <p className="sr-hint">
             창분할 버튼을 누르면 다른 사람 공부캠 수가 8개, 16개, 25개 순서로
             바뀝니다.
