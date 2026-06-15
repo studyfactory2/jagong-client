@@ -415,3 +415,35 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* desktop member inquiry layout */
+@media (min-width: 900px) {
+  .iq {
+    max-width: 1040px;
+    margin: 0 auto;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--paper);
+  }
+
+  .iq-head {
+    padding-inline: 30px;
+    grid-template-columns: 150px minmax(0, 1fr) 150px;
+  }
+
+  .iq-body {
+    display: grid;
+    grid-template-columns: minmax(330px, 0.82fr) minmax(0, 1.18fr);
+    align-items: start;
+    padding: 22px 30px 34px;
+  }
+
+  .iq-chat {
+    min-height: 620px;
+  }
+
+  .iq-messages {
+    min-height: 380px;
+  }
+}

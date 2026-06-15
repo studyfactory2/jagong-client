@@ -441,3 +441,109 @@
     flex-direction: column;
   }
 }
+
+/* final desktop/tablet organization: payment */
+@media (min-width: 900px) {
+  .pay {
+    width: min(calc(100vw - 56px), 1080px);
+    max-width: none;
+    margin: 0 auto;
+    background:
+      radial-gradient(circle at 25% 12%, rgba(159, 206, 180, 0.08), transparent 30%),
+      var(--paper);
+  }
+
+  .pay-head {
+    min-height: 80px;
+    padding-inline: 10px;
+    grid-template-columns: 160px minmax(0, 1fr) 160px;
+  }
+
+  .pay-body {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
+    grid-template-areas:
+      "error error"
+      "ticket fees"
+      "calendar fees"
+      "calendar history"
+      "alert history";
+    gap: 14px 16px;
+    padding: 22px 10px 38px;
+    align-items: start;
+  }
+
+  .pay-error {
+    grid-area: error;
+  }
+
+  .pay-ticket {
+    grid-area: ticket;
+    min-height: 78px;
+  }
+
+  .pay-calendar {
+    grid-area: calendar;
+    padding: 16px;
+  }
+
+  .pay-alert {
+    grid-area: alert;
+  }
+
+  .pay-fees {
+    grid-area: fees;
+    align-self: start;
+  }
+
+  .pay-history {
+    grid-area: history;
+    padding: 16px;
+  }
+
+  .pay-fees > div {
+    gap: 12px;
+  }
+
+  .pay-fees > div button {
+    min-height: 114px;
+  }
+
+  .pay-extend {
+    min-height: 54px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1100px) {
+  .pay {
+    width: min(calc(100vw - 32px), 960px);
+  }
+
+  .pay-body {
+    grid-template-columns: minmax(330px, 0.82fr) minmax(0, 1.18fr);
+    padding-inline: 8px;
+  }
+
+  .pay-fees > div {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* final desktop payment card polish */
+@media (min-width: 900px) {
+  .pay-fees {
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 16px;
+  }
+
+  .pay-fees h2,
+  .pay-history h2 {
+    margin-bottom: 12px;
+  }
+
+  .pay-row {
+    min-height: 48px;
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import MicNoneIcon from "@mui/icons-material/MicNone";
@@ -13,6 +14,7 @@ import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import { useAuth } from "../../context/AuthContext";
@@ -294,11 +296,24 @@ export default function WaitingRoom() {
         </div>
 
         <div className="wr-head-actions">
-          <button className="wr-icon-btn" aria-label="알림">
+          <button
+            className="wr-icon-btn"
+            aria-label="알림"
+            onClick={() =>
+              setBellMsg((current) => current || "새 관리자 알림이 없습니다.")
+            }
+          >
             <NotificationsNoneOutlinedIcon />
           </button>
-          <button className="wr-icon-btn" aria-label="로그아웃" onClick={logout}>
-            <SettingsOutlinedIcon />
+          <button
+            className="wr-icon-btn"
+            aria-label="로그아웃"
+            onClick={() => {
+              logout();
+              navigate("/login", { replace: true });
+            }}
+          >
+            <LogoutOutlinedIcon />
           </button>
         </div>
       </header>
@@ -462,6 +477,10 @@ export default function WaitingRoom() {
           <button onClick={() => navigate("/payments")}>
             <AccessTimeOutlinedIcon />
             연장하기
+          </button>
+          <button onClick={() => navigate("/my-page")}>
+            <AccountCircleOutlinedIcon />
+            내 정보
           </button>
           {canUseAdmin && (
             <button onClick={() => navigate("/admin")}>

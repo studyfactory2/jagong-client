@@ -465,3 +465,127 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* final desktop/tablet organization: weekly plan */
+@media (min-width: 900px) {
+  .wp {
+    width: min(calc(100vw - 56px), 1120px);
+    max-width: none;
+    margin: 0 auto;
+    background:
+      radial-gradient(circle at 78% 10%, rgba(244, 134, 120, 0.07), transparent 30%),
+      var(--paper);
+  }
+
+  .wp-head {
+    min-height: 80px;
+    padding-inline: 10px;
+    grid-template-columns: 160px minmax(0, 1fr) 170px;
+  }
+
+  .wp-body {
+    display: grid;
+    grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
+    grid-template-areas:
+      "guide calendar"
+      "goal memo"
+      "select action"
+      "todo done"
+      "help help";
+    gap: 14px 16px;
+    padding: 22px 10px 38px;
+    align-items: stretch;
+  }
+
+  .wp-guide {
+    grid-area: guide;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 124px;
+  }
+
+  .wp-calendar {
+    grid-area: calendar;
+    padding: 16px;
+  }
+
+  .wp-body > .wp-month-goal:nth-of-type(3) {
+    grid-area: goal;
+  }
+
+  .wp-body > .wp-month-goal:nth-of-type(4) {
+    grid-area: memo;
+  }
+
+  .wp-actions {
+    display: contents;
+  }
+
+  .wp-week-select {
+    grid-area: select;
+    min-height: 52px;
+  }
+
+  .wp-main-action {
+    grid-area: action;
+    min-height: 52px;
+  }
+
+  .wp-stats {
+    display: contents;
+  }
+
+  .wp-stats > div:first-child {
+    grid-area: todo;
+  }
+
+  .wp-stats > div:last-child {
+    grid-area: done;
+  }
+
+  .wp-help {
+    grid-area: help;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 16px 18px;
+  }
+
+  .wp-guide > span,
+  .wp-help > span {
+    min-width: 74px;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .wp-board {
+    width: min(calc(100vw - 56px), 1120px);
+    margin: 0 auto;
+    padding: 22px 10px 38px;
+  }
+
+  .wp-board-top {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 16px 18px;
+  }
+
+  .wp-table-head,
+  .wp-table-row,
+  .wp-break {
+    min-width: 900px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1100px) {
+  .wp {
+    width: min(calc(100vw - 32px), 980px);
+  }
+
+  .wp-body {
+    grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+    padding-inline: 8px;
+  }
+
+  .wp-board {
+    width: min(calc(100vw - 32px), 980px);
+    padding-inline: 8px;
+  }
+}

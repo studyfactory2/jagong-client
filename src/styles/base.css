@@ -88,3 +88,54 @@ a {
   font-size: 12px;
   font-weight: 900;
 }
+
+/* global admin warning modal */
+.socket-warning {
+  left: 50%;
+  top: max(22px, env(safe-area-inset-top));
+  bottom: auto;
+  width: min(520px, calc(100vw - 28px));
+  transform: translateX(-50%);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 26px 80px rgba(20, 63, 86, 0.26);
+  padding: 18px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.socket-warning::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgba(20, 63, 86, 0.16);
+  pointer-events: none;
+}
+
+.socket-warning strong {
+  font-size: 18px;
+}
+
+.socket-warning span {
+  grid-column: auto;
+  min-height: 56px;
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  display: flex;
+  align-items: center;
+  padding: 14px;
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.socket-warning button {
+  grid-column: auto;
+  justify-self: end;
+  min-width: 94px;
+  min-height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+}

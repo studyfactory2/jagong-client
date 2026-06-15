@@ -266,3 +266,15 @@
     margin-top: 10px;
   }
 }
+
+/* desktop member private room layout */
+@media (min-width: 900px) {
+  .sl {
+    max-width: 980px;
+    margin: 0 auto;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--paper);
+  }
+}

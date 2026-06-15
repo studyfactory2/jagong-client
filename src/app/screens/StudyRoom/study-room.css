@@ -468,3 +468,35 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* desktop member group room layout */
+@media (min-width: 900px) {
+  .sr {
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--paper);
+  }
+
+  .sr-head {
+    padding-inline: 30px;
+    grid-template-columns: 150px minmax(0, 1fr) 180px;
+  }
+
+  .sr-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.75fr);
+    align-items: start;
+    padding: 22px 30px 34px;
+  }
+
+  .sr-cams {
+    grid-row: span 3;
+  }
+
+  .sr-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

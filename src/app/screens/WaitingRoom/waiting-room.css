@@ -980,3 +980,10 @@
     animation: none !important;
   }
 }
+
+/* my page shortcut layout */
+@media (min-width: 900px) {
+  .wr-shortcuts {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

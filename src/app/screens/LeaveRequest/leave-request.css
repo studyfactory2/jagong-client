@@ -335,3 +335,90 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* final desktop/tablet organization: leave */
+@media (min-width: 900px) {
+  .lv {
+    width: min(calc(100vw - 56px), 1080px);
+    max-width: none;
+    margin: 0 auto;
+    background:
+      radial-gradient(circle at 20% 12%, rgba(159, 206, 180, 0.08), transparent 28%),
+      var(--paper);
+  }
+
+  .lv-head {
+    min-height: 80px;
+    padding-inline: 10px;
+    grid-template-columns: 160px minmax(0, 1fr) 160px;
+  }
+
+  .lv-body {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.82fr);
+    grid-template-areas:
+      "guide guide"
+      "calendar notice"
+      "calendar apply"
+      "calendar special"
+      "calendar list"
+      ". final";
+    gap: 14px 16px;
+    padding: 22px 10px 38px;
+  }
+
+  .lv-guide {
+    grid-area: guide;
+    padding: 18px 20px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .lv-guide > span {
+    min-width: 74px;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .lv-calendar {
+    grid-area: calendar;
+    padding: 16px;
+  }
+
+  .lv-body > .lv-info:nth-of-type(1) {
+    grid-area: notice;
+  }
+
+  .lv-body > .lv-info:nth-of-type(2) {
+    grid-area: special;
+  }
+
+  .lv-body > .lv-info:nth-of-type(3) {
+    grid-area: final;
+  }
+
+  .lv-apply {
+    grid-area: apply;
+    padding: 16px;
+  }
+
+  .lv-list {
+    grid-area: list;
+    padding: 16px;
+  }
+
+  .lv-days button {
+    min-height: 56px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1100px) {
+  .lv {
+    width: min(calc(100vw - 32px), 960px);
+  }
+
+  .lv-body {
+    grid-template-columns: minmax(360px, 0.95fr) minmax(330px, 0.9fr);
+    padding-inline: 8px;
+  }
+}
