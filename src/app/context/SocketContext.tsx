@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
@@ -31,12 +32,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [warning, setWarning] = useState<{ message: string; type?: string | null } | null>(null);
 
   useEffect(() => {
-    if (!session) {
-      setSocket(null);
-      setConnected(false);
-      setOnline(null);
-      return;
-    }
+    if (!session?.token) return;
 
     const s = connectSocket(session.token);
     // Track the REAL connection state — `s` exists before the handshake finishes.
@@ -46,10 +42,13 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     s.on("cam:warning", (payload: { message: string; type?: string | null }) => {
       setWarning({ message: payload.message, type: payload.type });
     });
-    setSocket(s);
+    queueMicrotask(() => setSocket(s));
 
     return () => {
       s.disconnect();
+      setSocket(null);
+      setConnected(false);
+      setOnline(null);
     };
   }, [session?.token]);
 

@@ -20,6 +20,7 @@ export type AdminTabKey =
 
 export type AdminData = {
   users: AdminUser[];
+  allMembers: AdminUser[];
   consultations: ConsultationRecord[];
   payments: PaymentRecord[];
   leaves: LeaveRecord[];
@@ -27,17 +28,33 @@ export type AdminData = {
   camSessions: CamSessionRecord[];
 };
 
-export type AdminPageKey = "users" | "consultations" | "payments" | "leaves" | "chats";
+export type AdminPageKey =
+  | "users"
+  | "consultations"
+  | "payments"
+  | "leaves"
+  | "chats";
 
 export type AdminPageMeta = Record<AdminPageKey, PageMeta>;
 
 export type AdminStats = {
   activeMembers: number;
+  totalMembers: number;
   pendingConsultations: number;
   paid: number;
   pendingLeaves: number;
   unanswered: number;
   working: number;
+};
+
+export const emptyAdminStats: AdminStats = {
+  activeMembers: 0,
+  totalMembers: 0,
+  pendingConsultations: 0,
+  paid: 0,
+  pendingLeaves: 0,
+  unanswered: 0,
+  working: 0,
 };
 
 export const emptyPageMeta: PageMeta = {
@@ -57,6 +74,7 @@ export const emptyAdminPageMeta: AdminPageMeta = {
 
 export const emptyAdminData: AdminData = {
   users: [],
+  allMembers: [],
   consultations: [],
   payments: [],
   leaves: [],
@@ -74,7 +92,6 @@ export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
   { key: "chat", label: "문의" },
   { key: "camera", label: "캠" },
 ];
-
 
 export const staffTabs: Array<{ key: AdminTabKey; label: string }> = [
   { key: "profile", label: "내 정보" },

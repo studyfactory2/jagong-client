@@ -16,9 +16,13 @@ import PaymentFail from "./app/screens/PaymentFail";
 import AdminDashboard from "./app/screens/AdminDashboard";
 import { useAuth } from "./app/context/AuthContext";
 
+function homePath(role?: string) {
+  return role === "ADMIN" || role === "STAFF" ? "/admin" : "/waiting-room";
+}
+
 function RootRedirect() {
   const { session } = useAuth();
-  return <Navigate to={session ? "/waiting-room" : "/login"} replace />;
+  return <Navigate to={session ? homePath(session.user.role) : "/login"} replace />;
 }
 
 export default function App() {

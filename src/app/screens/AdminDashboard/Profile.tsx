@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import type { AdminUser, Branch } from "../../../lib/types";
 
@@ -21,29 +21,25 @@ function branchName(branches: Branch[], branchId?: string | null) {
   return branches.find((branch) => branch.id === branchId)?.name ?? "지점 없음";
 }
 
+function profileForm(user: AdminUser | null): ProfileForm {
+  return {
+    name: user?.name ?? "",
+    phone: user?.phone ?? "",
+    residenceArea: user?.residenceArea ?? "",
+    examType: user?.examType ?? "",
+    prepDuration: user?.prepDuration ?? "",
+    password: "",
+  };
+}
+
 export default function Profile({ user, branches, onSave }: ProfileProps) {
   /** STATE **/
-  const [form, setForm] = useState<ProfileForm>({
-    name: "",
-    phone: "",
-    residenceArea: "",
-    examType: "",
-    prepDuration: "",
-    password: "",
-  });
+  const [form, setForm] = useState<ProfileForm>(() => profileForm(user));
   const [saving, setSaving] = useState(false);
 
-  /** EFFECTS **/
-  useEffect(() => {
-    setForm({
-      name: user?.name ?? "",
-      phone: user?.phone ?? "",
-      residenceArea: user?.residenceArea ?? "",
-      examType: user?.examType ?? "",
-      prepDuration: user?.prepDuration ?? "",
-      password: "",
-    });
-  }, [user?.id, user?.userId]);
+  /** DERIVED **/
+  const passwordInvalid = form.password.length > 0 && form.password.length !== 4;
+
 
   /** HANDLERS **/
   function update(field: keyof ProfileForm, value: string) {
@@ -51,7 +47,7 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
   }
 
   async function save() {
-    if (!user || saving || !form.name.trim()) return;
+    if (!user || saving || !form.name.trim() || passwordInvalid) return;
     setSaving(true);
     try {
       await onSave({
@@ -86,23 +82,38 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
       <div className="admin-profile-grid">
         <label>
           이름
-          <input value={form.name} onChange={(event) => update("name", event.target.value)} />
+          <input
+            value={form.name}
+            onChange={(event) => update("name", event.target.value)}
+          />
         </label>
         <label>
           연락처
-          <input value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+          <input
+            value={form.phone}
+            onChange={(event) => update("phone", event.target.value)}
+          />
         </label>
         <label>
           거주지역
-          <input value={form.residenceArea} onChange={(event) => update("residenceArea", event.target.value)} />
+          <input
+            value={form.residenceArea}
+            onChange={(event) => update("residenceArea", event.target.value)}
+          />
         </label>
         <label>
           자격증
-          <input value={form.examType} onChange={(event) => update("examType", event.target.value)} />
+          <input
+            value={form.examType}
+            onChange={(event) => update("examType", event.target.value)}
+          />
         </label>
         <label>
           준비기간
-          <input value={form.prepDuration} onChange={(event) => update("prepDuration", event.target.value)} />
+          <input
+            value={form.prepDuration}
+            onChange={(event) => update("prepDuration", event.target.value)}
+          />
         </label>
         <label>
           새 비밀번호 4자리
@@ -113,10 +124,20 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
             onChange={(event) => update("password", event.target.value)}
             placeholder="변경할 때만 입력"
           />
+          {passwordInvalid && (
+            <small className="admin-profile-hint is-error">
+              비밀번호는 4자리로 입력해주세요.
+            </small>
+          )}
         </label>
       </div>
 
-      <button className="admin-profile-save" disabled={saving || !form.name.trim()} onClick={save} type="button">
+      <button
+        className="admin-profile-save"
+        disabled={saving || !form.name.trim() || passwordInvalid}
+        onClick={save}
+        type="button"
+      >
         {saving ? "저장중" : "내 정보 저장"}
       </button>
     </section>

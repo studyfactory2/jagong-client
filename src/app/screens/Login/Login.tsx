@@ -18,6 +18,8 @@ import { useAuth } from "../../context/AuthContext";
 import type { Branch } from "../../../lib/types";
 import "./login.css";
 
+const AUTH_REMEMBER_KEY = "jagong_remember_login";
+
 const PREVIEW = [
   {
     nick: "오늘도합격",
@@ -70,7 +72,9 @@ export default function Login() {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
-  const [autoLogin, setAutoLogin] = useState(false);
+  const [autoLogin, setAutoLogin] = useState(
+    () => localStorage.getItem(AUTH_REMEMBER_KEY) === "1",
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [studyCount] = useState(() => Math.floor(Math.random() * 18) + 18);
@@ -198,7 +202,10 @@ export default function Login() {
               checked={autoLogin}
               onChange={(e) => setAutoLogin(e.target.checked)}
             />
-            자동로그인
+            <span>
+              자동로그인
+              <small>{autoLogin ? "다음 방문에도 유지" : "현재 세션만 유지"}</small>
+            </span>
           </label>
 
           <button

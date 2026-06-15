@@ -47,6 +47,7 @@ export async function confirmMembershipPayment(input: {
 export async function getAdminPayments(input?: {
   status?: PaymentStatus;
   userId?: string;
+  text?: string;
   page?: number;
   limit?: number;
 }): Promise<PaginatedResult<PaymentRecord>> {

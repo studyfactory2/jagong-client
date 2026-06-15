@@ -130,7 +130,7 @@ export interface AdminUser extends AuthUser {
   createdAt?: string;
 }
 
-export interface AdminUsersResult extends PaginatedResult<AdminUser> {}
+export type AdminUsersResult = PaginatedResult<AdminUser>;
 
 export interface ConsultationRecord {
   id: string;

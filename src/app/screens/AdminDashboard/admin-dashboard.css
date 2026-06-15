@@ -216,7 +216,6 @@
   }
 }
 
-
 .admin-camera {
   border: 1px solid var(--ink);
   border-radius: 18px;
@@ -724,9 +723,7 @@
   .admin-stat {
     min-height: 74px;
   }
-
 }
-
 
 .admin-section-head {
   display: flex;
@@ -884,7 +881,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 /* role-aware admin finish pass */
 .admin-members-card {
@@ -1130,7 +1126,6 @@
   }
 }
 
-
 /* cam warning and study-mode pass */
 .admin-camera-tile {
   appearance: none;
@@ -1143,7 +1138,9 @@
 
 .admin-camera-tile.is-selected {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-line), 0 10px 24px rgba(20, 63, 86, 0.08);
+  box-shadow:
+    0 0 0 2px var(--accent-line),
+    0 10px 24px rgba(20, 63, 86, 0.08);
 }
 
 .admin-camera-video strong {
@@ -1276,7 +1273,6 @@
   }
 }
 
-
 .admin-member-edit {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1349,7 +1345,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 
 /* private chatroom pass */
 .admin-chat-card {
@@ -1586,7 +1581,6 @@
   }
 }
 
-
 /* admin profile and shared pagination */
 .admin-list-pager {
   margin-top: 12px;
@@ -1676,4 +1670,67 @@
   .admin-profile-save {
     width: 100%;
   }
+}
+
+/* finalized admin list/profile states */
+.admin-list-empty {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: rgba(255, 254, 250, 0.72);
+  color: var(--muted);
+  padding: 18px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-profile-hint {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-profile-hint.is-error {
+  color: var(--accent-deep);
+}
+
+/* admin search controls */
+.admin-search {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.admin-search span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-search input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffefa;
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.admin-search input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.08);
+}
+
+.admin-camera-search {
+  margin-top: 12px;
+}
+
+.admin-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

@@ -5,30 +5,26 @@ import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute() {
   const { session, logout, refreshUser } = useAuth();
-  const [verified, setVerified] = useState(false);
+  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
 
     async function verify() {
-      if (!session) {
-        setVerified(false);
-        return;
-      }
+      if (!session) return;
 
       try {
         const user = await getMe();
         if (!alive) return;
         refreshUser(user);
-        setVerified(true);
+        setVerifiedToken(session.token);
       } catch {
         if (!alive) return;
         logout();
-        setVerified(false);
+        setVerifiedToken(null);
       }
     }
 
-    setVerified(false);
     verify();
 
     return () => {
@@ -37,7 +33,7 @@ export default function ProtectedRoute() {
   }, [session?.token]);
 
   if (!session) return <Navigate to="/login" replace />;
-  if (!verified) return null;
+  if (verifiedToken !== session.token) return null;
 
   return <Outlet />;
 }

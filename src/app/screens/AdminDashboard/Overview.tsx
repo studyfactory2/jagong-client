@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -48,6 +49,19 @@ export default function Overview(props: OverviewProps) {
     onSaveNotice,
     onSaveManualPayment,
   } = props;
+
+  const [manualUserSearch, setManualUserSearch] = useState("");
+  const manualUsers = useMemo(() => {
+    const query = manualUserSearch.trim().toLowerCase();
+    return users
+      .filter((user) => user.role === "MEMBER")
+      .filter((user) => {
+        if (!query) return true;
+        return [user.name, user.phone, user.examType, user.residenceArea]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
+      });
+  }, [manualUserSearch, users]);
 
   return (
     <section className="admin-grid">
@@ -105,13 +119,19 @@ export default function Overview(props: OverviewProps) {
         <h2>
           <CreditCardOutlinedIcon /> 수동 결제 등록
         </h2>
+        <label className="admin-search">
+          <span>결제 회원 검색</span>
+          <input
+            value={manualUserSearch}
+            onChange={(event) => setManualUserSearch(event.target.value)}
+            placeholder="이름, 연락처, 자격증, 지역 검색"
+          />
+        </label>
         <select
           value={manualUserId}
           onChange={(event) => onManualUserChange(event.target.value)}
         >
-          {users
-            .filter((user) => user.role === "MEMBER")
-            .map((user) => (
+          {manualUsers.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.name}
               </option>
@@ -135,11 +155,17 @@ export default function Overview(props: OverviewProps) {
           <strong>{manualReceiptFile?.name ?? "사진 선택"}</strong>
           <input
             accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => onManualReceiptChange(event.target.files?.[0] ?? null)}
+            onChange={(event) =>
+              onManualReceiptChange(event.target.files?.[0] ?? null)
+            }
             type="file"
           />
         </label>
-        <button disabled={savingManualPayment} onClick={onSaveManualPayment} type="button">
+        <button
+          disabled={savingManualPayment}
+          onClick={onSaveManualPayment}
+          type="button"
+        >
           {savingManualPayment ? "등록중" : "수동 결제 등록"}
         </button>
       </section>

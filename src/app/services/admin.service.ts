@@ -16,6 +16,29 @@ export async function getAdminUsers(input?: {
   return data;
 }
 
+export async function getAllAdminMembers(input?: {
+  branchId?: string;
+  text?: string;
+}): Promise<AdminUser[]> {
+  const { data } = await http.get<AdminUser[]>("/users/members/all", {
+    params: input,
+  });
+  return data;
+}
+
+export async function getAdminStats(): Promise<{
+  activeMembers: number;
+  totalMembers: number;
+  pendingConsultations: number;
+  paid: number;
+  pendingLeaves: number;
+  unanswered: number;
+  working: number;
+}> {
+  const { data } = await http.get("/users/admin-stats");
+  return data;
+}
+
 export async function preRegisterUser(input: {
   consultationId?: string;
   name: string;

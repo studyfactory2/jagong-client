@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, type ReactNode } from "react";
 import type { Session } from "../../lib/types";
 
@@ -15,15 +16,16 @@ const AuthContext = createContext<AuthContextValue>({
   refreshUser: () => {},
 });
 
-const KEY = "jagong_session";
+const AUTH_SESSION_KEY = "jagong_session";
+const AUTH_REMEMBER_KEY = "jagong_remember_login";
 
 function readSession(): Session | null {
   try {
-    const raw = localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(AUTH_SESSION_KEY) ?? sessionStorage.getItem(AUTH_SESSION_KEY);
     return raw ? (JSON.parse(raw) as Session) : null;
   } catch {
-    localStorage.removeItem(KEY);
-    sessionStorage.removeItem(KEY);
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
     return null;
   }
 }
@@ -36,14 +38,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (s: Session, remember = true) => {
     const store = remember ? localStorage : sessionStorage;
     const other = remember ? sessionStorage : localStorage;
-    store.setItem(KEY, JSON.stringify(s));
-    other.removeItem(KEY);
+    store.setItem(AUTH_SESSION_KEY, JSON.stringify(s));
+    other.removeItem(AUTH_SESSION_KEY);
+    if (remember) {
+      localStorage.setItem(AUTH_REMEMBER_KEY, "1");
+    } else {
+      localStorage.removeItem(AUTH_REMEMBER_KEY);
+    }
     setSession(s);
   };
 
   const logout = () => {
-    localStorage.removeItem(KEY);
-    sessionStorage.removeItem(KEY);
+    localStorage.removeItem(AUTH_SESSION_KEY);
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+    localStorage.removeItem(AUTH_REMEMBER_KEY);
     setSession(null);
   };
 
@@ -51,8 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession((current) => {
       if (!current) return current;
       const next = { ...current, user };
-      const store = localStorage.getItem(KEY) ? localStorage : sessionStorage;
-      store.setItem(KEY, JSON.stringify(next));
+      const store = localStorage.getItem(AUTH_SESSION_KEY) ? localStorage : sessionStorage;
+      store.setItem(AUTH_SESSION_KEY, JSON.stringify(next));
       return next;
     });
   };

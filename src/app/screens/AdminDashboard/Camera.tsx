@@ -5,13 +5,19 @@ import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
-import type { AdminUser, CamSessionRecord, TimetableSlot } from "../../../lib/types";
+import type {
+  AdminUser,
+  CamSessionRecord,
+  TimetableSlot,
+} from "../../../lib/types";
 import { dDayText, dateText, userDetail } from "./admin.utils";
 
 type CameraProps = {
   camSessions: CamSessionRecord[];
   timetable: TimetableSlot[];
   users: AdminUser[];
+  searchText: string;
+  onSearchChange: (value: string) => void;
   onWarn: (userId: string, message: string, type?: string) => Promise<void>;
 };
 
@@ -28,13 +34,22 @@ type CameraTile = {
 const PAGE_SIZE = 12;
 const WARNING_PRESETS = [
   { type: "SLEEP", label: "졸음", message: "졸지 말고 다시 집중해주세요." },
-  { type: "POSTURE", label: "자세", message: "자세를 바로 하고 화면에 집중해주세요." },
+  {
+    type: "POSTURE",
+    label: "자세",
+    message: "자세를 바로 하고 화면에 집중해주세요.",
+  },
   { type: "CAMERA", label: "카메라", message: "카메라 상태를 확인해주세요." },
-  { type: "AWAY", label: "자리", message: "자리비움이 감지되었습니다. 자리로 돌아와 주세요." },
+  {
+    type: "AWAY",
+    label: "자리",
+    message: "자리비움이 감지되었습니다. 자리로 돌아와 주세요.",
+  },
 ];
 
 function minutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
   return hour * 60 + minute;
 }
 
@@ -44,11 +59,19 @@ function currentSlot(slots: TimetableSlot[]) {
   return slots.find((slot) => {
     const start = minutes(slot.startTime);
     const end = minutes(slot.endTime);
+    if (start === null || end === null) return false;
     return current >= start && current < end;
   });
 }
 
-export default function Camera({ camSessions, timetable, users, onWarn }: CameraProps) {
+export default function Camera({
+  camSessions,
+  timetable,
+  users,
+  searchText,
+  onSearchChange,
+  onWarn,
+}: CameraProps) {
   /** STATE **/
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState("");
@@ -66,7 +89,19 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
         .map((session) => [session.userId, session]),
     );
 
-    const members = users.filter((user) => user.role === "MEMBER");
+    const query = searchText.trim().toLowerCase();
+    const members = users.filter((user) => {
+      if (user.role !== "MEMBER") return false;
+      if (!query) return true;
+      return [
+        user.name,
+        user.phone,
+        user.examType,
+        user.residenceArea,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
     return members.map((user) => {
       const live = liveByUser.get(user.id);
       return {
@@ -79,12 +114,16 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
         joinedAt: live?.joinedAt ?? live?.date,
       };
     });
-  }, [camSessions, users]);
+  }, [camSessions, users, searchText]);
 
   const totalPages = Math.max(1, Math.ceil(tiles.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const visibleTiles = tiles.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const selectedTile = tiles.find((tile) => tile.id === selectedId) ?? visibleTiles[0];
+  const visibleTiles = tiles.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
+  const selectedTile =
+    tiles.find((tile) => tile.id === selectedId) ?? visibleTiles[0];
   const workingCount = tiles.filter((tile) => tile.status === "working").length;
   const modeText = isStudyTime
     ? String(activeSlot?.label ?? activeSlot?.slot ?? "수업") + " 집중중"
@@ -114,13 +153,21 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
 
   /** RENDER **/
   return (
-    <section className={"admin-camera" + (isStudyTime ? " is-study-time" : " is-info-time")}>
+    <section
+      className={
+        "admin-camera" + (isStudyTime ? " is-study-time" : " is-info-time")
+      }
+    >
       <div className="admin-camera-head">
         <div>
           <h2>
             <VideocamOutlinedIcon /> 실시간 작업장 모니터
           </h2>
-          <p>{isStudyTime ? "집중 시간에는 화면과 이름만 간결하게 확인합니다." : "쉬는시간에는 회원 정보를 함께 확인합니다."}</p>
+          <p>
+            {isStudyTime
+              ? "집중 시간에는 화면과 이름만 간결하게 확인합니다."
+              : "쉬는시간에는 회원 정보를 함께 확인합니다."}
+          </p>
         </div>
 
         <div className="admin-camera-stats">
@@ -132,10 +179,22 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
         </div>
       </div>
 
+      <label className="admin-search admin-camera-search">
+        <span>캠 회원 검색</span>
+        <input
+          value={searchText}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="이름, 연락처, 자격증, 지역 검색"
+        />
+      </label>
+
       <div className="admin-camera-grid">
         {visibleTiles.map((tile, index) => (
           <button
-            className={"admin-camera-tile" + (selectedTile?.id === tile.id ? " is-selected" : "")}
+            className={
+              "admin-camera-tile" +
+              (selectedTile?.id === tile.id ? " is-selected" : "")
+            }
             key={tile.id}
             onClick={() => setSelectedId(tile.id)}
             type="button"
@@ -154,11 +213,25 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
                   <strong>{tile.name}</strong>
                   <em>{dDayText(tile.membershipEnd)}</em>
                 </div>
-                <span>{tile.status === "working" ? String(tile.slot ?? "-") + "교시 입장중" : "미입장"}</span>
-                <small>{tile.joinedAt ? dateText(tile.joinedAt) : "자리 " + String(index + 1)}</small>
+                <span>
+                  {tile.status === "working"
+                    ? String(tile.slot ?? "-") + "교시 입장중"
+                    : "미입장"}
+                </span>
+                <small>
+                  {tile.joinedAt
+                    ? dateText(tile.joinedAt)
+                    : "자리 " + String(index + 1)}
+                </small>
                 <dl>
-                  <div><dt>나이</dt><dd>{userDetail(tile.age)}</dd></div>
-                  <div><dt>결제</dt><dd>{dDayText(tile.membershipEnd)}</dd></div>
+                  <div>
+                    <dt>나이</dt>
+                    <dd>{userDetail(tile.age)}</dd>
+                  </div>
+                  <div>
+                    <dt>결제</dt>
+                    <dd>{dDayText(tile.membershipEnd)}</dd>
+                  </div>
                 </dl>
               </div>
             )}
@@ -197,6 +270,11 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
             <input
               value={customMessage}
               onChange={(event) => setCustomMessage(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                  sendWarning(customMessage, "CUSTOM");
+                }
+              }}
               placeholder="예) 졸지 말고 집중해주세요."
             />
           </label>
@@ -218,7 +296,11 @@ export default function Camera({ camSessions, timetable, users, onWarn }: Camera
         <span>
           {safePage} / {totalPages}
         </span>
-        <button onClick={goNext} disabled={safePage === totalPages} type="button">
+        <button
+          onClick={goNext}
+          disabled={safePage === totalPages}
+          type="button"
+        >
           다음 <NavigateNextOutlinedIcon />
         </button>
       </div>

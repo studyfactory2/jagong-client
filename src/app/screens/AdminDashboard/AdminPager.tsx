@@ -13,13 +13,21 @@ export default function AdminPager({ meta, onPageChange }: AdminPagerProps) {
 
   return (
     <div className="admin-list-pager">
-      <button disabled={meta.page <= 1} onClick={() => onPageChange(previous)} type="button">
+      <button
+        disabled={meta.page <= 1}
+        onClick={() => onPageChange(previous)}
+        type="button"
+      >
         이전
       </button>
       <span>
         {meta.page} / {meta.totalPages}
       </span>
-      <button disabled={meta.page >= meta.totalPages} onClick={() => onPageChange(next)} type="button">
+      <button
+        disabled={meta.page >= meta.totalPages}
+        onClick={() => onPageChange(next)}
+        type="button"
+      >
         다음
       </button>
     </div>

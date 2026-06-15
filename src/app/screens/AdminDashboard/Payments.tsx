@@ -5,12 +5,14 @@ import { dateText, money, userName } from "./admin.utils";
 type PaymentsProps = {
   payments: PaymentRecord[];
   users: AdminUser[];
+  searchText: string;
+  onSearchChange: (value: string) => void;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
 };
 
 export default function Payments(props: PaymentsProps) {
-  const { payments, users, pageMeta, onPageChange } = props;
+  const { payments, users, searchText, onSearchChange, pageMeta, onPageChange } = props;
 
   return (
     <section className="admin-card">
@@ -19,7 +21,19 @@ export default function Payments(props: PaymentsProps) {
         <span>{pageMeta.total}건</span>
       </div>
 
+      <label className="admin-search">
+        <span>결제 검색</span>
+        <input
+          value={searchText}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="회원명, 연락처, 입금자명, 메모 검색"
+        />
+      </label>
+
       <div className="admin-table">
+        {payments.length === 0 && (
+          <div className="admin-list-empty">결제 내역이 없습니다.</div>
+        )}
         {payments.map((payment) => (
           <div className="admin-row is-payment" key={payment.id}>
             <strong>{userName(users, payment.userId)}</strong>
@@ -30,13 +44,16 @@ export default function Payments(props: PaymentsProps) {
 
             <div className="admin-receipt-actions">
               {payment.receiptSignedUrl ? (
-                <a href={payment.receiptSignedUrl} rel="noreferrer" target="_blank">
+                <a
+                  href={payment.receiptSignedUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   영수증 보기
                 </a>
               ) : (
                 <span>영수증 없음</span>
               )}
-
             </div>
           </div>
         ))}

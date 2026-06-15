@@ -21,7 +21,6 @@ export function userName(users: AdminUser[], userId: string) {
   );
 }
 
-
 export function dDayText(value?: string | null) {
   if (!value) return "결제일 없음";
   const end = new Date(value);

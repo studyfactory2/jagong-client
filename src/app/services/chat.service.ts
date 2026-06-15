@@ -1,5 +1,10 @@
 import { http } from "./http";
-import type { ChatMessage, ChatRoom, ChatRoomMessage, PaginatedResult } from "../../lib/types";
+import type {
+  ChatMessage,
+  ChatRoom,
+  ChatRoomMessage,
+  PaginatedResult,
+} from "../../lib/types";
 
 /** MEMBER ROOM CHAT API **/
 
@@ -8,7 +13,9 @@ export async function getMyChatRoom(): Promise<ChatRoom> {
   return data;
 }
 
-export async function sendMyChatMessage(content: string): Promise<ChatRoomMessage> {
+export async function sendMyChatMessage(
+  content: string,
+): Promise<ChatRoomMessage> {
   const { data } = await http.post<ChatRoomMessage>("/chat/me/messages", {
     content,
   });
@@ -44,8 +51,12 @@ export async function sendAdminChatMessage(
   return data;
 }
 
-export async function markAdminChatRoomRead(userId: string): Promise<{ ok: true }> {
-  const { data } = await http.post<{ ok: true }>("/chat/rooms/" + userId + "/read");
+export async function markAdminChatRoomRead(
+  userId: string,
+): Promise<{ ok: true }> {
+  const { data } = await http.post<{ ok: true }>(
+    "/chat/rooms/" + userId + "/read",
+  );
   return data;
 }
 
@@ -55,7 +66,9 @@ export async function getMyChat(): Promise<ChatRoom> {
   return await getMyChatRoom();
 }
 
-export async function sendChatMessage(message: string): Promise<ChatRoomMessage> {
+export async function sendChatMessage(
+  message: string,
+): Promise<ChatRoomMessage> {
   return await sendMyChatMessage(message);
 }
 

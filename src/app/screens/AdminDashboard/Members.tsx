@@ -34,6 +34,8 @@ type MemberEditForm = {
 type MembersProps = {
   users: AdminUser[];
   branches: Branch[];
+  searchText: string;
+  onSearchChange: (value: string) => void;
   preRegister: MemberForm;
   staffForm: StaffForm;
   onPreRegisterChange: (field: keyof MemberForm, value: string) => void;
@@ -55,6 +57,8 @@ export default function Members(props: MembersProps) {
   const {
     users,
     branches,
+    searchText,
+    onSearchChange,
     preRegister,
     staffForm,
     onPreRegisterChange,
@@ -71,7 +75,9 @@ export default function Members(props: MembersProps) {
   const [savingId, setSavingId] = useState("");
 
   const members = users.filter((user) => user.role === "MEMBER");
-  const staff = users.filter((user) => user.role === "STAFF" || user.role === "ADMIN");
+  const staff = users.filter(
+    (user) => user.role === "STAFF" || user.role === "ADMIN",
+  );
 
   function startEdit(user: AdminUser) {
     setEditingId(user.id);
@@ -87,7 +93,9 @@ export default function Members(props: MembersProps) {
   }
 
   function updateEdit(field: keyof MemberEditForm, value: string | boolean) {
-    setEditForm((current) => current ? { ...current, [field]: value } : current);
+    setEditForm((current) =>
+      current ? { ...current, [field]: value } : current,
+    );
   }
 
   async function saveEdit(userId: string) {
@@ -117,6 +125,15 @@ export default function Members(props: MembersProps) {
         <span>{pageMeta.total}명</span>
       </div>
 
+      <label className="admin-search">
+        <span>회원 검색</span>
+        <input
+          value={searchText}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="이름, 연락처, 자격증, 지역 검색"
+        />
+      </label>
+
       <section className="admin-pre-register">
         <div>
           <strong>회원 사전등록</strong>
@@ -128,7 +145,9 @@ export default function Members(props: MembersProps) {
             이름
             <input
               value={preRegister.name}
-              onChange={(event) => onPreRegisterChange("name", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("name", event.target.value)
+              }
               placeholder="회원 이름"
             />
           </label>
@@ -137,7 +156,9 @@ export default function Members(props: MembersProps) {
             지점
             <select
               value={preRegister.branchId}
-              onChange={(event) => onPreRegisterChange("branchId", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("branchId", event.target.value)
+              }
             >
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -151,7 +172,9 @@ export default function Members(props: MembersProps) {
             연락처
             <input
               value={preRegister.phone}
-              onChange={(event) => onPreRegisterChange("phone", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("phone", event.target.value)
+              }
               placeholder="010-0000-0000"
             />
           </label>
@@ -160,7 +183,9 @@ export default function Members(props: MembersProps) {
             거주지역
             <input
               value={preRegister.residenceArea}
-              onChange={(event) => onPreRegisterChange("residenceArea", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("residenceArea", event.target.value)
+              }
               placeholder="예) 서울 / 수원"
             />
           </label>
@@ -170,7 +195,9 @@ export default function Members(props: MembersProps) {
             <input
               inputMode="numeric"
               value={preRegister.age}
-              onChange={(event) => onPreRegisterChange("age", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("age", event.target.value)
+              }
               placeholder="선택"
             />
           </label>
@@ -179,7 +206,9 @@ export default function Members(props: MembersProps) {
             준비자격증
             <input
               value={preRegister.examType}
-              onChange={(event) => onPreRegisterChange("examType", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("examType", event.target.value)
+              }
               placeholder="예) 세무사"
             />
           </label>
@@ -188,7 +217,9 @@ export default function Members(props: MembersProps) {
             준비한기간
             <input
               value={preRegister.prepDuration}
-              onChange={(event) => onPreRegisterChange("prepDuration", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("prepDuration", event.target.value)
+              }
               placeholder="예) 6개월"
             />
           </label>
@@ -197,7 +228,9 @@ export default function Members(props: MembersProps) {
             메모
             <input
               value={preRegister.notes}
-              onChange={(event) => onPreRegisterChange("notes", event.target.value)}
+              onChange={(event) =>
+                onPreRegisterChange("notes", event.target.value)
+              }
               placeholder="관리자 메모"
             />
           </label>
@@ -229,7 +262,9 @@ export default function Members(props: MembersProps) {
               inputMode="numeric"
               maxLength={4}
               value={staffForm.password}
-              onChange={(event) => onStaffChange("password", event.target.value)}
+              onChange={(event) =>
+                onStaffChange("password", event.target.value)
+              }
               placeholder="0000"
             />
           </label>
@@ -237,7 +272,9 @@ export default function Members(props: MembersProps) {
             지점
             <select
               value={staffForm.branchId}
-              onChange={(event) => onStaffChange("branchId", event.target.value)}
+              onChange={(event) =>
+                onStaffChange("branchId", event.target.value)
+              }
             >
               {branches.map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -262,6 +299,9 @@ export default function Members(props: MembersProps) {
       </section>
 
       <div className="admin-member-list">
+        {members.length === 0 && (
+          <div className="admin-list-empty">등록된 회원이 없습니다.</div>
+        )}
         {members.map((user) => {
           const editing = editingId === user.id && editForm;
           return (
@@ -273,20 +313,86 @@ export default function Members(props: MembersProps) {
 
               {editing ? (
                 <div className="admin-member-edit">
-                  <label>연락처<input value={editForm.phone} onChange={(event) => updateEdit("phone", event.target.value)} /></label>
-                  <label>거주지역<input value={editForm.residenceArea} onChange={(event) => updateEdit("residenceArea", event.target.value)} /></label>
-                  <label>나이<input inputMode="numeric" value={editForm.age} onChange={(event) => updateEdit("age", event.target.value)} /></label>
-                  <label>자격증<input value={editForm.examType} onChange={(event) => updateEdit("examType", event.target.value)} /></label>
-                  <label>준비기간<input value={editForm.prepDuration} onChange={(event) => updateEdit("prepDuration", event.target.value)} /></label>
-                  <label>메모<input value={editForm.notes} onChange={(event) => updateEdit("notes", event.target.value)} /></label>
+                  <label>
+                    연락처
+                    <input
+                      value={editForm.phone}
+                      onChange={(event) =>
+                        updateEdit("phone", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    거주지역
+                    <input
+                      value={editForm.residenceArea}
+                      onChange={(event) =>
+                        updateEdit("residenceArea", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    나이
+                    <input
+                      inputMode="numeric"
+                      value={editForm.age}
+                      onChange={(event) =>
+                        updateEdit("age", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    자격증
+                    <input
+                      value={editForm.examType}
+                      onChange={(event) =>
+                        updateEdit("examType", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    준비기간
+                    <input
+                      value={editForm.prepDuration}
+                      onChange={(event) =>
+                        updateEdit("prepDuration", event.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    메모
+                    <input
+                      value={editForm.notes}
+                      onChange={(event) =>
+                        updateEdit("notes", event.target.value)
+                      }
+                    />
+                  </label>
                   <label className="admin-member-check">
-                    <input checked={editForm.isActive} onChange={(event) => updateEdit("isActive", event.target.checked)} type="checkbox" /> 활성 회원
+                    <input
+                      checked={editForm.isActive}
+                      onChange={(event) =>
+                        updateEdit("isActive", event.target.checked)
+                      }
+                      type="checkbox"
+                    />{" "}
+                    활성 회원
                   </label>
                   <div className="admin-member-actions">
-                    <button disabled={savingId === user.id} onClick={() => saveEdit(user.id)} type="button">
+                    <button
+                      disabled={savingId === user.id}
+                      onClick={() => saveEdit(user.id)}
+                      type="button"
+                    >
                       {savingId === user.id ? "저장중" : "저장"}
                     </button>
-                    <button onClick={() => { setEditingId(""); setEditForm(null); }} type="button">
+                    <button
+                      onClick={() => {
+                        setEditingId("");
+                        setEditForm(null);
+                      }}
+                      type="button"
+                    >
                       취소
                     </button>
                   </div>
@@ -294,15 +400,40 @@ export default function Members(props: MembersProps) {
               ) : (
                 <>
                   <div className="admin-member-fields">
-                    <span><b>나이</b>{userDetail(user.age)}</span>
-                    <span><b>지역</b>{userDetail(user.residenceArea)}</span>
-                    <span><b>자격증</b>{userDetail(user.examType)}</span>
-                    <span><b>준비기간</b>{userDetail(user.prepDuration)}</span>
-                    <span><b>결제</b>{dDayText(user.membershipEnd)}</span>
-                    <span><b>상태</b>{user.isActive ? "활성" : "대기"}</span>
-                    <span><b>연락처</b>{userDetail(user.phone, "없음")}</span>
+                    <span>
+                      <b>나이</b>
+                      {userDetail(user.age)}
+                    </span>
+                    <span>
+                      <b>지역</b>
+                      {userDetail(user.residenceArea)}
+                    </span>
+                    <span>
+                      <b>자격증</b>
+                      {userDetail(user.examType)}
+                    </span>
+                    <span>
+                      <b>준비기간</b>
+                      {userDetail(user.prepDuration)}
+                    </span>
+                    <span>
+                      <b>결제</b>
+                      {dDayText(user.membershipEnd)}
+                    </span>
+                    <span>
+                      <b>상태</b>
+                      {user.isActive ? "활성" : "대기"}
+                    </span>
+                    <span>
+                      <b>연락처</b>
+                      {userDetail(user.phone, "없음")}
+                    </span>
                   </div>
-                  <button className="admin-member-edit-button" onClick={() => startEdit(user)} type="button">
+                  <button
+                    className="admin-member-edit-button"
+                    onClick={() => startEdit(user)}
+                    type="button"
+                  >
                     수정
                   </button>
                 </>

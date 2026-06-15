@@ -28,6 +28,7 @@ export async function getAdminLeaves(input?: {
   status?: string;
   branchId?: string;
   date?: string;
+  text?: string;
   page?: number;
   limit?: number;
 }): Promise<PaginatedResult<LeaveRecord>> {

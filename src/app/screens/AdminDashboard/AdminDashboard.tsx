@@ -1,9 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import AppShell from "../../components/ui/AppShell";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
-import { createStaffUser, getAdminUsers, preRegisterUser, updateAdminUser } from "../../services/admin.service";
+import {
+  createStaffUser,
+  getAdminStats,
+  getAdminUsers,
+  getAllAdminMembers,
+  preRegisterUser,
+  updateAdminUser,
+} from "../../services/admin.service";
 import { getMe, updateMyProfile } from "../../services/auth.service";
 import {
   getAdminConsultations,
@@ -37,6 +44,7 @@ import {
   adminTabs,
   emptyAdminData,
   emptyAdminPageMeta,
+  emptyAdminStats,
   staffTabs,
   type AdminData,
   type AdminStats,
@@ -51,12 +59,21 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<AdminTabKey>("camera");
   const [data, setData] = useState<AdminData>(emptyAdminData);
   const [pageMeta, setPageMeta] = useState(emptyAdminPageMeta);
+  const [stats, setStats] = useState<AdminStats>(emptyAdminStats);
   const [pages, setPages] = useState({
     users: 1,
     consultations: 1,
     payments: 1,
     leaves: 1,
     chats: 1,
+  });
+  const [search, setSearch] = useState({
+    users: "",
+    consultations: "",
+    payments: "",
+    leaves: "",
+    chats: "",
+    camera: "",
   });
   const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,40 +110,31 @@ export default function AdminDashboard() {
   const isStaff = role === "STAFF";
   const allowed = isAdmin || isStaff;
   const visibleTabs = isAdmin ? adminTabs : staffTabs;
-
-  const stats: AdminStats = useMemo(() => {
-    const pendingConsultations = data.consultations.filter(
-      (item) => item.status === "PENDING",
-    ).length;
-    const pendingLeaves = data.leaves.filter(
-      (item) => item.status === "PENDING",
-    ).length;
-    const paid = data.payments.filter((item) => item.status === "PAID").length;
-    const activeMembers = data.users.filter(
-      (user) => user.role === "MEMBER" && user.isActive,
-    ).length;
-    const working = data.camSessions.filter((sessionItem) => !sessionItem.leftAt).length;
-    const unanswered = data.chats.reduce(
-      (sum, room) => sum + (room.unreadCount ?? 0),
-      0,
-    );
-    return { pendingConsultations, pendingLeaves, paid, activeMembers, working, unanswered };
-  }, [data]);
+  const activeTab: AdminTabKey = visibleTabs.some((item) => item.key === tab)
+    ? tab
+    : (visibleTabs[0]?.key ?? "camera");
 
   /** EFFECTS **/
   useEffect(() => {
     load();
-  }, [allowed, isAdmin, pages.users, pages.consultations, pages.payments, pages.leaves, pages.chats]);
-
-  useEffect(() => {
-    if (!visibleTabs.some((item) => item.key === tab)) {
-      setTab(visibleTabs[0]?.key ?? "camera");
-    }
-  }, [tab, visibleTabs]);
+  }, [
+    allowed,
+    isAdmin,
+    pages.users,
+    pages.consultations,
+    pages.payments,
+    pages.leaves,
+    pages.chats,
+    search.users,
+    search.consultations,
+    search.payments,
+    search.leaves,
+    search.chats,
+  ]);
 
   useEffect(() => {
     if (!socket || !allowed) return;
-    const refreshCamera = () => load();
+    const refreshCamera = () => refreshLiveData();
     socket.on("cam:join", refreshCamera);
     socket.on("cam:leave", refreshCamera);
     socket.on("cam:alert", refreshCamera);
@@ -147,20 +155,43 @@ export default function AdminDashboard() {
     setError("");
     setLoading(true);
     try {
-      const [usersResult, branchData, timetableData, chatsResult, camSessions, me] = await Promise.all([
-        getAdminUsers({ page: pages.users, limit: 12 }),
+      const [
+        usersResult,
+        branchData,
+        timetableData,
+        chatsResult,
+        camSessions,
+        me,
+        allMembers,
+        statsResult,
+      ] = await Promise.all([
+        getAdminUsers({ page: pages.users, limit: 12, text: search.users }),
         getBranches(),
         getTimetable(),
-        getAdminChatRooms({ page: pages.chats, limit: 12 }),
+        getAdminChatRooms({ page: pages.chats, limit: 12, text: search.chats }),
         getCamSessions(),
         getMe(),
+        getAllAdminMembers(),
+        getAdminStats(),
       ]);
 
       const [consultations, payments, leaves] = isAdmin
         ? await Promise.all([
-            getAdminConsultations({ page: pages.consultations, limit: 10 }),
-            getAdminPayments({ page: pages.payments, limit: 10 }),
-            getAdminLeaves({ page: pages.leaves, limit: 10 }),
+            getAdminConsultations({
+              page: pages.consultations,
+              limit: 10,
+              text: search.consultations,
+            }),
+            getAdminPayments({
+              page: pages.payments,
+              limit: 10,
+              text: search.payments,
+            }),
+            getAdminLeaves({
+              page: pages.leaves,
+              limit: 10,
+              text: search.leaves,
+            }),
           ])
         : [
             { ...emptyAdminPageMeta.consultations, list: [] },
@@ -171,8 +202,10 @@ export default function AdminDashboard() {
       setBranches(branchData);
       setTimetable(timetableData);
       setProfileUser(me as AdminUser);
+      setStats(statsResult);
       setData({
         users: usersResult.list,
+        allMembers,
         consultations: consultations.list ?? [],
         payments: payments.list ?? [],
         leaves: leaves.list ?? [],
@@ -181,12 +214,14 @@ export default function AdminDashboard() {
       });
       setPageMeta({
         users: usersResult,
-        consultations: consultations.list ? consultations : emptyAdminPageMeta.consultations,
+        consultations: consultations.list
+          ? consultations
+          : emptyAdminPageMeta.consultations,
         payments: payments.list ? payments : emptyAdminPageMeta.payments,
         leaves: leaves.list ? leaves : emptyAdminPageMeta.leaves,
         chats: chatsResult,
       });
-      setManualUserId((current) => current || usersResult.list[0]?.id || "");
+      setManualUserId((current) => current || allMembers[0]?.id || "");
       setPreRegister((current) => ({
         ...current,
         branchId: current.branchId || branchData[0]?.id || "",
@@ -196,17 +231,56 @@ export default function AdminDashboard() {
         branchId: current.branchId || branchData[0]?.id || "",
       }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "관리자 정보를 불러오지 못했습니다.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "관리자 정보를 불러오지 못했습니다.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  async function refreshLiveData() {
+    if (!allowed) return;
+    try {
+      const [camSessions, chatsResult, statsResult] = await Promise.all([
+        getCamSessions(),
+        getAdminChatRooms({ page: pages.chats, limit: 12, text: search.chats }),
+        getAdminStats(),
+      ]);
+      setStats(statsResult);
+      setData((current) => ({
+        ...current,
+        camSessions,
+        chats: chatsResult.list,
+      }));
+      setPageMeta((current) => ({ ...current, chats: chatsResult }));
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "실시간 정보를 갱신하지 못했습니다.",
+      );
+    }
+  }
+
+  async function runAdminAction(action: () => Promise<void>, fallback: string) {
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : fallback);
+    }
+  }
+
   async function saveNotice() {
     if (!isAdmin || !noticeTitle.trim() || !noticeContent.trim()) return;
-    await createNotice({ title: noticeTitle, content: noticeContent });
-    setNoticeTitle("");
-    setNoticeContent("");
+    await runAdminAction(async () => {
+      await createNotice({ title: noticeTitle, content: noticeContent });
+      setNoticeTitle("");
+      setNoticeContent("");
+    }, "공지를 등록하지 못했습니다.");
   }
 
   function updatePreRegister(field: keyof typeof preRegister, value: string) {
@@ -215,45 +289,50 @@ export default function AdminDashboard() {
 
   async function savePreRegister() {
     if (!isAdmin || !preRegister.name.trim() || !preRegister.branchId) return;
-    await preRegisterUser({
-      name: preRegister.name.trim(),
-      branchId: preRegister.branchId,
-      phone: preRegister.phone.trim() || undefined,
-      residenceArea: preRegister.residenceArea.trim() || undefined,
-      age: preRegister.age ? Number(preRegister.age) : undefined,
-      examType: preRegister.examType.trim() || undefined,
-      prepDuration: preRegister.prepDuration.trim() || undefined,
-      notes: preRegister.notes.trim() || undefined,
-    });
-    setPreRegister((current) => ({
-      ...current,
-      name: "",
-      phone: "",
-      residenceArea: "",
-      age: "",
-      examType: "",
-      prepDuration: "",
-      notes: "",
-    }));
-    await load();
+    await runAdminAction(async () => {
+      await preRegisterUser({
+        name: preRegister.name.trim(),
+        branchId: preRegister.branchId,
+        phone: preRegister.phone.trim() || undefined,
+        residenceArea: preRegister.residenceArea.trim() || undefined,
+        age: preRegister.age ? Number(preRegister.age) : undefined,
+        examType: preRegister.examType.trim() || undefined,
+        prepDuration: preRegister.prepDuration.trim() || undefined,
+        notes: preRegister.notes.trim() || undefined,
+      });
+      setPreRegister((current) => ({
+        ...current,
+        name: "",
+        phone: "",
+        residenceArea: "",
+        age: "",
+        examType: "",
+        prepDuration: "",
+        notes: "",
+      }));
+      await load();
+    }, "사전등록을 저장하지 못했습니다.");
   }
 
   async function saveManualPayment() {
-    if (!isAdmin || !manualUserId || !manualName.trim() || savingManualPayment) return;
+    if (!isAdmin || !manualUserId || !manualName.trim() || savingManualPayment)
+      return;
     setSavingManualPayment(true);
     try {
-      const payment = await recordManualPayment({
-        userId: manualUserId,
-        planMonths: manualMonths,
-        depositorName: manualName,
-        paidAt: new Date().toISOString(),
-      });
-      if (manualReceiptFile) {
-        await attachPaymentReceipt(payment.id, manualReceiptFile);
-      }
-      setManualName("");
-      setManualReceiptFile(null);
-      await load();
+      await runAdminAction(async () => {
+        const payment = await recordManualPayment({
+          userId: manualUserId,
+          planMonths: manualMonths,
+          depositorName: manualName,
+          paidAt: new Date().toISOString(),
+        });
+        if (manualReceiptFile) {
+          await attachPaymentReceipt(payment.id, manualReceiptFile);
+        }
+        setManualName("");
+        setManualReceiptFile(null);
+        await load();
+      }, "수동 결제를 등록하지 못했습니다.");
     } finally {
       setSavingManualPayment(false);
     }
@@ -261,21 +340,27 @@ export default function AdminDashboard() {
 
   async function completeConsultation(id: string) {
     if (!isAdmin) return;
-    await updateConsultation(id, { status: "COMPLETED" });
-    await load();
+    await runAdminAction(async () => {
+      await updateConsultation(id, { status: "COMPLETED" });
+      await load();
+    }, "상담 상태를 변경하지 못했습니다.");
   }
 
   async function confirmConsultation(id: string) {
     if (!isAdmin) return;
-    await updateConsultation(id, { status: "CONFIRMED" });
-    await load();
+    await runAdminAction(async () => {
+      await updateConsultation(id, { status: "CONFIRMED" });
+      await load();
+    }, "상담 상태를 변경하지 못했습니다.");
   }
 
   async function handleLeave(id: string, action: "approve" | "reject") {
     if (!isAdmin) return;
-    if (action === "approve") await approveLeave(id);
-    else await rejectLeave(id);
-    await load();
+    await runAdminAction(async () => {
+      if (action === "approve") await approveLeave(id);
+      else await rejectLeave(id);
+      await load();
+    }, "휴가 상태를 변경하지 못했습니다.");
   }
 
   function updateStaffForm(field: keyof typeof staffForm, value: string) {
@@ -283,27 +368,35 @@ export default function AdminDashboard() {
   }
 
   async function saveStaff() {
-    if (!isAdmin || !staffForm.name.trim() || staffForm.password.length !== 4) return;
-    await createStaffUser({
-      name: staffForm.name.trim(),
-      password: staffForm.password,
-      role: "STAFF",
-      branchId: staffForm.branchId || undefined,
-      phone: staffForm.phone.trim() || undefined,
-    });
-    setStaffForm((current) => ({
-      ...current,
-      name: "",
-      password: "",
-      phone: "",
-    }));
-    await load();
+    if (!isAdmin || !staffForm.name.trim() || staffForm.password.length !== 4)
+      return;
+    await runAdminAction(async () => {
+      await createStaffUser({
+        name: staffForm.name.trim(),
+        password: staffForm.password,
+        role: "STAFF",
+        branchId: staffForm.branchId || undefined,
+        phone: staffForm.phone.trim() || undefined,
+      });
+      setStaffForm((current) => ({
+        ...current,
+        name: "",
+        password: "",
+        phone: "",
+      }));
+      await load();
+    }, "직원 등록에 실패했습니다.");
   }
 
-  async function saveUserProfile(userId: string, input: Partial<(typeof data.users)[number]>) {
+  async function saveUserProfile(
+    userId: string,
+    input: Partial<(typeof data.users)[number]>,
+  ) {
     if (!isAdmin) return;
-    await updateAdminUser(userId, input);
-    await load();
+    await runAdminAction(async () => {
+      await updateAdminUser(userId, input);
+      await load();
+    }, "회원 정보를 저장하지 못했습니다.");
   }
 
   async function saveMyProfile(input: {
@@ -314,20 +407,48 @@ export default function AdminDashboard() {
     prepDuration?: string;
     password?: string;
   }) {
-    const updated = await updateMyProfile(input);
-    refreshUser(updated);
-    setProfileUser(updated as AdminUser);
-    await load();
+    await runAdminAction(async () => {
+      const updated = await updateMyProfile(input);
+      refreshUser(updated);
+      setProfileUser(updated as AdminUser);
+      await load();
+    }, "내 정보를 저장하지 못했습니다.");
   }
 
   function changePage(key: keyof typeof pages, page: number) {
     setPages((current) => ({ ...current, [key]: page }));
   }
 
+  function changeSearch(key: keyof typeof search, value: string) {
+    setSearch((current) => ({ ...current, [key]: value }));
+    const pageKey = key === "camera" ? null : key;
+    if (pageKey && pageKey in pages) {
+      setPages((current) => ({ ...current, [pageKey]: 1 }));
+    }
+  }
 
-  async function sendCamWarning(userId: string, message: string, type?: string) {
+  function markChatRoomRead(userId: string) {
+    setData((current) => ({
+      ...current,
+      chats: current.chats.map((room) =>
+        room.userId === userId ? { ...room, unreadCount: 0 } : room,
+      ),
+    }));
+    setStats((current) => ({
+      ...current,
+      unanswered: Math.max(0, current.unanswered - 1),
+    }));
+  }
+
+  async function sendCamWarning(
+    userId: string,
+    message: string,
+    type?: string,
+  ) {
     if (!message.trim()) return;
-    await warnStudent({ userId, message: message.trim(), type });
+    await runAdminAction(async () => {
+      await warnStudent({ userId, message: message.trim(), type });
+    }, "알림을 전송하지 못했습니다.");
   }
 
   /** RENDER **/
@@ -339,19 +460,31 @@ export default function AdminDashboard() {
 
   if (!allowed) {
     return (
-      <AppShell title="관리자" subtitle="접근 권한이 필요합니다" wide actions={actions}>
-        <section className="admin-empty">관리자 또는 스태프 계정으로 로그인해 주세요.</section>
+      <AppShell
+        title="관리자"
+        subtitle="접근 권한이 필요합니다"
+        wide
+        actions={actions}
+      >
+        <section className="admin-empty">
+          관리자 또는 스태프 계정으로 로그인해 주세요.
+        </section>
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="관리자 작업실" subtitle="회원 · 상담 · 결제 · 휴가 · 캠 상태 관리" wide actions={actions}>
+    <AppShell
+      title="관리자 작업실"
+      subtitle="회원 · 상담 · 결제 · 휴가 · 캠 상태 관리"
+      wide
+      actions={actions}
+    >
       <div className="admin">
         <nav className="admin-tabs" aria-label="관리자 메뉴">
           {visibleTabs.map((item) => (
             <button
-              className={tab === item.key ? "is-active" : ""}
+              className={activeTab === item.key ? "is-active" : ""}
               key={item.key}
               onClick={() => setTab(item.key)}
               type="button"
@@ -362,16 +495,31 @@ export default function AdminDashboard() {
         </nav>
 
         {error && <p className="admin-error">{error}</p>}
-        {loading && <p className="admin-loading">관리자 데이터를 불러오는 중입니다.</p>}
-
-        {tab === "profile" && (
-          <Profile user={profileUser} branches={branches} onSave={saveMyProfile} />
+        {loading && (
+          <p className="admin-loading">관리자 데이터를 불러오는 중입니다.</p>
         )}
 
-        {isAdmin && tab === "overview" && (
+        {activeTab === "profile" && (
+          <Profile
+            key={[
+              profileUser?.id,
+              profileUser?.userId,
+              profileUser?.name,
+              profileUser?.phone,
+              profileUser?.residenceArea,
+              profileUser?.examType,
+              profileUser?.prepDuration,
+            ].join(":")}
+            user={profileUser}
+            branches={branches}
+            onSave={saveMyProfile}
+          />
+        )}
+
+        {isAdmin && activeTab === "overview" && (
           <Overview
             stats={stats}
-            users={data.users}
+            users={data.allMembers}
             noticeTitle={noticeTitle}
             noticeContent={noticeContent}
             manualUserId={manualUserId}
@@ -390,10 +538,12 @@ export default function AdminDashboard() {
           />
         )}
 
-        {isAdmin && tab === "members" && (
+        {isAdmin && activeTab === "members" && (
           <Members
             users={data.users}
             branches={branches}
+            searchText={search.users}
+            onSearchChange={(value) => changeSearch("users", value)}
             preRegister={preRegister}
             onPreRegisterChange={updatePreRegister}
             onPreRegisterSubmit={savePreRegister}
@@ -406,9 +556,11 @@ export default function AdminDashboard() {
           />
         )}
 
-        {isAdmin && tab === "consultations" && (
+        {isAdmin && activeTab === "consultations" && (
           <Consultations
             consultations={data.consultations}
+            searchText={search.consultations}
+            onSearchChange={(value) => changeSearch("consultations", value)}
             onConfirm={confirmConsultation}
             onComplete={completeConsultation}
             pageMeta={pageMeta.consultations}
@@ -416,39 +568,48 @@ export default function AdminDashboard() {
           />
         )}
 
-        {isAdmin && tab === "payments" && (
+        {isAdmin && activeTab === "payments" && (
           <Payments
             payments={data.payments}
-            users={data.users}
+            users={data.allMembers}
+            searchText={search.payments}
+            onSearchChange={(value) => changeSearch("payments", value)}
             pageMeta={pageMeta.payments}
             onPageChange={(page) => changePage("payments", page)}
           />
         )}
 
-        {isAdmin && tab === "leaves" && (
+        {isAdmin && activeTab === "leaves" && (
           <Leaves
             leaves={data.leaves}
-            users={data.users}
+            users={data.allMembers}
+            searchText={search.leaves}
+            onSearchChange={(value) => changeSearch("leaves", value)}
             onAction={handleLeave}
             pageMeta={pageMeta.leaves}
             onPageChange={(page) => changePage("leaves", page)}
           />
         )}
 
-        {tab === "chat" && (
+        {activeTab === "chat" && (
           <Chat
             rooms={data.chats}
-            onRefresh={load}
+            searchText={search.chats}
+            onSearchChange={(value) => changeSearch("chats", value)}
+            onRoomRead={markChatRoomRead}
+            onRefresh={refreshLiveData}
             pageMeta={pageMeta.chats}
             onPageChange={(page) => changePage("chats", page)}
           />
         )}
 
-        {tab === "camera" && (
+        {activeTab === "camera" && (
           <Camera
             camSessions={data.camSessions}
             timetable={timetable}
-            users={data.users}
+            users={data.allMembers}
+            searchText={search.camera}
+            onSearchChange={(value) => changeSearch("camera", value)}
             onWarn={sendCamWarning}
           />
         )}

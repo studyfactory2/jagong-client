@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import {
@@ -12,6 +12,9 @@ import { dateText } from "./admin.utils";
 
 type ChatProps = {
   rooms: ChatRoom[];
+  searchText: string;
+  onSearchChange: (value: string) => void;
+  onRoomRead: (userId: string) => void;
   onRefresh: () => Promise<void> | void;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
@@ -32,8 +35,16 @@ function isManagerMessage(message: ChatRoomMessage) {
 
 export default function Chat(props: ChatProps) {
   /** STATE **/
-  const { rooms, onRefresh, pageMeta, onPageChange } = props;
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const {
+    rooms,
+    searchText,
+    onSearchChange,
+    onRoomRead,
+    onRefresh,
+    pageMeta,
+    onPageChange,
+  } = props;
+  const [preferredUserId, setPreferredUserId] = useState("");
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [draft, setDraft] = useState("");
   const [loadingRoom, setLoadingRoom] = useState(false);
@@ -41,41 +52,28 @@ export default function Chat(props: ChatProps) {
   const [error, setError] = useState("");
 
   /** DERIVED **/
+  const selectedUserId = useMemo(() => {
+    if (rooms.some((room) => room.userId === preferredUserId)) {
+      return preferredUserId;
+    }
+    return rooms[0]?.userId ?? "";
+  }, [rooms, preferredUserId]);
+
   const selectedSummary = useMemo(
     () => rooms.find((room) => room.userId === selectedUserId) ?? rooms[0],
     [rooms, selectedUserId],
   );
   const messages = activeRoom?.messages ?? [];
 
-  /** EFFECTS **/
-  useEffect(() => {
-    if (!rooms.length) {
-      setSelectedUserId("");
-      setActiveRoom(null);
-      return;
-    }
-
-    if (
-      !selectedUserId ||
-      !rooms.some((room) => room.userId === selectedUserId)
-    ) {
-      setSelectedUserId(rooms[0].userId);
-    }
-  }, [rooms, selectedUserId]);
-
-  useEffect(() => {
-    if (!selectedUserId) return;
-    loadRoom(selectedUserId);
-  }, [selectedUserId]);
-
   /** HANDLERS **/
-  async function loadRoom(userId: string) {
+  const loadRoom = useCallback(async (userId: string) => {
     setError("");
     setLoadingRoom(true);
     try {
       const room = await getAdminChatRoom(userId);
       setActiveRoom(room);
       await markAdminChatRoomRead(userId);
+      onRoomRead(userId);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "대화를 불러오지 못했습니다.",
@@ -83,7 +81,15 @@ export default function Chat(props: ChatProps) {
     } finally {
       setLoadingRoom(false);
     }
-  }
+  }, [onRoomRead]);
+
+  /** EFFECTS **/
+  useEffect(() => {
+    if (!selectedUserId) return;
+    queueMicrotask(() => {
+      void loadRoom(selectedUserId);
+    });
+  }, [selectedUserId, loadRoom]);
 
   async function sendReply() {
     if (!selectedUserId || !draft.trim() || sending) return;
@@ -118,6 +124,15 @@ export default function Chat(props: ChatProps) {
         <span>{pageMeta.total}개 대화방</span>
       </div>
 
+      <label className="admin-search">
+        <span>문의 검색</span>
+        <input
+          value={searchText}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="회원명 또는 연락처 검색"
+        />
+      </label>
+
       {error && <p className="admin-error">{error}</p>}
 
       {!rooms.length ? (
@@ -132,7 +147,7 @@ export default function Chat(props: ChatProps) {
               <button
                 className={room.userId === selectedUserId ? "is-active" : ""}
                 key={room.id}
-                onClick={() => setSelectedUserId(room.userId)}
+                onClick={() => setPreferredUserId(room.userId)}
                 type="button"
               >
                 <strong>{room.user?.name ?? "회원"}</strong>
@@ -178,7 +193,9 @@ export default function Chat(props: ChatProps) {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") sendReply();
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+                    sendReply();
+                  }
                 }}
                 placeholder="회원에게 보낼 메시지"
               />

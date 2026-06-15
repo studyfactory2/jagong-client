@@ -631,3 +631,16 @@
     transform: none !important;
   }
 }
+
+/* finalized auto-login copy */
+.login-check span {
+  display: grid;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.login-check small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
