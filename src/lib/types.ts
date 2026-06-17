@@ -246,6 +246,14 @@ export interface CamSessionRecord {
   user?: AdminUser;
 }
 
+export interface CamTokenDto {
+  token: string;
+  url: string;
+  room: string;
+  identity: string;
+  canPublish: boolean;
+}
+
 export interface CamWarningRecord {
   id: string;
   userId: string;

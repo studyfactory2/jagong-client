@@ -1,5 +1,9 @@
 import { http } from "./http";
-import type { CamSessionRecord, CamWarningRecord } from "../../lib/types";
+import type {
+  CamSessionRecord,
+  CamTokenDto,
+  CamWarningRecord,
+} from "../../lib/types";
 
 /** CAM API **/
 
@@ -11,6 +15,13 @@ export async function getCamSessions(input?: {
   const { data } = await http.get<CamSessionRecord[]>("/cam/sessions", {
     params: input,
   });
+  return data;
+}
+
+export async function issueCamToken(input?: {
+  branchId?: string;
+}): Promise<CamTokenDto> {
+  const { data } = await http.post<CamTokenDto>("/cam/token", input ?? {});
   return data;
 }
 
