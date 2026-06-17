@@ -305,14 +305,26 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
+.admin-camera-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--ink);
+}
+
 .admin-camera-video > svg {
   font-size: 46px;
+  position: relative;
+  z-index: 1;
 }
 
 .admin-camera-video > span {
   position: absolute;
   top: 9px;
   right: 9px;
+  z-index: 2;
   border-radius: 999px;
   background: rgba(29, 46, 56, 0.78);
   color: #ffffff;
@@ -1147,6 +1159,7 @@
   position: absolute;
   left: 9px;
   bottom: 8px;
+  z-index: 2;
   border-radius: 999px;
   background: rgba(255, 254, 250, 0.92);
   color: var(--ink);
@@ -1157,6 +1170,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-live-status.is-connected {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+}
+
+.admin-live-status.is-error {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.admin-live-status.is-stub {
+  border-color: var(--gold);
+  background: var(--gold-soft);
 }
 
 .admin-camera.is-study-time .admin-camera-grid {
@@ -1242,6 +1271,17 @@
 
 .admin-warning-send svg {
   font-size: 16px;
+}
+
+.admin-camera-live-error {
+  margin: 10px 0 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 @media (min-width: 1180px) {

@@ -168,8 +168,8 @@ export default function StudyRoom() {
 
   useEffect(() => {
     return () => {
-      if (joinedRef.current && joinedSlotRef.current !== null) {
-        void leaveCam(joinedSlotRef.current);
+      if (joinedRef.current) {
+        void leaveCam();
       }
       roomRef.current?.disconnect();
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -300,8 +300,7 @@ export default function StudyRoom() {
     setJoining(true);
     try {
       if (joined) {
-        const slot = joinedSlotRef.current ?? 0;
-        await leaveCam(slot);
+        await leaveCam();
         disconnectLiveKit();
         stopLocalCamera();
         joinedRef.current = false;
@@ -310,17 +309,10 @@ export default function StudyRoom() {
         setCamToken(null);
       } else {
         const slot = currentSlot(timetable);
-        if (slot === null) {
-          setError(
-            "지금은 공부 교시가 아니어서 입장할 수 없습니다. 쉬는시간 또는 다음 교시 시작 전에 다시 입장해주세요.",
-          );
-          return;
-        }
-
         const token = await issueCamToken();
         await startLocalCamera(selectedDeviceId || undefined);
         await connectLiveKit(token);
-        await joinCam(slot);
+        await joinCam(slot ?? undefined);
         joinedRef.current = true;
         joinedSlotRef.current = slot;
         setCamToken(token);
@@ -383,13 +375,15 @@ export default function StudyRoom() {
               {!joined && (
                 <span>
                   <DoorFrontOutlinedIcon />
-                  입장하면 내 카메라가 이곳에 표시됩니다.
+                  하루 작업실에 입장하면 내 카메라가 계속 표시됩니다.
                 </span>
               )}
             </div>
             <div className="sr-self-info">
               <strong>
-                {joined ? "내 캠 송출 중" : "입장 전 카메라 확인"}
+                {joined
+                  ? "하루 작업실 캠 송출 중"
+                  : "작업실 입장 전 카메라 확인"}
               </strong>
               <em>
                 {camToken
@@ -462,12 +456,12 @@ export default function StudyRoom() {
             {joining
               ? "카메라 확인 중..."
               : joined
-                ? "단체 작업장 퇴장"
-                : "단체 작업장 입장"}
+                ? "하루 작업실 퇴장"
+                : "하루 작업실 입장"}
           </button>
           <p className="sr-hint">
-            창분할 버튼을 누르면 다른 사람 공부캠 수가 8개, 16개, 25개 순서로
-            바뀝니다.
+            입장 후에는 교시가 바뀌어도 캠이 유지됩니다. 쉬는시간에는 원하면
+            직접 퇴장할 수 있습니다.
           </p>
         </section>
 

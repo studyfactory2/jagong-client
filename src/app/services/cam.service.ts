@@ -25,16 +25,21 @@ export async function issueCamToken(input?: {
   return data;
 }
 
-export async function joinCam(slot: number): Promise<CamSessionRecord> {
-  const { data } = await http.post<CamSessionRecord>("/cam/join", { slot });
+export async function joinCam(slot?: number): Promise<CamSessionRecord> {
+  const { data } = await http.post<CamSessionRecord>(
+    "/cam/join",
+    slot === undefined ? {} : { slot },
+  );
   return data;
 }
 
-export async function leaveCam(slot: number): Promise<CamSessionRecord> {
-  const { data } = await http.post<CamSessionRecord>("/cam/leave", { slot });
+export async function leaveCam(slot?: number): Promise<CamSessionRecord> {
+  const { data } = await http.post<CamSessionRecord>(
+    "/cam/leave",
+    slot === undefined ? {} : { slot },
+  );
   return data;
 }
-
 
 export async function warnStudent(input: {
   userId: string;

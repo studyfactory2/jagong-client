@@ -1,15 +1,17 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NavigateBeforeOutlinedIcon from "@mui/icons-material/NavigateBeforeOutlined";
 import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import type { Room } from "livekit-client";
 import type {
   AdminUser,
   CamSessionRecord,
   TimetableSlot,
 } from "../../../lib/types";
+import { issueCamToken } from "../../services/cam.service";
 import { dDayText, dateText, userDetail } from "./admin.utils";
 
 type CameraProps = {
@@ -29,6 +31,17 @@ type CameraTile = {
   membershipEnd?: string | null;
   slot?: number;
   joinedAt?: string | null;
+};
+
+type RemoteVideoTrack = {
+  attach: (element?: HTMLMediaElement) => HTMLMediaElement;
+  detach: (element?: HTMLMediaElement) => HTMLMediaElement[];
+};
+
+type RemoteVideo = {
+  trackSid: string;
+  userId: string;
+  track: RemoteVideoTrack;
 };
 
 const PAGE_SIZE = 12;
@@ -64,6 +77,32 @@ function currentSlot(slots: TimetableSlot[]) {
   });
 }
 
+function LiveVideo({ track }: { track: RemoteVideoTrack }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return undefined;
+
+    track.attach(element);
+    element.play().catch(() => undefined);
+
+    return () => {
+      track.detach(element);
+    };
+  }, [track]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      className="admin-camera-stream"
+    />
+  );
+}
+
 export default function Camera({
   camSessions,
   timetable,
@@ -77,6 +116,13 @@ export default function Camera({
   const [selectedId, setSelectedId] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
+  const [liveStatus, setLiveStatus] = useState<
+    "connecting" | "connected" | "stub" | "error"
+  >("connecting");
+  const [liveError, setLiveError] = useState("");
+  const roomRef = useRef<Room | null>(null);
+  const visibleIdsRef = useRef<string[]>([]);
 
   /** DERIVED **/
   const activeSlot = useMemo(() => currentSlot(timetable), [timetable]);
@@ -93,12 +139,7 @@ export default function Camera({
     const members = users.filter((user) => {
       if (user.role !== "MEMBER") return false;
       if (!query) return true;
-      return [
-        user.name,
-        user.phone,
-        user.examType,
-        user.residenceArea,
-      ]
+      return [user.name, user.phone, user.examType, user.residenceArea]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
@@ -122,6 +163,10 @@ export default function Camera({
     (safePage - 1) * PAGE_SIZE,
     safePage * PAGE_SIZE,
   );
+  const visibleIds = useMemo(
+    () => visibleTiles.map((tile) => tile.id),
+    [visibleTiles],
+  );
   const selectedTile =
     tiles.find((tile) => tile.id === selectedId) ?? visibleTiles[0];
   const workingCount = tiles.filter((tile) => tile.status === "working").length;
@@ -130,6 +175,133 @@ export default function Camera({
     : activeSlot
       ? String(activeSlot.label ?? "쉬는시간")
       : "교시 외 시간";
+  const liveText =
+    liveStatus === "connected"
+      ? "실시간 연결됨"
+      : liveStatus === "stub"
+        ? "LiveKit 설정 대기"
+        : liveStatus === "error"
+          ? "연결 오류"
+          : "연결중";
+  const syncVisibleSubscriptions = useCallback((room = roomRef.current) => {
+    if (!room) return;
+    const visible = new Set(visibleIdsRef.current);
+
+    room.remoteParticipants.forEach((participant) => {
+      const shouldSubscribe = visible.has(participant.identity);
+
+      participant.trackPublications.forEach((publication) => {
+        const isVideo =
+          String(publication.kind) === "video" ||
+          String(publication.source) === "camera";
+        if (!isVideo) return;
+        publication.setSubscribed(shouldSubscribe);
+      });
+    });
+  }, []);
+
+  /** EFFECTS **/
+  useEffect(() => {
+    visibleIdsRef.current = visibleIds;
+    syncVisibleSubscriptions();
+  }, [syncVisibleSubscriptions, visibleIds]);
+
+  useEffect(() => {
+    let mounted = true;
+    let localRoom: Room | null = null;
+
+    async function connectAdminViewer() {
+      try {
+        setLiveStatus("connecting");
+        setLiveError("");
+        const token = await issueCamToken();
+
+        if (!mounted) return;
+
+        if (!token.url || token.token.startsWith("stub.")) {
+          setLiveStatus("stub");
+          return;
+        }
+
+        const { Room, RoomEvent } = await import("livekit-client");
+        const room = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+
+        localRoom = room;
+        roomRef.current = room;
+
+        room.on(
+          RoomEvent.TrackSubscribed,
+          (track, publication, participant) => {
+            if (String(track.kind) !== "video") return;
+            setRemoteVideos((current) => {
+              const next = current.filter(
+                (video) => video.trackSid !== publication.trackSid,
+              );
+              return [
+                ...next,
+                {
+                  trackSid: publication.trackSid,
+                  userId: participant.identity,
+                  track: track as RemoteVideoTrack,
+                },
+              ];
+            });
+          },
+        );
+
+        room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
+          setRemoteVideos((current) =>
+            current.filter((video) => video.trackSid !== publication.trackSid),
+          );
+        });
+
+        room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+          setRemoteVideos((current) =>
+            current.filter((video) => video.userId !== participant.identity),
+          );
+        });
+
+        room.on(RoomEvent.TrackPublished, () => {
+          syncVisibleSubscriptions(room);
+        });
+
+        await room.connect(token.url, token.token, {
+          autoSubscribe: false,
+        });
+
+        if (!mounted) {
+          room.disconnect();
+          return;
+        }
+
+        setLiveStatus("connected");
+        syncVisibleSubscriptions(room);
+      } catch (err) {
+        console.error("Admin camera LiveKit failed", err);
+        if (!mounted) return;
+        setLiveStatus("error");
+        setLiveError(
+          "실시간 캠 연결에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        );
+      }
+    }
+
+    connectAdminViewer();
+
+    return () => {
+      mounted = false;
+      setRemoteVideos([]);
+      if (localRoom) {
+        localRoom.disconnect();
+      }
+      if (roomRef.current === localRoom) {
+        roomRef.current = null;
+      }
+    };
+  }, [syncVisibleSubscriptions]);
 
   /** HANDLERS **/
   function goPrevious() {
@@ -149,6 +321,10 @@ export default function Camera({
     } finally {
       setSending(false);
     }
+  }
+
+  function videoForUser(userId: string) {
+    return remoteVideos.find((video) => video.userId === userId);
   }
 
   /** RENDER **/
@@ -171,6 +347,9 @@ export default function Camera({
         </div>
 
         <div className="admin-camera-stats">
+          <span className={"admin-live-status is-" + liveStatus}>
+            {liveText}
+          </span>
           <span>{modeText}</span>
           <span>
             <i /> {workingCount}명 근무중
@@ -201,9 +380,16 @@ export default function Camera({
           >
             <div className="admin-camera-video">
               <PersonRoundedIcon />
+              {videoForUser(tile.id) && (
+                <LiveVideo track={videoForUser(tile.id)!.track} />
+              )}
               <strong>{tile.name}</strong>
               <span className={tile.status === "working" ? "is-live" : ""}>
-                {tile.status === "working" ? "LIVE" : "OFF"}
+                {videoForUser(tile.id)
+                  ? "LIVE"
+                  : tile.status === "working"
+                    ? "입장"
+                    : "OFF"}
               </span>
             </div>
 
@@ -288,6 +474,8 @@ export default function Camera({
           </button>
         </div>
       )}
+
+      {liveError && <p className="admin-camera-live-error">{liveError}</p>}
 
       <div className="admin-camera-pager">
         <button onClick={goPrevious} disabled={safePage === 1} type="button">
