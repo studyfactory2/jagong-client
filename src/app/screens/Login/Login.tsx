@@ -65,7 +65,7 @@ const PREVIEW = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, session } = useAuth();
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -81,6 +81,16 @@ export default function Login() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    navigate(
+      session.user.role === "ADMIN" || session.user.role === "STAFF"
+        ? "/admin"
+        : "/waiting-room",
+      { replace: true },
+    );
+  }, [navigate, session]);
 
   useEffect(() => {
     getBranches()
@@ -112,6 +122,7 @@ export default function Login() {
         user.role === "ADMIN" || user.role === "STAFF"
           ? "/admin"
           : "/waiting-room",
+        { replace: true },
       );
     } catch (e) {
       setError((e as Error).message);
@@ -204,7 +215,9 @@ export default function Login() {
             />
             <span>
               자동로그인
-              <small>{autoLogin ? "다음 방문에도 유지" : "현재 세션만 유지"}</small>
+              <small>
+                {autoLogin ? "다음 방문에도 유지" : "현재 세션만 유지"}
+              </small>
             </span>
           </label>
 
@@ -290,8 +303,8 @@ export default function Login() {
         </p>
 
         <p className="login-note">
-          *본 미리보기는 가상 미리보기 화면이며, 등록 후 실제 작업장을 보실 수
-          있습니다.
+          *개인정보 보호를 위해 미리보기 화면은 흐림 처리되며, 등록 후 실제
+          작업장을 보실 수 있습니다.
         </p>
       </section>
 

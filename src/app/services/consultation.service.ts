@@ -1,5 +1,9 @@
 import { http } from "./http";
-import type { ConsultationInput, ConsultationRecord, PaginatedResult } from "../../lib/types";
+import type {
+  ConsultationInput,
+  ConsultationRecord,
+  PaginatedResult,
+} from "../../lib/types";
 
 /** PUBLIC CONSULTATION API **/
 
@@ -7,10 +11,14 @@ export async function createConsultation(input: ConsultationInput): Promise<void
   await http.post("/consultations", input);
 }
 
-export async function getConsultationAvailability(date: string): Promise<unknown> {
-  const { data } = await http.get<unknown>("/consultations/availability", {
-    params: { date },
-  });
+export async function getConsultationAvailability(date: string): Promise<{
+  date: string;
+  takenSlots: string[];
+}> {
+  const { data } = await http.get<{
+    date: string;
+    takenSlots: string[];
+  }>("/consultations/availability", { params: { date } });
   return data;
 }
 
@@ -23,9 +31,12 @@ export async function getAdminConsultations(input?: {
   page?: number;
   limit?: number;
 }): Promise<PaginatedResult<ConsultationRecord>> {
-  const { data } = await http.get<PaginatedResult<ConsultationRecord>>("/consultations", {
-    params: input,
-  });
+  const { data } = await http.get<PaginatedResult<ConsultationRecord>>(
+    "/consultations",
+    {
+      params: input,
+    },
+  );
   return data;
 }
 

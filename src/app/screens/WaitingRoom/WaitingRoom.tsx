@@ -286,7 +286,10 @@ export default function WaitingRoom() {
   return (
     <div className="wr">
       <header className="wr-head">
-        <button className="wr-back" onClick={() => navigate("/login")}>
+        <button
+          className="wr-back"
+          onClick={() => navigate("/", { replace: true })}
+        >
           <ArrowBackIcon /> 뒤로가기
         </button>
 

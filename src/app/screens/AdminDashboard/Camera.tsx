@@ -5,6 +5,8 @@ import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import OpenInFullOutlinedIcon from "@mui/icons-material/OpenInFullOutlined";
 import type { Room } from "livekit-client";
 import type {
   AdminUser,
@@ -117,6 +119,7 @@ export default function Camera({
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
+  const [expandedId, setExpandedId] = useState("");
   const [liveStatus, setLiveStatus] = useState<
     "connecting" | "connected" | "stub" | "error"
   >("connecting");
@@ -169,6 +172,8 @@ export default function Camera({
   );
   const selectedTile =
     tiles.find((tile) => tile.id === selectedId) ?? visibleTiles[0];
+  const expandedTile = tiles.find((tile) => tile.id === expandedId);
+  const expandedVideo = expandedTile ? videoForUser(expandedTile.id) : null;
   const workingCount = tiles.filter((tile) => tile.status === "working").length;
   const modeText = isStudyTime
     ? String(activeSlot?.label ?? activeSlot?.slot ?? "수업") + " 집중중"
@@ -369,19 +374,19 @@ export default function Camera({
 
       <div className="admin-camera-grid">
         {visibleTiles.map((tile, index) => (
-          <button
+          <article
             className={
               "admin-camera-tile" +
               (selectedTile?.id === tile.id ? " is-selected" : "")
             }
             key={tile.id}
             onClick={() => setSelectedId(tile.id)}
-            type="button"
           >
             <div className="admin-camera-video">
-              <PersonRoundedIcon />
-              {videoForUser(tile.id) && (
+              {videoForUser(tile.id) ? (
                 <LiveVideo track={videoForUser(tile.id)!.track} />
+              ) : (
+                <PersonRoundedIcon />
               )}
               <strong>{tile.name}</strong>
               <span className={tile.status === "working" ? "is-live" : ""}>
@@ -391,6 +396,19 @@ export default function Camera({
                     ? "입장"
                     : "OFF"}
               </span>
+              {videoForUser(tile.id) && (
+                <button
+                  className="admin-camera-expand"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedId(tile.id);
+                    setExpandedId(tile.id);
+                  }}
+                  type="button"
+                >
+                  <OpenInFullOutlinedIcon /> 크게보기
+                </button>
+              )}
             </div>
 
             {!isStudyTime && (
@@ -421,7 +439,7 @@ export default function Camera({
                 </dl>
               </div>
             )}
-          </button>
+          </article>
         ))}
 
         {visibleTiles.length === 0 && (
@@ -492,6 +510,34 @@ export default function Camera({
           다음 <NavigateNextOutlinedIcon />
         </button>
       </div>
+
+      {expandedTile && expandedVideo && (
+        <div
+          className="admin-camera-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${expandedTile.name} 큰 화면`}
+        >
+          <div className="admin-camera-modal-card">
+            <div className="admin-camera-modal-head">
+              <div>
+                <strong>{expandedTile.name}</strong>
+                <span>
+                  {expandedTile.status === "working"
+                    ? "실시간 캠 확인중"
+                    : "현재 미입장"}
+                </span>
+              </div>
+              <button onClick={() => setExpandedId("")} type="button">
+                <CloseOutlinedIcon /> 닫기
+              </button>
+            </div>
+            <div className="admin-camera-modal-video">
+              <LiveVideo track={expandedVideo.track} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

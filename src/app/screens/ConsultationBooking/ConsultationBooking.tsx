@@ -15,7 +15,10 @@ import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import BoltIcon from "@mui/icons-material/Bolt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { createConsultation } from "../../services/consultation.service";
+import {
+  createConsultation,
+  getConsultationAvailability,
+} from "../../services/consultation.service";
 import "./booking.css";
 
 // TODO(대표님): real 자격증공장 카카오톡 채널 1:1 채팅 URL
@@ -41,14 +44,14 @@ const EXAMS = [
 ];
 
 const SLOTS = [
-  { id: "9-10", label: "9-10시", open: true },
-  { id: "10-11", label: "10-11시", open: false },
-  { id: "11-12", label: "11-12시", open: true },
-  { id: "13-14", label: "13-14시", open: true },
-  { id: "14-15", label: "14-15시", open: false },
-  { id: "15-16", label: "15-16시", open: true },
-  { id: "16-17", label: "16-17시", open: true },
-  { id: "17-18", label: "17-18시", open: false },
+  { id: "9-10", label: "9-10시" },
+  { id: "10-11", label: "10-11시" },
+  { id: "11-12", label: "11-12시" },
+  { id: "13-14", label: "13-14시" },
+  { id: "14-15", label: "14-15시" },
+  { id: "15-16", label: "15-16시" },
+  { id: "16-17", label: "16-17시" },
+  { id: "17-18", label: "17-18시" },
 ];
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -73,6 +76,8 @@ export default function ConsultationBooking() {
   const [customTime, setCustomTime] = useState("");
   const [err, setErr] = useState("");
   const [done, setDone] = useState<null | "PHONE" | "VIDEO">(null);
+  const [booking, setBooking] = useState(false);
+  const [takenSlots, setTakenSlots] = useState<string[]>([]);
 
   const dates = useMemo(() => {
     const days = ["일", "월", "화", "수", "목", "금", "토"];
@@ -105,6 +110,36 @@ export default function ConsultationBooking() {
     return () => document.removeEventListener("mousedown", closeMenus);
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+
+    if (!date) {
+      return;
+    }
+
+    getConsultationAvailability(date)
+      .then((result) => {
+        if (!alive) return;
+        setTakenSlots(result.takenSlots);
+        if (result.takenSlots.includes(slot)) {
+          setSlot("");
+        }
+      })
+      .catch((error) => {
+        if (!alive) return;
+        setTakenSlots([]);
+        setErr(
+          error instanceof Error
+            ? error.message
+            : "예약 가능 시간을 불러오지 못했습니다.",
+        );
+      })
+
+    return () => {
+      alive = false;
+    };
+  }, [date, slot]);
+
   function validate() {
     if (!name.trim()) return "이름을 입력해 주세요.";
     const a = Number(age);
@@ -121,6 +156,7 @@ export default function ConsultationBooking() {
   }
 
   async function book(type: "PHONE" | "VIDEO") {
+    if (booking) return;
     const v = validate();
     if (v) {
       setErr(v);
@@ -128,6 +164,7 @@ export default function ConsultationBooking() {
       return;
     }
     setErr("");
+    setBooking(true);
     try {
       await createConsultation({
         name: name.trim(),
@@ -143,10 +180,17 @@ export default function ConsultationBooking() {
         timeSlot: slot === "other" ? customTime : slot,
         type,
       });
-    } catch {
-      /* backend consultation-expand is phase 2; ignore for now so the flow is demoable */
+      setDone(type);
+    } catch (error) {
+      setErr(
+        error instanceof Error
+          ? error.message
+          : "상담 예약 신청에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setBooking(false);
     }
-    setDone(type);
   }
 
   // 질문하기 / 바로시작 → 자격증공장 카카오톡 채널 1:1 채팅
@@ -367,6 +411,7 @@ export default function ConsultationBooking() {
                   className={`bk-select-option${date === d.v ? " is-active" : ""}`}
                   onClick={() => {
                     setDate(d.v);
+                    setSlot("");
                     setDateOpen(false);
                   }}
                 >
@@ -384,19 +429,23 @@ export default function ConsultationBooking() {
           </span>
         </div>
         <div className="bk-slots">
-          {SLOTS.map((s) => (
-            <button
-              key={s.id}
-              disabled={!s.open}
-              className={`bk-slot${slot === s.id ? " is-sel" : ""}${s.open ? "" : " is-closed"}`}
-              onClick={() => s.open && setSlot(s.id)}
-            >
-              <span className="bk-slot-time">{s.label}</span>
-              <span className="bk-slot-state">
-                <FiberManualRecordIcon /> {s.open ? "예약가능" : "예약완료"}
-              </span>
-            </button>
-          ))}
+          {SLOTS.map((s) => {
+            const isTaken = takenSlots.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                disabled={isTaken}
+                className={`bk-slot${slot === s.id ? " is-sel" : ""}${isTaken ? " is-closed" : ""}`}
+                onClick={() => !isTaken && setSlot(s.id)}
+              >
+                <span className="bk-slot-time">{s.label}</span>
+                <span className="bk-slot-state">
+                  <FiberManualRecordIcon />{" "}
+                  {isTaken ? "예약완료" : "예약가능"}
+                </span>
+              </button>
+            );
+          })}
           <button
             className={`bk-slot bk-slot--other${slot === "other" ? " is-sel" : ""}`}
             onClick={() => setSlot("other")}
@@ -422,13 +471,18 @@ export default function ConsultationBooking() {
           <button
             className="bk-act bk-act--coral"
             onClick={() => book("PHONE")}
+            disabled={booking}
           >
             <CallOutlinedIcon />
-            <span>전화상담</span>
+            <span>{booking ? "신청중" : "전화상담"}</span>
           </button>
-          <button className="bk-act bk-act--mint" onClick={() => book("VIDEO")}>
+          <button
+            className="bk-act bk-act--mint"
+            onClick={() => book("VIDEO")}
+            disabled={booking}
+          >
             <VideocamOutlinedIcon />
-            <span>화상상담</span>
+            <span>{booking ? "신청중" : "화상상담"}</span>
           </button>
           <button className="bk-act bk-act--cream" onClick={openKakao}>
             <ChatBubbleOutlineIcon />

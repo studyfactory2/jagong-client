@@ -292,6 +292,7 @@
   overflow: hidden;
   background: #ffffff;
   box-shadow: 0 10px 24px rgba(20, 63, 86, 0.06);
+  cursor: pointer;
 }
 
 .admin-camera-video {
@@ -336,6 +337,41 @@
 
 .admin-camera-video > span.is-live {
   background: var(--accent);
+}
+
+.admin-camera-expand {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  min-height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.78);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.admin-camera-video:hover .admin-camera-expand,
+.admin-camera-tile:focus-within .admin-camera-expand {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.admin-camera-expand svg {
+  font-size: 15px;
 }
 
 .admin-camera-meta {
@@ -1284,6 +1320,77 @@
   font-weight: 800;
 }
 
+.admin-camera-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(20, 31, 40, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.admin-camera-modal-card {
+  width: min(1040px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.admin-camera-modal-head {
+  min-height: 62px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-camera-modal-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-camera-modal-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-camera-modal-head button {
+  min-height: 38px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-camera-modal-head svg {
+  font-size: 18px;
+}
+
+.admin-camera-modal-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+}
+
+.admin-camera-modal-video .admin-camera-stream {
+  position: static;
+  display: block;
+}
+
 @media (min-width: 1180px) {
   .admin-camera.is-study-time .admin-camera-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1310,6 +1417,12 @@
     font-size: 11px;
     left: 7px;
     bottom: 7px;
+  }
+
+  .admin-camera-expand {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
   }
 }
 
