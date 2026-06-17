@@ -299,9 +299,7 @@ export default function WaitingRoom() {
           <button
             className="wr-icon-btn"
             aria-label="알림"
-            onClick={() =>
-              setBellMsg((current) => current || "새 관리자 알림이 없습니다.")
-            }
+            onClick={() => navigate("/inquiry")}
           >
             <NotificationsNoneOutlinedIcon />
           </button>
@@ -429,11 +427,15 @@ export default function WaitingRoom() {
           </div>
         </section>
 
-        <div className="wr-notice">
+        <button
+          className="wr-notice"
+          onClick={() => navigate("/inquiry")}
+          type="button"
+        >
           <span>공지</span>
           {bellMsg ||
             `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라와 마이크 상태를 확인해 주세요.`}
-        </div>
+        </button>
 
         <section className="wr-entry">
           <button

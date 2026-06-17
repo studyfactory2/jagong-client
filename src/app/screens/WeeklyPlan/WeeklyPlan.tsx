@@ -100,6 +100,10 @@ function filledTasks(tasks: DraftMap) {
     .filter((task) => task.title.trim());
 }
 
+function screenError(err: unknown, fallback: string) {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
 export default function WeeklyPlan() {
   const navigate = useNavigate();
   const [boardMode, setBoardMode] = useState(false);
@@ -139,7 +143,7 @@ export default function WeeklyPlan() {
         setTasks(toDraft(weekData?.tasks ?? []));
       } catch (err) {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : "주간계획을 불러오지 못했습니다.");
+        setError(screenError(err, "주간계획을 불러오지 못했습니다."));
       } finally {
         if (alive) setLoading(false);
       }
@@ -207,7 +211,7 @@ export default function WeeklyPlan() {
         ),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "주간계획을 저장하지 못했습니다.");
+      setError(screenError(err, "주간계획을 저장하지 못했습니다."));
     } finally {
       setSaving(false);
     }

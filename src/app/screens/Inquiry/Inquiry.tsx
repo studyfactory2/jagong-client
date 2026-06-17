@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
@@ -9,7 +9,11 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { getMyChatRoom, sendMyChatMessage } from "../../services/chat.service";
 import { getNotices } from "../../services/notice.service";
-import type { ChatRoom, ChatRoomMessage, NoticeRecord } from "../../../lib/types";
+import type {
+  ChatRoom,
+  ChatRoomMessage,
+  NoticeRecord,
+} from "../../../lib/types";
 import "./inquiry.css";
 
 function timeText(value?: string) {
@@ -49,11 +53,17 @@ function noticeDate(value: string) {
 export default function Inquiry() {
   /** STATE **/
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useAuth();
   const { socket } = useSocket();
   const [message, setMessage] = useState("");
   const [room, setRoom] = useState<ChatRoom | null>(null);
   const [notices, setNotices] = useState<NoticeRecord[]>([]);
+  const [selectedNotice, setSelectedNotice] = useState<NoticeRecord | null>(
+    null,
+  );
+  const [dismissedRoutedNoticeId, setDismissedRoutedNoticeId] = useState("");
+  const [newNoticeIds, setNewNoticeIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [noticeLoading, setNoticeLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -63,6 +73,13 @@ export default function Inquiry() {
   /** DERIVED **/
   const myId = session?.user.userId ?? session?.user.id;
   const messages = useMemo(() => room?.messages ?? [], [room]);
+  const routedNoticeId =
+    (location.state as { noticeId?: string } | null)?.noticeId ?? "";
+  const routedNotice =
+    routedNoticeId && dismissedRoutedNoticeId !== routedNoticeId
+      ? notices.find((notice) => notice.id === routedNoticeId) ?? null
+      : null;
+  const activeNotice = selectedNotice ?? routedNotice;
 
   /** EFFECTS **/
   useEffect(() => {
@@ -84,7 +101,14 @@ export default function Inquiry() {
     };
 
     const handleNotice = (notice: NoticeRecord) => {
-      setNotices((current) => [notice, ...current.filter((item) => item.id !== notice.id)]);
+      setNotices((current) => [
+        notice,
+        ...current.filter((item) => item.id !== notice.id),
+      ]);
+      setNewNoticeIds((current) => [
+        notice.id,
+        ...current.filter((id) => id !== notice.id),
+      ]);
     };
 
     socket.on("chat:new-message", handleNewMessage);
@@ -122,6 +146,22 @@ export default function Inquiry() {
     } finally {
       setNoticeLoading(false);
     }
+  }
+
+  function openNotice(notice: NoticeRecord) {
+    setSelectedNotice(notice);
+    setNewNoticeIds((current) => current.filter((id) => id !== notice.id));
+  }
+
+  function closeNotice() {
+    if (activeNotice?.id === routedNoticeId) {
+      setDismissedRoutedNoticeId(routedNoticeId);
+      navigate(location.pathname + location.search, {
+        replace: true,
+        state: null,
+      });
+    }
+    setSelectedNotice(null);
   }
 
   async function send() {
@@ -178,7 +218,12 @@ export default function Inquiry() {
             {notices.map((notice) => {
               const important = notice.level === "IMPORTANT";
               return (
-                <button key={notice.id} type="button">
+                <button
+                  className={newNoticeIds.includes(notice.id) ? "is-new" : ""}
+                  key={notice.id}
+                  onClick={() => openNotice(notice)}
+                  type="button"
+                >
                   <span className={important ? "is-hot" : ""}>
                     {important ? "중요" : "공지"}
                   </span>
@@ -197,9 +242,31 @@ export default function Inquiry() {
             )}
 
             {noticeLoading && (
-              <div className="iq-empty-chat">공지 목록을 불러오는 중입니다.</div>
+              <div className="iq-empty-chat">
+                공지 목록을 불러오는 중입니다.
+              </div>
             )}
           </div>
+
+          {activeNotice && (
+            <div className="iq-notice-detail" role="dialog" aria-modal="true">
+              <div>
+                <span
+                  className={
+                    activeNotice.level === "IMPORTANT" ? "is-hot" : ""
+                  }
+                >
+                  {activeNotice.level === "IMPORTANT" ? "중요" : "공지"}
+                </span>
+                <button onClick={closeNotice} type="button">
+                  닫기
+                </button>
+              </div>
+              <strong>{activeNotice.title}</strong>
+              <time>{noticeDate(activeNotice.createdAt)}</time>
+              <p>{activeNotice.body}</p>
+            </div>
+          )}
         </section>
 
         <section className="iq-panel iq-chat">
@@ -257,7 +324,8 @@ export default function Inquiry() {
               value={message}
               onChange={(event) => setMessage(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.nativeEvent.isComposing) send();
+                if (event.key === "Enter" && !event.nativeEvent.isComposing)
+                  send();
               }}
               placeholder="문의 내용을 입력해 주세요"
             />

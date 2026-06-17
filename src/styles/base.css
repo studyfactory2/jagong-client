@@ -139,3 +139,89 @@ a {
   padding: 0 18px;
   font-size: 14px;
 }
+
+.socket-notice {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  top: max(22px, env(safe-area-inset-top));
+  z-index: 1001;
+  width: min(390px, calc(100vw - 28px));
+  border: 1px solid var(--ink);
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 24px 70px rgba(20, 63, 86, 0.22);
+  padding: 16px;
+  color: var(--ink);
+  animation: socketNoticeIn 0.22s ease-out;
+}
+
+.socket-notice strong {
+  width: fit-content;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.socket-notice span {
+  display: block;
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.socket-notice p {
+  margin: 7px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.socket-notice div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.socket-notice button {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 13px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.socket-notice button:first-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+@keyframes socketNoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 520px) {
+  .socket-notice {
+    left: 14px;
+    right: 14px;
+    width: auto;
+  }
+}
