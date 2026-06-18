@@ -168,6 +168,9 @@ const formatDuration = (seconds: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 };
 
+const isClockInSlot = (slot?: TimetableSlot | null) =>
+  Boolean(slot && (slot.slot === 0 || slot.label.includes("출근")));
+
 function formatDate(date: Date) {
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
@@ -280,8 +283,10 @@ export default function WaitingRoom() {
     : nextSlot
       ? toSec(nextSlot.startTime) - nowSec
       : null;
-  const canEnterRoom = !current || current.isBreak;
-  const canUseAdmin = session?.user.role === "ADMIN" || session?.user.role === "STAFF";
+  const canEnterRoom = !current || current.isBreak || isClockInSlot(current);
+  const enterStatusText = canEnterRoom ? "입장 가능" : "교시중 입장 불가";
+  const canUseAdmin =
+    session?.user.role === "ADMIN" || session?.user.role === "STAFF";
 
   return (
     <div className="wr">
@@ -399,14 +404,22 @@ export default function WaitingRoom() {
                     {slot.startTime} - {slot.endTime}
                   </span>
                   <span className="wr-time-duration">
-                    ({slot.duration ?? Math.round((toSec(slot.endTime) - toSec(slot.startTime)) / 60)}분)
+                    (
+                    {slot.duration ??
+                      Math.round(
+                        (toSec(slot.endTime) - toSec(slot.startTime)) / 60,
+                      )}
+                    분)
                   </span>
                 </div>
               );
             })}
           </div>
 
-          <p className="wr-caution">*교시중에는 입장 하실 수 없습니다.</p>
+          <p className="wr-caution">
+            *출근시간과 쉬는시간에는 입장 가능하며, 교시중에는 관리자 허용 후
+            입장합니다.
+          </p>
         </section>
 
         <section className="wr-progress">
@@ -425,7 +438,9 @@ export default function WaitingRoom() {
             <NotificationsOutlinedIcon />
             <span>다음종까지</span>
             <strong>
-              {countdownTarget == null ? "--:--" : formatDuration(countdownTarget)}
+              {countdownTarget == null
+                ? "--:--"
+                : formatDuration(countdownTarget)}
             </strong>
           </div>
         </section>
@@ -449,7 +464,7 @@ export default function WaitingRoom() {
             <DoorFrontOutlinedIcon />
             <span>
               <strong>개인 작업실 입장</strong>
-              <em>{canEnterRoom ? "나만의 집중 작업실" : "교시중 입장 불가"}</em>
+              <em>{canEnterRoom ? "나만의 집중 작업실" : enterStatusText}</em>
             </span>
           </button>
 
@@ -461,7 +476,9 @@ export default function WaitingRoom() {
             <GroupsOutlinedIcon />
             <span>
               <strong>단체 작업장 입장</strong>
-              <em>{canEnterRoom ? "전국 사원과 함께 입장" : "교시중 입장 불가"}</em>
+              <em>
+                {canEnterRoom ? "전국 사원과 함께 입장" : enterStatusText}
+              </em>
             </span>
           </button>
         </section>
@@ -484,8 +501,7 @@ export default function WaitingRoom() {
             연장하기
           </button>
           <button onClick={() => navigate("/my-page")}>
-            <AccountCircleOutlinedIcon />
-            내 정보
+            <AccountCircleOutlinedIcon />내 정보
           </button>
           {canUseAdmin && (
             <button onClick={() => navigate("/admin")}>
