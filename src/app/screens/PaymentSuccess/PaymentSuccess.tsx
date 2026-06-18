@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CheckIcon from "@mui/icons-material/Check";
 import { confirmMembershipPayment } from "../../services/membership.service";
@@ -10,10 +10,13 @@ export default function PaymentSuccess() {
   const [message, setMessage] = useState("결제 승인 중입니다.");
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
+  const confirmingRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
     async function confirm() {
+      if (confirmingRef.current) return;
+      confirmingRef.current = true;
       const code = params.get("code");
       const messageText = params.get("message");
       const paymentId = params.get("paymentId") ?? params.get("orderId");
@@ -22,16 +25,19 @@ export default function PaymentSuccess() {
       if (code) {
         setFailed(true);
         setMessage(messageText ?? "결제에 실패했습니다.");
+        confirmingRef.current = false;
         return;
       }
 
       if (!paymentId) {
         setFailed(true);
         setMessage("결제 승인 정보가 올바르지 않습니다.");
+        confirmingRef.current = false;
         return;
       }
 
       try {
+        setMessage("결제 완료를 확인하고 이용기간을 갱신하는 중입니다.");
         await confirmMembershipPayment({
           paymentId,
           pgKey: paymentKey,
@@ -45,6 +51,8 @@ export default function PaymentSuccess() {
         setMessage(
           err instanceof Error ? err.message : "결제 승인에 실패했습니다.",
         );
+      } finally {
+        confirmingRef.current = false;
       }
     }
     confirm();

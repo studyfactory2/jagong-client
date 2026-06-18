@@ -22,6 +22,8 @@ import type {
 import { useAuth } from "../../context/AuthContext";
 import "./payment-history.css";
 
+type PaymentPhase = "idle" | "checkout" | "portone" | "confirming";
+
 const FALLBACK_PLANS: MembershipPlan[] = [
   { months: 1, days: 30, total: 370000 },
   { months: 2, days: 60, total: 700000 },
@@ -34,11 +36,20 @@ function money(value: number): string {
 
 function dateText(value?: string | null): string {
   if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(value));
+  }).format(date);
+}
+
+function paymentPhaseText(phase: PaymentPhase): string {
+  if (phase === "checkout") return "결제 정보를 준비하는 중...";
+  if (phase === "portone") return "카드 결제창에서 결제를 진행해주세요.";
+  if (phase === "confirming") return "결제 완료 후 이용기간을 갱신하는 중...";
+  return "카드로 연장하기";
 }
 
 export default function PaymentHistory() {
@@ -49,8 +60,9 @@ export default function PaymentHistory() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [selected, setSelected] = useState(3);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
+  const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>("idle");
   const [error, setError] = useState("");
+  const paying = paymentPhase !== "idle";
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p.months === selected) ?? plans[0],
@@ -101,18 +113,19 @@ export default function PaymentHistory() {
     }
 
     try {
-      setPaying(true);
+      setPaymentPhase("checkout");
       const checkout: CheckoutResult = await checkoutMembership(
         selectedPlan.months,
       );
       const PortOne = await import("@portone/browser-sdk/v2");
+      setPaymentPhase("portone");
       const response = await PortOne.requestPayment({
         storeId: PORTONE_STORE_ID,
         channelKey: PORTONE_CHANNEL_KEY,
         paymentId: checkout.paymentId,
         orderName: `자격증공장 재택근무반 ${checkout.planMonths}개월권`,
         totalAmount: checkout.amount,
-        currency: "KRW",
+        currency: "CURRENCY_KRW",
         payMethod: "CARD",
         customer: {
           fullName: session?.user.name,
@@ -123,16 +136,17 @@ export default function PaymentHistory() {
 
       if (!response) {
         setError("결제가 취소되었습니다.");
-        setPaying(false);
+        setPaymentPhase("idle");
         return;
       }
 
       if (response.code) {
         setError(response.message ?? "결제에 실패했습니다.");
-        setPaying(false);
+        setPaymentPhase("idle");
         return;
       }
 
+      setPaymentPhase("confirming");
       await confirmMembershipPayment({ paymentId: response.paymentId });
       const [membershipData, paymentData] = await Promise.all([
         getMyMembership(),
@@ -147,7 +161,7 @@ export default function PaymentHistory() {
       setError(
         err instanceof Error ? err.message : "결제를 시작하지 못했습니다.",
       );
-      setPaying(false);
+      setPaymentPhase("idle");
     }
   }
 
@@ -167,6 +181,11 @@ export default function PaymentHistory() {
 
       <main className="pay-body">
         {error && <p className="pay-error">{error}</p>}
+        {paying && (
+          <p className="pay-status" aria-live="polite">
+            {paymentPhaseText(paymentPhase)}
+          </p>
+        )}
 
         <section className="pay-ticket">
           <ConfirmationNumberOutlinedIcon />
@@ -234,7 +253,7 @@ export default function PaymentHistory() {
             onClick={startPayment}
             type="button"
           >
-            {paying ? "결제창 여는 중..." : "카드로 연장하기"}
+            {paying ? paymentPhaseText(paymentPhase) : "카드로 연장하기"}
           </button>
         </section>
 

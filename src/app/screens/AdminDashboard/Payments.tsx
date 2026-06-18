@@ -11,6 +11,19 @@ type PaymentsProps = {
   onPageChange: (page: number) => void;
 };
 
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  PENDING: "결제대기",
+  PAID: "결제완료",
+  FAILED: "실패",
+  CANCELLED: "취소",
+  REFUNDED: "환불완료",
+};
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  CARD: "카드",
+  TRANSFER: "계좌이체",
+};
+
 export default function Payments(props: PaymentsProps) {
   const { payments, users, searchText, onSearchChange, pageMeta, onPageChange } = props;
 
@@ -37,9 +50,14 @@ export default function Payments(props: PaymentsProps) {
         {payments.map((payment) => (
           <div className="admin-row is-payment" key={payment.id}>
             <strong>{userName(users, payment.userId)}</strong>
-            <span>{payment.planMonths}개월</span>
-            <span>{payment.status}</span>
-            <span>{money(payment.amount)}</span>
+            <span>{payment.planMonths}개월 · {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}</span>
+            <span>{PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}</span>
+            <span>
+              {money(payment.amount)}
+              {payment.status === "REFUNDED" && payment.refundAmount != null && (
+                <small>환불 {money(payment.refundAmount)}</small>
+              )}
+            </span>
             <em>{dateText(payment.createdAt)}</em>
 
             <div className="admin-receipt-actions">
