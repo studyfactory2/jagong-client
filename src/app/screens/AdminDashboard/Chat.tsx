@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import {
@@ -50,6 +50,7 @@ export default function Chat(props: ChatProps) {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   /** DERIVED **/
   const selectedUserId = useMemo(() => {
@@ -90,6 +91,10 @@ export default function Chat(props: ChatProps) {
       void loadRoom(selectedUserId);
     });
   }, [selectedUserId, loadRoom]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [activeRoom?.id, messages.length]);
 
   async function sendReply() {
     if (!selectedUserId || !draft.trim() || sending) return;
@@ -186,6 +191,7 @@ export default function Chat(props: ChatProps) {
                   선택한 회원과의 대화가 아직 없습니다.
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             <div className="admin-chat-compose">

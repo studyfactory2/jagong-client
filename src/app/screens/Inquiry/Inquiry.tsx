@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
@@ -69,6 +69,7 @@ export default function Inquiry() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [noticeError, setNoticeError] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   /** DERIVED **/
   const myId = session?.user.userId ?? session?.user.id;
@@ -86,6 +87,10 @@ export default function Inquiry() {
     loadRoom();
     loadNotices();
   }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" });
+  }, [messages.length]);
 
   useEffect(() => {
     if (!socket) return;
@@ -200,7 +205,7 @@ export default function Inquiry() {
       </header>
 
       <main className="iq-body">
-        <section className="iq-panel">
+        <section className="iq-panel iq-notice-panel">
           <div className="iq-panel-title">
             <CampaignOutlinedIcon />
             <div>
@@ -316,6 +321,7 @@ export default function Inquiry() {
                 아직 문의 내역이 없습니다. 궁금한 내용을 편하게 남겨주세요.
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           <div className="iq-input">
