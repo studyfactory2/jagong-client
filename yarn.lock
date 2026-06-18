@@ -511,6 +511,11 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.8.tgz#6b79032e760a0899cd4204710beede972a3a185f"
   integrity sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==
 
+"@portone/browser-sdk@^0.1.8":
+  version "0.1.8"
+  resolved "https://registry.yarnpkg.com/@portone/browser-sdk/-/browser-sdk-0.1.8.tgz#b948e110a89bf7a40ed3298dc9a0a12e21b5ad4f"
+  integrity sha512-/9DqqiJckIAaOiCMXYdX+Pyj1Mxa8COInaI7ziUa5KeqnBuE0Q2+7dNSNMor+q6WM7OtnrVqmRRv5cC+gc02sw==
+
 "@rolldown/binding-android-arm64@1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@rolldown/binding-android-arm64/-/binding-android-arm64-1.0.3.tgz#54ce8f8382213f4a314a0c2f7ba83f81ffeae592"

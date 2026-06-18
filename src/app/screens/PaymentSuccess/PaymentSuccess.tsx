@@ -14,10 +14,18 @@ export default function PaymentSuccess() {
   useEffect(() => {
     let alive = true;
     async function confirm() {
-      const paymentKey = params.get("paymentKey");
-      const orderId = params.get("orderId");
+      const code = params.get("code");
+      const messageText = params.get("message");
+      const paymentId = params.get("paymentId") ?? params.get("orderId");
+      const paymentKey = params.get("paymentKey") ?? undefined;
 
-      if (!paymentKey || !orderId) {
+      if (code) {
+        setFailed(true);
+        setMessage(messageText ?? "결제에 실패했습니다.");
+        return;
+      }
+
+      if (!paymentId) {
         setFailed(true);
         setMessage("결제 승인 정보가 올바르지 않습니다.");
         return;
@@ -25,7 +33,7 @@ export default function PaymentSuccess() {
 
       try {
         await confirmMembershipPayment({
-          paymentId: orderId,
+          paymentId,
           pgKey: paymentKey,
         });
         if (!alive) return;
@@ -34,7 +42,9 @@ export default function PaymentSuccess() {
       } catch (err) {
         if (!alive) return;
         setFailed(true);
-        setMessage(err instanceof Error ? err.message : "결제 승인에 실패했습니다.");
+        setMessage(
+          err instanceof Error ? err.message : "결제 승인에 실패했습니다.",
+        );
       }
     }
     confirm();
@@ -47,7 +57,9 @@ export default function PaymentSuccess() {
     <main className="pay-result">
       <section>
         <CheckIcon className={failed ? "is-failed" : ""} />
-        <h1>{failed ? "결제 확인 필요" : done ? "결제 완료" : "결제 승인중"}</h1>
+        <h1>
+          {failed ? "결제 확인 필요" : done ? "결제 완료" : "결제 승인중"}
+        </h1>
         <p>{message}</p>
         <button onClick={() => navigate("/payments")} type="button">
           이용내역으로 돌아가기

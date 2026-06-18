@@ -7,11 +7,12 @@ import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import {
   checkoutMembership,
+  confirmMembershipPayment,
   getMembershipPlans,
   getMyMembership,
   getMyPayments,
 } from "../../services/membership.service";
-import { TOSS_CLIENT_KEY } from "../../../lib/config";
+import { PORTONE_CHANNEL_KEY, PORTONE_STORE_ID } from "../../../lib/config";
 import type {
   CheckoutResult,
   MembershipPlan,
@@ -20,26 +21,6 @@ import type {
 } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import "./payment-history.css";
-
-type TossPaymentsClient = {
-  requestPayment: (
-    method: "카드",
-    options: {
-      amount: number;
-      orderId: string;
-      orderName: string;
-      customerName?: string;
-      successUrl: string;
-      failUrl: string;
-    },
-  ) => Promise<void>;
-};
-
-declare global {
-  interface Window {
-    TossPayments?: (clientKey: string) => TossPaymentsClient;
-  }
-}
 
 const FALLBACK_PLANS: MembershipPlan[] = [
   { months: 1, days: 30, total: 370000 },
@@ -95,7 +76,11 @@ export default function PaymentHistory() {
         setPayments(paymentData);
       } catch (err) {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : "결제 정보를 불러오지 못했습니다.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "결제 정보를 불러오지 못했습니다.",
+        );
       } finally {
         if (alive) setLoading(false);
       }
@@ -110,29 +95,58 @@ export default function PaymentHistory() {
     if (!selectedPlan || paying) return;
     setError("");
 
-    if (!TOSS_CLIENT_KEY) {
-      setError("Toss 클라이언트 키가 설정되지 않았습니다.");
-      return;
-    }
-    if (!window.TossPayments) {
-      setError("Toss 결제 스크립트를 불러오지 못했습니다.");
+    if (!PORTONE_STORE_ID || !PORTONE_CHANNEL_KEY) {
+      setError("포트원 결제 설정이 완료되지 않았습니다.");
       return;
     }
 
     try {
       setPaying(true);
-      const checkout: CheckoutResult = await checkoutMembership(selectedPlan.months);
-      const toss = window.TossPayments(TOSS_CLIENT_KEY);
-      await toss.requestPayment("카드", {
-        amount: checkout.amount,
-        orderId: checkout.paymentId,
+      const checkout: CheckoutResult = await checkoutMembership(
+        selectedPlan.months,
+      );
+      const PortOne = await import("@portone/browser-sdk/v2");
+      const response = await PortOne.requestPayment({
+        storeId: PORTONE_STORE_ID,
+        channelKey: PORTONE_CHANNEL_KEY,
+        paymentId: checkout.paymentId,
         orderName: `자격증공장 재택근무반 ${checkout.planMonths}개월권`,
-        customerName: session?.user.name,
-        successUrl: `${window.location.origin}/payments/success`,
-        failUrl: `${window.location.origin}/payments/fail`,
+        totalAmount: checkout.amount,
+        currency: "KRW",
+        payMethod: "CARD",
+        customer: {
+          fullName: session?.user.name,
+          phoneNumber: session?.user.phone ?? undefined,
+        },
+        redirectUrl: `${window.location.origin}/payments/success`,
       });
+
+      if (!response) {
+        setError("결제가 취소되었습니다.");
+        setPaying(false);
+        return;
+      }
+
+      if (response.code) {
+        setError(response.message ?? "결제에 실패했습니다.");
+        setPaying(false);
+        return;
+      }
+
+      await confirmMembershipPayment({ paymentId: response.paymentId });
+      const [membershipData, paymentData] = await Promise.all([
+        getMyMembership(),
+        getMyPayments(),
+      ]);
+      setMembership(membershipData);
+      setPayments(paymentData);
+      navigate(
+        "/payments/success?paymentId=" + encodeURIComponent(response.paymentId),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "결제를 시작하지 못했습니다.");
+      setError(
+        err instanceof Error ? err.message : "결제를 시작하지 못했습니다.",
+      );
       setPaying(false);
     }
   }
@@ -205,7 +219,10 @@ export default function PaymentHistory() {
                 <span>{plan.months}달</span>
                 <p>
                   월{" "}
-                  {money(Math.round(plan.total / plan.months)).replace("원", "원")}
+                  {money(Math.round(plan.total / plan.months)).replace(
+                    "원",
+                    "원",
+                  )}
                 </p>
                 <strong>총 {money(plan.total)}</strong>
               </button>
@@ -235,7 +252,11 @@ export default function PaymentHistory() {
               <em>{payment.planMonths}개월</em>
               <ReceiptLongOutlinedIcon />
               {payment.receiptSignedUrl ? (
-                <a href={payment.receiptSignedUrl} rel="noreferrer" target="_blank">
+                <a
+                  href={payment.receiptSignedUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
                   영수증 보기
                 </a>
               ) : (

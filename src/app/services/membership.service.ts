@@ -36,7 +36,7 @@ export async function checkoutMembership(
 
 export async function confirmMembershipPayment(input: {
   paymentId: string;
-  pgKey: string;
+  pgKey?: string;
 }): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>("/memberships/confirm", input);
   return data;
