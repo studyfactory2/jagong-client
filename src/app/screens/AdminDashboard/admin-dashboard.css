@@ -159,6 +159,10 @@
   grid-template-columns: 1fr 0.85fr 0.75fr 0.95fr 1fr auto auto;
 }
 
+.admin-row.is-consultation {
+  align-items: start;
+}
+
 .admin-row strong,
 .admin-chat-row strong {
   font-size: 14px;
@@ -178,6 +182,53 @@
   grid-template-columns: minmax(0, 1fr) 220px auto;
   align-items: center;
   gap: 10px;
+}
+
+.admin-consult-link {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.admin-consult-link span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.admin-consult-link input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffefa;
+  color: var(--ink);
+  padding: 0 11px;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.admin-consult-link input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.08);
+}
+
+.admin-consult-link a {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  padding: 0 12px;
 }
 
 .admin-chat-row p {
@@ -711,6 +762,14 @@
   }
 
   .admin-row button {
+    width: 100%;
+  }
+
+  .admin-consult-link {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-consult-link a {
     width: 100%;
   }
 
