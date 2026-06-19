@@ -373,11 +373,16 @@ export default function AdminDashboard() {
     }, "상담 상태를 변경하지 못했습니다.");
   }
 
-  async function confirmConsultation(id: string, meetingLink?: string) {
+  async function confirmConsultation(
+    id: string,
+    consultType?: string | null,
+    meetingLink?: string,
+  ) {
     if (!isAdmin) return;
     await runAdminAction(async () => {
       await updateConsultation(id, {
         status: "CONFIRMED",
+        consultType: consultType ?? undefined,
         meetingLink: meetingLink?.trim() || undefined,
       });
       await load();

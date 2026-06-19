@@ -7,7 +7,7 @@ type ConsultationsProps = {
   consultations: ConsultationRecord[];
   searchText: string;
   onSearchChange: (value: string) => void;
-  onConfirm: (id: string, meetingLink?: string) => void;
+  onConfirm: (id: string, consultType?: string | null, meetingLink?: string) => void;
   onComplete: (id: string) => void;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
@@ -69,28 +69,35 @@ export default function Consultations(props: ConsultationsProps) {
             <div className="admin-row is-action is-consultation" key={item.id}>
               <strong>{item.name}</strong>
               <span>{item.phone}</span>
-              <span>{CONSULT_TYPE_LABEL[item.consultType ?? ""] ?? "상담"}</span>
+              <span>
+                {CONSULT_TYPE_LABEL[item.consultType ?? ""] ?? "상담"}
+              </span>
               <span>{STATUS_LABEL[item.status] ?? item.status}</span>
               <em>
                 {item.desiredDate ?? dateText(item.createdAt)} ·{" "}
                 {item.timeSlot ?? "시간 미정"}
               </em>
-              <button
-                disabled={!canConfirm}
-                onClick={() => onConfirm(item.id, meetingLink)}
-                type="button"
-              >
-                확정
-              </button>
-              <button
-                disabled={item.status !== "CONFIRMED"}
-                onClick={() => onComplete(item.id)}
-                type="button"
-              >
-                완료
-              </button>
+              {item.status === "PENDING" && (
+                <button
+                  disabled={!canConfirm}
+                  onClick={() =>
+                    onConfirm(item.id, item.consultType, meetingLink)
+                  }
+                  type="button"
+                >
+                  확정
+                </button>
+              )}
+              {item.status === "CONFIRMED" && (
+                <button onClick={() => onComplete(item.id)} type="button">
+                  완료
+                </button>
+              )}
+              {item.status === "COMPLETED" && (
+                <span className="admin-status-chip">상담완료</span>
+              )}
 
-              {isVideo && (
+              {isVideo && item.status !== "COMPLETED" && (
                 <label className="admin-consult-link">
                   <span>화상 상담 링크</span>
                   <input
@@ -104,11 +111,7 @@ export default function Consultations(props: ConsultationsProps) {
                     placeholder="Google Meet / Zoom 링크를 붙여넣어 주세요"
                   />
                   {item.agoraRoomId && (
-                    <a
-                      href={item.agoraRoomId}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <a href={item.agoraRoomId} target="_blank" rel="noreferrer">
                       저장된 링크 열기
                     </a>
                   )}

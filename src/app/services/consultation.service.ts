@@ -44,6 +44,7 @@ export async function updateConsultation(
   id: string,
   input: {
     status?: string;
+    consultType?: string;
     adminNotes?: string;
     scheduledAt?: string;
     meetingLink?: string;

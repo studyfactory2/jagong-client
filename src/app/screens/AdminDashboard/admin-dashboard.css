@@ -177,6 +177,20 @@
   font-style: normal;
 }
 
+.admin-status-chip {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--mint-line);
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint-deep) !important;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 12px;
+}
+
 .admin-chat-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 220px auto;
