@@ -254,6 +254,13 @@ export interface CamTokenDto {
   canPublish: boolean;
 }
 
+export interface CamRoomMember {
+  id: string;
+  name: string;
+  isWorking: boolean;
+  joinedAt?: string | null;
+}
+
 export interface CamWarningRecord {
   id: string;
   userId: string;

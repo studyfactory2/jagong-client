@@ -4,8 +4,6 @@ import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import MicNoneIcon from "@mui/icons-material/MicNone";
-import MicOffIcon from "@mui/icons-material/MicOff";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
@@ -23,42 +21,34 @@ const AUTH_REMEMBER_KEY = "jagong_remember_login";
 const PREVIEW = [
   {
     nick: "오늘도합격",
-    mic: true,
     g: "linear-gradient(135deg,#3f5b6e,#273d4d)",
   },
   {
     nick: "정리왕",
-    mic: true,
     g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
     nick: "해피스터디",
-    mic: false,
     g: "linear-gradient(135deg,#7d7aa8,#5d5a88)",
   },
   {
     nick: "공부는내일",
-    mic: false,
     g: "linear-gradient(135deg,#b08a4f,#8a6a2f)",
   },
   {
     nick: "꾸준히가자",
-    mic: true,
     g: "linear-gradient(135deg,#5f8aa8,#3f6a88)",
   },
   {
     nick: "합격기원",
-    mic: false,
     g: "linear-gradient(135deg,#a85f7a,#88405a)",
   },
   {
     nick: "포기하지마",
-    mic: true,
     g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
     nick: "노력은배신X",
-    mic: false,
     g: "linear-gradient(135deg,#7d6a55,#5a4a38)",
   },
 ];
@@ -290,9 +280,7 @@ export default function Login() {
 
               <span className="login-cam-name">{p.nick}</span>
 
-              <span className={`login-cam-mic${p.mic ? "" : " is-off"}`}>
-                {p.mic ? <MicNoneIcon /> : <MicOffIcon />}
-              </span>
+              <span className="login-cam-state">입장</span>
             </div>
           ))}
         </div>

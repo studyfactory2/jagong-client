@@ -230,26 +230,22 @@
   text-overflow: ellipsis;
 }
 
-.wr-worker-mic {
+.wr-worker-state {
   position: absolute;
   right: 5px;
   bottom: 5px;
   z-index: 2;
-  width: 22px;
+  min-width: 34px;
   height: 22px;
   border-radius: 999px;
   background: var(--mint-deep);
   color: #ffffff;
-  display: grid;
-  place-items: center;
-}
-
-.wr-worker-mic.is-off {
-  background: #6f7478;
-}
-
-.wr-worker-mic svg {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .wr-preview-note,
@@ -651,13 +647,11 @@
     padding: 4px 5px;
   }
 
-  .wr-worker-mic {
-    width: 18px;
+  .wr-worker-state {
+    min-width: 30px;
     height: 18px;
-  }
-
-  .wr-worker-mic svg {
-    font-size: 12px;
+    padding-inline: 6px;
+    font-size: 8px;
   }
 
   .wr-date {
@@ -863,12 +857,13 @@
     padding: 7px 8px;
   }
 
-  .wr-worker-mic {
+  .wr-worker-state {
     right: 8px;
     bottom: 8px;
-    width: 27px;
+    min-width: 40px;
     height: 27px;
     border: 2px solid rgba(255, 255, 255, 0.82);
+    font-size: 10px;
   }
 
   .wr-time-grid {

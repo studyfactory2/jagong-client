@@ -415,26 +415,22 @@
   text-overflow: ellipsis;
 }
 
-.login-cam-mic {
+.login-cam-state {
   position: absolute;
   right: 5px;
   bottom: 5px;
   z-index: 2;
-  width: 21px;
+  min-width: 34px;
   height: 21px;
   border-radius: 999px;
   background: var(--mint-deep);
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
   color: #ffffff;
-}
-
-.login-cam-mic.is-off {
-  background: #6f7478;
-}
-
-.login-cam-mic svg {
-  font-size: 14px;
+  font-size: 9px;
+  font-weight: 800;
 }
 
 .login-count {
@@ -563,13 +559,11 @@
     padding: 3px 5px;
   }
 
-  .login-cam-mic {
-    width: 18px;
+  .login-cam-state {
+    min-width: 30px;
     height: 18px;
-  }
-
-  .login-cam-mic svg {
-    font-size: 12px;
+    padding-inline: 6px;
+    font-size: 8px;
   }
 
   .login-preview-badge {

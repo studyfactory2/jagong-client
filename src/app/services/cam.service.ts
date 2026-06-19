@@ -1,5 +1,6 @@
 import { http } from "./http";
 import type {
+  CamRoomMember,
   CamSessionRecord,
   CamTokenDto,
   CamWarningRecord,
@@ -22,6 +23,11 @@ export async function issueCamToken(input?: {
   branchId?: string;
 }): Promise<CamTokenDto> {
   const { data } = await http.post<CamTokenDto>("/cam/token", input ?? {});
+  return data;
+}
+
+export async function getCamRoomMembers(): Promise<CamRoomMember[]> {
+  const { data } = await http.get<CamRoomMember[]>("/cam/room-members");
   return data;
 }
 

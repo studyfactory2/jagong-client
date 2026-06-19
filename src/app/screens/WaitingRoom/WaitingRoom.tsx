@@ -5,8 +5,6 @@ import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNone
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
-import MicNoneIcon from "@mui/icons-material/MicNone";
-import MicOffIcon from "@mui/icons-material/MicOff";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -26,49 +24,40 @@ import "./waiting-room.css";
 
 type PreviewWorker = {
   nick: string;
-  mic: boolean;
   gradient: string;
 };
 
 const PREVIEW: PreviewWorker[] = [
   {
     nick: "오늘도합격",
-    mic: true,
     gradient: "linear-gradient(135deg,#3f5b6e,#273d4d)",
   },
   {
     nick: "정리왕",
-    mic: true,
     gradient: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
     nick: "해피스터디",
-    mic: false,
     gradient: "linear-gradient(135deg,#7d7aa8,#5d5a88)",
   },
   {
     nick: "공부는내일",
-    mic: false,
     gradient: "linear-gradient(135deg,#b08a4f,#8a6a2f)",
   },
   {
     nick: "꾸준히가자",
-    mic: false,
     gradient: "linear-gradient(135deg,#5f8aa8,#3f6a88)",
   },
   {
     nick: "합격기원",
-    mic: true,
     gradient: "linear-gradient(135deg,#a85f7a,#88405a)",
   },
   {
     nick: "포기하지마",
-    mic: true,
     gradient: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
     nick: "노력은배신X",
-    mic: false,
     gradient: "linear-gradient(135deg,#7d6a55,#5a4a38)",
   },
 ];
@@ -222,8 +211,8 @@ export default function WaitingRoom() {
       const message =
         data.type === "countdown"
           ? `곧 ${data.label ?? "다음 교시"} 시작돼요`
-          : data.type === "periodStart"
-            ? `${data.label ?? "교시"} 시작! 카메라와 마이크 상태를 확인해 주세요.`
+        : data.type === "periodStart"
+            ? `${data.label ?? "교시"} 시작! 카메라 상태를 확인해 주세요.`
             : data.type === "breakStart"
               ? "쉬는시간입니다. 다음 교시 전까지 준비해 주세요."
               : "";
@@ -360,9 +349,7 @@ export default function WaitingRoom() {
                   }}
                 />
                 <span className="wr-worker-name">{worker.nick}</span>
-                <span className={`wr-worker-mic${worker.mic ? "" : " is-off"}`}>
-                  {worker.mic ? <MicNoneIcon /> : <MicOffIcon />}
-                </span>
+                <span className="wr-worker-state">입장</span>
               </div>
             ))}
           </div>
@@ -452,7 +439,7 @@ export default function WaitingRoom() {
         >
           <span>공지</span>
           {bellMsg ||
-            `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라와 마이크 상태를 확인해 주세요.`}
+            `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라 상태를 확인해 주세요.`}
         </button>
 
         <section className="wr-entry">

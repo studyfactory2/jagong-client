@@ -1,37 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
-import MicNoneIcon from "@mui/icons-material/MicNone";
-import MicOffIcon from "@mui/icons-material/MicOff";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import type { Room } from "livekit-client";
-import { issueCamToken, joinCam, leaveCam } from "../../services/cam.service";
+import {
+  getCamRoomMembers,
+  issueCamToken,
+  joinCam,
+  leaveCam,
+} from "../../services/cam.service";
 import { getTimetable } from "../../services/timetable.service";
-import type { CamTokenDto, TimetableSlot } from "../../../lib/types";
+import type { CamRoomMember, CamTokenDto, TimetableSlot } from "../../../lib/types";
+import { useAuth } from "../../context/AuthContext";
 import "./study-room.css";
-
-const WORKERS = [
-  "오늘도합격",
-  "정리왕",
-  "해피스터디",
-  "공부는내일",
-  "꾸준히가자",
-  "합격기원",
-  "포기하지마",
-  "노력은배신X",
-  "내일은합격",
-  "자격증러버",
-  "끝까지한다",
-  "로스팅중",
-  "매일출근",
-  "고득점가자",
-  "기초튼튼",
-  "집중모드",
-];
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
   {
@@ -133,22 +118,42 @@ function currentSlot(timetable: TimetableSlot[]): number | null {
 
 export default function StudyRoom() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const [visibleCount, setVisibleCount] = useState(16);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
   const [camToken, setCamToken] = useState<CamTokenDto | null>(null);
+  const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [timetable, setTimetable] =
     useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const publishedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const roomRef = useRef<Room | null>(null);
   const joinedRef = useRef(false);
   const joinedSlotRef = useRef<number | null>(null);
+  const myId = session?.user.userId ?? session?.user.id ?? "";
+
+  const refreshRoomMembers = useCallback(async () => {
+    try {
+      const members = await getCamRoomMembers();
+      setRoomMembers(members);
+    } catch {
+      setRoomMembers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshRoomMembers();
+    const timer = window.setInterval(() => void refreshRoomMembers(), 15000);
+    return () => window.clearInterval(timer);
+  }, [refreshRoomMembers]);
 
   useEffect(() => {
     getTimetable()
@@ -165,6 +170,13 @@ export default function StudyRoom() {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const element = selfTileVideoRef.current;
+    if (!element || !joined) return;
+    element.srcObject = streamRef.current;
+    void element.play().catch(() => undefined);
+  }, [cameraReady, joined, selectedDeviceId]);
 
   useEffect(() => {
     return () => {
@@ -198,10 +210,32 @@ export default function StudyRoom() {
     100,
     Math.round((completedSlots / Math.max(1, timetable.length)) * 100),
   );
+  const membersForGrid = useMemo(() => {
+    const withSelfStatus = roomMembers.map((member) =>
+      member.id === myId ? { ...member, isWorking: joined || member.isWorking } : member,
+    );
+
+    if (myId && !withSelfStatus.some((member) => member.id === myId)) {
+      withSelfStatus.unshift({
+        id: myId,
+        name: session?.user.name ?? "나",
+        isWorking: joined,
+        joinedAt: joined ? new Date().toISOString() : null,
+      });
+    }
+
+    return [...withSelfStatus].sort((a, b) => {
+      if (a.id === myId) return -1;
+      if (b.id === myId) return 1;
+      if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
+      return a.name.localeCompare(b.name, "ko");
+    });
+  }, [joined, myId, roomMembers, session?.user.name]);
 
   function stopLocalCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setCameraReady(false);
     if (videoRef.current) videoRef.current.srcObject = null;
   }
 
@@ -237,6 +271,7 @@ export default function StudyRoom() {
       videoRef.current.srcObject = stream;
       await videoRef.current.play().catch(() => undefined);
     }
+    setCameraReady(true);
     await refreshDevices();
   }
 
@@ -283,15 +318,30 @@ export default function StudyRoom() {
 
   async function handleDeviceChange(deviceId: string) {
     setSelectedDeviceId(deviceId);
-    if (!joined) return;
     setError("");
     try {
       await startLocalCamera(deviceId || undefined);
-      await republishCameraTrack();
+      if (joined) {
+        await republishCameraTrack();
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.",
       );
+    }
+  }
+
+  async function handlePreviewCamera() {
+    setError("");
+    setJoining(true);
+    try {
+      await startLocalCamera(selectedDeviceId || undefined);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "카메라 미리보기를 시작하지 못했습니다.",
+      );
+    } finally {
+      setJoining(false);
     }
   }
 
@@ -307,6 +357,7 @@ export default function StudyRoom() {
         joinedSlotRef.current = null;
         setJoined(false);
         setCamToken(null);
+        await refreshRoomMembers();
       } else {
         const slot = currentSlot(timetable);
         const token = await issueCamToken();
@@ -317,6 +368,7 @@ export default function StudyRoom() {
         joinedSlotRef.current = slot;
         setCamToken(token);
         setJoined(true);
+        await refreshRoomMembers();
       }
     } catch (err) {
       disconnectLiveKit();
@@ -369,39 +421,88 @@ export default function StudyRoom() {
             </button>
           </div>
 
-          <div className={"sr-self" + (joined ? " is-on" : "")}>
-            <div className="sr-self-video">
-              <video ref={videoRef} muted playsInline />
-              {!joined && (
-                <span>
-                  <DoorFrontOutlinedIcon />
-                  하루 작업실에 입장하면 내 카메라가 계속 표시됩니다.
-                </span>
-              )}
+          {!joined ? (
+            <div className="sr-setup">
+              <div className="sr-setup-video">
+                <video ref={videoRef} muted playsInline />
+                {!cameraReady && (
+                  <span>
+                    <DoorFrontOutlinedIcon />
+                    카메라 각도와 기기를 먼저 확인해 주세요.
+                  </span>
+                )}
+              </div>
+
+              <div className="sr-setup-info">
+                <strong>작업실 입장 준비</strong>
+                <em>
+                  입장 후에는 학생 화면에 큰 셀프 영상이 보이지 않고, 관리자에게
+                  캠만 송출됩니다.
+                </em>
+
+                <label>
+                  <span>카메라 선택</span>
+                  <select
+                    value={selectedDeviceId}
+                    onChange={(event) =>
+                      void handleDeviceChange(event.target.value)
+                    }
+                    disabled={joining || devices.length === 0}
+                  >
+                    {devices.length === 0 && (
+                      <option value="">미리보기 후 선택 가능</option>
+                    )}
+                    {devices.map((device, index) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `카메라 ${index + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="sr-setup-actions">
+                  <button
+                    className="sr-preview-btn"
+                    type="button"
+                    onClick={handlePreviewCamera}
+                    disabled={joining}
+                  >
+                    카메라 미리보기
+                  </button>
+                  <button
+                    className="sr-join"
+                    onClick={toggleJoin}
+                    type="button"
+                    disabled={joining}
+                  >
+                    {joining ? "카메라 확인 중..." : "하루 작업실 입장"}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="sr-self-info">
-              <strong>
-                {joined
-                  ? "하루 작업실 캠 송출 중"
-                  : "작업실 입장 전 카메라 확인"}
-              </strong>
-              <em>
-                {camToken
-                  ? `작업방 ${camToken.room.slice(0, 8)} · ${camToken.canPublish ? "송출 가능" : "보기 전용"}`
-                  : "카메라 권한을 허용한 뒤 작업장에 입장합니다."}
-              </em>
-              <label>
-                <span>카메라 선택</span>
+          ) : (
+            <div className="sr-live-status">
+              <div className="sr-live-badge">
+                <span className="sr-live-dot" />
+                캠 송출 중
+              </div>
+              <div className="sr-live-meta">
+                <strong>하루 작업실에 입장했습니다.</strong>
+                <em>
+                  학생 화면에는 큰 셀프 영상이 뜨지 않습니다. 관리자는 작업장
+                  모니터에서 현재 캠을 확인합니다.
+                </em>
+              </div>
+              <label className="sr-live-device">
+                <span>카메라</span>
                 <select
                   value={selectedDeviceId}
                   onChange={(event) =>
                     void handleDeviceChange(event.target.value)
                   }
-                  disabled={!joined || joining || devices.length === 0}
+                  disabled={joining || devices.length === 0}
                 >
-                  {devices.length === 0 && (
-                    <option value="">입장 후 선택 가능</option>
-                  )}
+                  {devices.length === 0 && <option value="">카메라 선택</option>}
                   {devices.map((device, index) => (
                     <option key={device.deviceId} value={device.deviceId}>
                       {device.label || `카메라 ${index + 1}`}
@@ -410,15 +511,22 @@ export default function StudyRoom() {
                 </select>
               </label>
             </div>
-          </div>
+          )}
 
           <div className="sr-grid">
-            {WORKERS.slice(0, visibleCount).map((name, index) => {
-              const micOn = index % 3 !== 2;
+            {membersForGrid.slice(0, visibleCount).map((member, index) => {
+              const isMe = member.id === myId;
+              const isWorking = member.isWorking || (isMe && joined);
               return (
                 <div
-                  className="sr-cam"
-                  key={`${name}-${index}`}
+                  className={[
+                    "sr-cam",
+                    isWorking ? "is-working" : "is-waiting",
+                    isMe ? "is-me" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  key={member.id}
                   style={{
                     background:
                       index % 4 === 0
@@ -430,35 +538,41 @@ export default function StudyRoom() {
                             : "linear-gradient(135deg,#b08a4f,#8a6a2f)",
                   }}
                 >
-                  <img
-                    src={`/preview/${(index % 8) + 1}.jpg`}
-                    alt=""
-                    onError={(event) => {
-                      event.currentTarget.style.display = "none";
-                    }}
-                  />
-                  <span className="sr-cam-name">{name}</span>
-                  <span className={`sr-cam-state${micOn ? "" : " is-off"}`}>
-                    {micOn ? <MicNoneIcon /> : <MicOffIcon />}
+                  {isMe && joined && (
+                    <video
+                      ref={selfTileVideoRef}
+                      muted
+                      playsInline
+                      className="sr-cam-self-video"
+                    />
+                  )}
+                  <span className="sr-cam-name">
+                    {isMe ? "나" : member.name}
+                  </span>
+                  <span className={`sr-cam-state${isWorking ? "" : " is-off"}`}>
+                    <small>{isWorking ? "입장" : "대기"}</small>
                   </span>
                 </div>
               );
             })}
+            {membersForGrid.length === 0 && (
+              <div className="sr-empty-members">
+                아직 표시할 작업장 회원이 없습니다.
+              </div>
+            )}
           </div>
 
           {error && <p className="sr-error">{error}</p>}
-          <button
-            className="sr-join"
-            onClick={toggleJoin}
-            type="button"
-            disabled={joining}
-          >
-            {joining
-              ? "카메라 확인 중..."
-              : joined
-                ? "하루 작업실 퇴장"
-                : "하루 작업실 입장"}
-          </button>
+          {joined && (
+            <button
+              className="sr-join is-leave"
+              onClick={toggleJoin}
+              type="button"
+              disabled={joining}
+            >
+              {joining ? "퇴장 처리 중..." : "하루 작업실 퇴장"}
+            </button>
+          )}
           <p className="sr-hint">
             입장 후에는 교시가 바뀌어도 캠이 유지됩니다. 쉬는시간에는 원하면
             직접 퇴장할 수 있습니다.
