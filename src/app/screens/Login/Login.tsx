@@ -13,6 +13,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getBranches } from "../../services/branch.service";
 import { login as loginApi } from "../../services/auth.service";
 import { useAuth } from "../../context/AuthContext";
+import { memberHomePath } from "../../utils/access";
 import type { Branch } from "../../../lib/types";
 import "./login.css";
 
@@ -20,35 +21,27 @@ const AUTH_REMEMBER_KEY = "jagong_remember_login";
 
 const PREVIEW = [
   {
-    nick: "오늘도합격",
     g: "linear-gradient(135deg,#3f5b6e,#273d4d)",
   },
   {
-    nick: "정리왕",
     g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
-    nick: "해피스터디",
     g: "linear-gradient(135deg,#7d7aa8,#5d5a88)",
   },
   {
-    nick: "공부는내일",
     g: "linear-gradient(135deg,#b08a4f,#8a6a2f)",
   },
   {
-    nick: "꾸준히가자",
     g: "linear-gradient(135deg,#5f8aa8,#3f6a88)",
   },
   {
-    nick: "합격기원",
     g: "linear-gradient(135deg,#a85f7a,#88405a)",
   },
   {
-    nick: "포기하지마",
     g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
   },
   {
-    nick: "노력은배신X",
     g: "linear-gradient(135deg,#7d6a55,#5a4a38)",
   },
 ];
@@ -67,19 +60,14 @@ export default function Login() {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [studyCount] = useState(() => Math.floor(Math.random() * 18) + 18);
+  const [studyCount] = useState(() => Math.floor(Math.random() * 6) + 18);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   useEffect(() => {
     if (!session) return;
-    navigate(
-      session.user.role === "ADMIN" || session.user.role === "STAFF"
-        ? "/admin"
-        : "/waiting-room",
-      { replace: true },
-    );
+    navigate(memberHomePath(session.user), { replace: true });
   }, [navigate, session]);
 
   useEffect(() => {
@@ -108,12 +96,7 @@ export default function Login() {
     try {
       const { token, user } = await loginApi(name, branchId, pin);
       login({ token, user }, autoLogin);
-      navigate(
-        user.role === "ADMIN" || user.role === "STAFF"
-          ? "/admin"
-          : "/waiting-room",
-        { replace: true },
-      );
+      navigate(memberHomePath(user), { replace: true });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -264,7 +247,7 @@ export default function Login() {
 
         <div className="login-grid">
           {PREVIEW.map((p, i) => (
-            <div key={p.nick} className="login-cam" style={{ background: p.g }}>
+            <div key={i} className="login-cam" style={{ background: p.g }}>
               <span className="login-cam-ph">
                 <PersonRoundedIcon />
               </span>
@@ -278,7 +261,7 @@ export default function Login() {
                 }}
               />
 
-              <span className="login-cam-name">{p.nick}</span>
+              <span className="login-cam-name">학습중</span>
 
               <span className="login-cam-state">입장</span>
             </div>

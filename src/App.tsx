@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./app/components/ProtectedRoute";
+import MembershipRoute from "./app/components/MembershipRoute";
 import Login from "./app/screens/Login";
 import Register from "./app/screens/Register";
 import ConsultationBooking from "./app/screens/ConsultationBooking";
@@ -16,14 +17,11 @@ import PaymentFail from "./app/screens/PaymentFail";
 import MyPage from "./app/screens/MyPage";
 import AdminDashboard from "./app/screens/AdminDashboard";
 import { useAuth } from "./app/context/AuthContext";
-
-function homePath(role?: string) {
-  return role === "ADMIN" || role === "STAFF" ? "/admin" : "/waiting-room";
-}
+import { memberHomePath } from "./app/utils/access";
 
 function RootRedirect() {
   const { session } = useAuth();
-  return <Navigate to={session ? homePath(session.user.role) : "/login"} replace />;
+  return <Navigate to={session ? memberHomePath(session.user) : "/login"} replace />;
 }
 
 export default function App() {
@@ -38,18 +36,21 @@ export default function App() {
 
       {/* behind login */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/waiting-room/*" element={<WaitingRoom />} />
-        <Route path="/study-line" element={<StudyLine />} />
-        <Route path="/study-room" element={<StudyRoom />} />
-        <Route path="/weekly-plan" element={<WeeklyPlan />} />
-        <Route path="/leaves" element={<LeaveRequest />} />
-        <Route path="/inquiry" element={<Inquiry />} />
-        <Route path="/video-consult" element={<VideoConsult />} />
         <Route path="/payments" element={<PaymentHistory />} />
         <Route path="/payments/success" element={<PaymentSuccess />} />
         <Route path="/payments/fail" element={<PaymentFail />} />
         <Route path="/my-page" element={<MyPage />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
+
+        <Route element={<MembershipRoute />}>
+          <Route path="/waiting-room/*" element={<WaitingRoom />} />
+          <Route path="/study-line" element={<StudyLine />} />
+          <Route path="/study-room" element={<StudyRoom />} />
+          <Route path="/weekly-plan" element={<WeeklyPlan />} />
+          <Route path="/leaves" element={<LeaveRequest />} />
+          <Route path="/inquiry" element={<Inquiry />} />
+          <Route path="/video-consult" element={<VideoConsult />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

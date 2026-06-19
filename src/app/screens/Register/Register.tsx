@@ -11,6 +11,7 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import { getBranches } from "../../services/branch.service";
 import { register as registerApi } from "../../services/auth.service";
 import { useAuth } from "../../context/AuthContext";
+import { memberHomePath } from "../../utils/access";
 import type { Branch } from "../../../lib/types";
 import "./register.css";
 
@@ -69,7 +70,7 @@ export default function Register() {
 
       if (res.token) {
         login({ token: res.token, user: res.user }, false);
-        navigate("/waiting-room");
+        navigate(memberHomePath(res.user), { replace: true });
       } else {
         navigate("/login");
       }
