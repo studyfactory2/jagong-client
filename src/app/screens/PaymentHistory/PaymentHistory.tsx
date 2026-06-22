@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
@@ -22,6 +21,7 @@ import { useAuth } from "../../context/AuthContext";
 import "./payment-history.css";
 
 type PaymentPhase = "idle" | "checkout" | "portone";
+type MembershipViewState = "loading" | "active" | "future" | "expired" | "none";
 
 const FALLBACK_PLANS: MembershipPlan[] = [
   { months: 1, days: 30, total: 370000 },
@@ -50,6 +50,36 @@ function paymentPhaseText(phase: PaymentPhase): string {
   return "카드로 연장하기";
 }
 
+function membershipViewState(
+  membership: MembershipStatus | null,
+  loading: boolean,
+): MembershipViewState {
+  if (loading) return "loading";
+  if (!membership?.startDate || !membership.membershipEnd) return "none";
+
+  const start = new Date(membership.startDate);
+  const end = new Date(membership.membershipEnd);
+  const now = Date.now();
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "none";
+  }
+
+  if (end.getTime() <= now) return "expired";
+  if (start.getTime() > now) return "future";
+  return "active";
+}
+
+function daysUntil(value?: string | null): number | null {
+  if (!value) return null;
+  const target = new Date(value);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
 export default function PaymentHistory() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -66,6 +96,19 @@ export default function PaymentHistory() {
     () => plans.find((p) => p.months === selected) ?? plans[0],
     [plans, selected],
   );
+  const viewState = membershipViewState(membership, loading);
+  const hasValidMembership = viewState === "active" || viewState === "future";
+  const startDDay = daysUntil(membership?.startDate);
+  const ticketBadge =
+    viewState === "loading"
+      ? "확인중"
+      : viewState === "future"
+        ? startDDay !== null
+          ? `시작 D-${Math.max(0, startDDay)}`
+          : "시작 전"
+        : viewState === "active"
+          ? `D-${membership?.daysLeft ?? 0}`
+          : "만료";
 
   useEffect(() => {
     let alive = true;
@@ -167,9 +210,7 @@ export default function PaymentHistory() {
           <ArrowBackIcon /> 대기장
         </button>
         <h1>결제/이용내역</h1>
-        <button type="button">
-          <MenuOutlinedIcon />
-        </button>
+        <span aria-hidden="true" />
       </header>
 
       <main className="pay-body">
@@ -189,14 +230,18 @@ export default function PaymentHistory() {
               {dateText(membership?.membershipEnd)}
             </p>
           </div>
-          <span>
-            {loading
-              ? "확인중"
-              : membership?.active
-                ? `D-${membership.daysLeft ?? 0}`
-                : "만료"}
-          </span>
+          <span className={`is-${viewState}`}>{ticketBadge}</span>
         </section>
+
+        {viewState === "future" && (
+          <section className="pay-pending-start">
+            <strong>이용 시작 전입니다</strong>
+            <p>
+              결제는 완료되어 있어요. {dateText(membership?.startDate)}부터
+              대기장과 공부방 전체 기능을 이용할 수 있습니다.
+            </p>
+          </section>
+        )}
 
         <section className="pay-calendar">
           <div className="pay-cal-head">
@@ -219,7 +264,7 @@ export default function PaymentHistory() {
         </section>
 
         <section className="pay-fees">
-          <h2>이용료</h2>
+          <h2>{hasValidMembership ? "연장 이용료" : "이용료"}</h2>
           <div>
             {plans.map((plan) => (
               <button
@@ -246,7 +291,11 @@ export default function PaymentHistory() {
             onClick={startPayment}
             type="button"
           >
-            {paying ? paymentPhaseText(paymentPhase) : "카드로 연장하기"}
+            {paying
+              ? paymentPhaseText(paymentPhase)
+              : hasValidMembership
+                ? "카드로 연장하기"
+                : "카드로 결제하기"}
           </button>
         </section>
 

@@ -116,10 +116,20 @@ function currentSlot(timetable: TimetableSlot[]): number | null {
   return period?.slot ?? null;
 }
 
+function timeLeftText(minutes: number): string {
+  const safeMinutes = Math.max(0, minutes);
+  const hours = Math.floor(safeMinutes / 60);
+  const mins = safeMinutes % 60;
+  if (hours <= 0) return `${mins}분`;
+  if (mins === 0) return `${hours}시간`;
+  return `${hours}시간 ${mins}분`;
+}
+
 export default function StudyRoom() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [visibleCount, setVisibleCount] = useState(16);
+  const [compactWall, setCompactWall] = useState(true);
+  const [cameraOnly, setCameraOnly] = useState(false);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
@@ -203,13 +213,26 @@ export default function StudyRoom() {
     () => timetable.find((slot) => toMin(slot.startTime) > nowMin),
     [nowMin, timetable],
   );
-  const completedSlots = timetable.filter(
-    (slot) => toMin(slot.endTime) <= nowMin,
-  ).length;
-  const progress = Math.min(
-    100,
-    Math.round((completedSlots / Math.max(1, timetable.length)) * 100),
-  );
+  const remainingMinutes = current
+    ? toMin(current.endTime) - nowMin
+    : nextSlot
+      ? toMin(nextSlot.startTime) - nowMin
+      : 0;
+  const remainingLabel = current ? "종료까지" : nextSlot ? "시작까지" : "오늘 종료";
+  const remainingText = timeLeftText(remainingMinutes);
+  const periodWindow = current
+    ? `${current.startTime} - ${current.endTime}`
+    : nextSlot
+      ? `${nextSlot.startTime} 시작`
+      : "오늘 일정 완료";
+  const nextWindow = nextSlot
+    ? `${nextSlot.startTime} - ${nextSlot.endTime}`
+    : "오늘 일정 완료";
+  const noticeBody = current
+    ? `${current.label} 집중 체크 중입니다. 화면을 켜고 자리를 유지해 주세요.`
+    : nextSlot
+      ? `${nextSlot.label} 시작 전입니다. 입장 상태와 카메라를 확인해 주세요.`
+      : "오늘 작업장 일정이 종료되었습니다.";
   const membersForGrid = useMemo(() => {
     const withSelfStatus = roomMembers.map((member) =>
       member.id === myId ? { ...member, isWorking: joined || member.isWorking } : member,
@@ -385,10 +408,22 @@ export default function StudyRoom() {
     }
   }
 
+  function goWaitingRoom() {
+    if (
+      joined &&
+      !window.confirm(
+        "작업장을 나가면 교시 중에는 다시 입장하지 못할 수 있습니다. 대기장으로 이동할까요?",
+      )
+    ) {
+      return;
+    }
+    navigate("/waiting-room");
+  }
+
   return (
-    <div className="sr">
+    <div className={`sr${cameraOnly ? " is-camera-only" : ""}`}>
       <header className="sr-head">
-        <button className="sr-back" onClick={() => navigate("/waiting-room")}>
+        <button className="sr-back" onClick={goWaitingRoom}>
           <ArrowBackIcon /> 대기장
         </button>
 
@@ -411,14 +446,32 @@ export default function StudyRoom() {
 
             <button
               className="sr-view-btn"
-              onClick={() =>
-                setVisibleCount((n) => (n === 8 ? 16 : n === 16 ? 25 : 8))
-              }
+              onClick={() => setCompactWall((value) => !value)}
+              type="button"
             >
               <GridViewOutlinedIcon />
-              {visibleCount}개 보기
-              <small>8 → 16 → 25</small>
+              {compactWall ? "크게 보기" : "많이 보기"}
+              <small>전체 {membersForGrid.length}명</small>
             </button>
+
+            <button
+              className="sr-wall-btn"
+              onClick={() => setCameraOnly((value) => !value)}
+              type="button"
+            >
+              {cameraOnly ? "전체 보기" : "캠만 보기"}
+            </button>
+
+            {joined && (
+              <button
+                className="sr-quick-leave"
+                onClick={toggleJoin}
+                type="button"
+                disabled={joining}
+              >
+                {joining ? "처리 중" : "퇴장"}
+              </button>
+            )}
           </div>
 
           {!joined ? (
@@ -480,41 +533,10 @@ export default function StudyRoom() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="sr-live-status">
-              <div className="sr-live-badge">
-                <span className="sr-live-dot" />
-                캠 송출 중
-              </div>
-              <div className="sr-live-meta">
-                <strong>하루 작업실에 입장했습니다.</strong>
-                <em>
-                  학생 화면에는 큰 셀프 영상이 뜨지 않습니다. 관리자는 작업장
-                  모니터에서 현재 캠을 확인합니다.
-                </em>
-              </div>
-              <label className="sr-live-device">
-                <span>카메라</span>
-                <select
-                  value={selectedDeviceId}
-                  onChange={(event) =>
-                    void handleDeviceChange(event.target.value)
-                  }
-                  disabled={joining || devices.length === 0}
-                >
-                  {devices.length === 0 && <option value="">카메라 선택</option>}
-                  {devices.map((device, index) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {device.label || `카메라 ${index + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
+          ) : null}
 
-          <div className="sr-grid">
-            {membersForGrid.slice(0, visibleCount).map((member, index) => {
+          <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
+            {membersForGrid.map((member, index) => {
               const isMe = member.id === myId;
               const isWorking = member.isWorking || (isMe && joined);
               return (
@@ -564,84 +586,96 @@ export default function StudyRoom() {
 
           {error && <p className="sr-error">{error}</p>}
           {joined && (
-            <button
-              className="sr-join is-leave"
-              onClick={toggleJoin}
-              type="button"
-              disabled={joining}
-            >
-              {joining ? "퇴장 처리 중..." : "하루 작업실 퇴장"}
-            </button>
-          )}
-          <p className="sr-hint">
-            입장 후에는 교시가 바뀌어도 캠이 유지됩니다. 쉬는시간에는 원하면
-            직접 퇴장할 수 있습니다.
-          </p>
-        </section>
-
-        <section className="sr-notice">
-          <span>공지창</span>
-          관리자 공지: {current?.label ?? nextSlot?.label ?? "오늘 일정"} 집중
-          체크 중입니다. 화면을 켜고 자리를 유지해 주세요.
-          <em>실시간</em>
-        </section>
-
-        <section className="sr-panel sr-progress">
-          <div className="sr-panel-head">
-            <div className="sr-panel-title">
-              <CampaignOutlinedIcon />
-              <span>오늘 진행률 · 교시 안내</span>
-            </div>
-            <button className="sr-check">접기 ▲</button>
-          </div>
-
-          <div className="sr-progress-grid">
-            <div className="sr-progress-box">
-              <span>오늘 진행률</span>
-              <strong>{progress}%</strong>
-              <em>
-                ({completedSlots}/{timetable.length})
-              </em>
-              <div className="sr-bar">
-                <i style={{ width: `${progress}%` }} />
+            <div className="sr-live-footer">
+              <label className="sr-live-device">
+                <span>카메라</span>
+                <select
+                  value={selectedDeviceId}
+                  onChange={(event) =>
+                    void handleDeviceChange(event.target.value)
+                  }
+                  disabled={joining || devices.length === 0}
+                >
+                  {devices.length === 0 && <option value="">카메라 선택</option>}
+                  {devices.map((device, index) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label || `카메라 ${index + 1}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="sr-live-badge">
+                <span className="sr-live-dot" />
+                캠 송출 중
               </div>
-              <p>오늘도 차근차근 진행 중!</p>
+              <p>
+                큰 셀프 화면은 띄우지 않고, 관리자는 작업장 모니터에서 캠을
+                확인합니다.
+              </p>
+            </div>
+          )}
+          {!cameraOnly && (
+            <p className="sr-hint">
+              입장 후에는 교시가 바뀌어도 캠이 유지됩니다. 쉬는시간에는 원하면
+              직접 퇴장할 수 있습니다.
+            </p>
+          )}
+        </section>
+
+        {!cameraOnly && (
+          <section className="sr-bottom-status">
+            <div className="sr-status-notice">
+              <CampaignOutlinedIcon />
+              <span>공지</span>
+              <p>{noticeBody}</p>
+              <em>실시간</em>
             </div>
 
-            <div className="sr-period is-now">
-              <span>현재 진행중</span>
-              <strong>{current?.label ?? "대기중"}</strong>
+            <div className="sr-status-item">
+              <span>{current ? "현재 교시" : "다음 교시"}</span>
+              <strong>{current?.label ?? nextSlot?.label ?? "종료"}</strong>
               <p>
-                <NotificationsOutlinedIcon />{" "}
-                {current
-                  ? `${current.startTime} - ${current.endTime}`
-                  : "다음 교시 전입니다"}
+                <NotificationsOutlinedIcon /> {periodWindow}
               </p>
             </div>
 
-            <div className="sr-period is-next">
+            <div className="sr-status-item is-time">
+              <span>{remainingLabel}</span>
+              <strong>{remainingText}</strong>
+            </div>
+
+            <div className="sr-status-item is-next">
               <span>다음 교시</span>
               <strong>{nextSlot?.label ?? "종료"}</strong>
               <p>
-                <NotificationsOutlinedIcon />{" "}
-                {nextSlot
-                  ? `${nextSlot.startTime} - ${nextSlot.endTime}`
-                  : "오늘 일정이 종료되었습니다"}
+                <NotificationsOutlinedIcon /> {nextWindow}
               </p>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <div className="sr-dots">
-          <i className="is-active" />
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
+        {!cameraOnly && (
+          <div className="sr-dots">
+            <i className="is-active" />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        )}
       </main>
 
-      <p className="app-foot">자격증공장 재택근무반</p>
+      <footer className="sr-footer">
+        <span>자격증공장 재택근무반</span>
+        <nav>
+          <button type="button" onClick={goWaitingRoom}>
+            대기장
+          </button>
+          <button type="button" onClick={() => navigate("/study-line")}>
+            개인작업실
+          </button>
+        </nav>
+      </footer>
     </div>
   );
 }

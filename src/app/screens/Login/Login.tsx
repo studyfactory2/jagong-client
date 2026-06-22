@@ -11,7 +11,7 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getBranches } from "../../services/branch.service";
-import { login as loginApi } from "../../services/auth.service";
+import { getMe, login as loginApi } from "../../services/auth.service";
 import { useAuth } from "../../context/AuthContext";
 import { memberHomePath } from "../../utils/access";
 import type { Branch } from "../../../lib/types";
@@ -96,7 +96,13 @@ export default function Login() {
     try {
       const { token, user } = await loginApi(name, branchId, pin);
       login({ token, user }, autoLogin);
-      navigate(memberHomePath(user), { replace: true });
+      try {
+        const freshUser = await getMe();
+        login({ token, user: freshUser }, autoLogin);
+        navigate(memberHomePath(freshUser), { replace: true });
+      } catch {
+        navigate(memberHomePath(user), { replace: true });
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {

@@ -4,7 +4,9 @@
   max-width: 560px;
   min-height: 100vh;
   margin: 0 auto;
-  background: var(--card);
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.98), rgba(255, 254, 250, 0.94)),
+    var(--paper);
 }
 
 .pay button {
@@ -33,7 +35,6 @@
   display: grid;
   grid-template-columns: minmax(96px, 1fr) auto minmax(44px, 1fr);
   align-items: center;
-  border-bottom: 2px dotted var(--accent-line);
   gap: 8px;
 }
 
@@ -55,14 +56,10 @@
   padding: 0 8px 0 0;
 }
 
-.pay-head button:last-child {
+.pay-head > span[aria-hidden="true"] {
   justify-self: end;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--ink);
-  border-radius: 14px;
-  justify-content: center;
-  padding: 0;
 }
 
 .pay-head svg {
@@ -108,11 +105,13 @@
 
 .pay-ticket,
 .pay-calendar,
+.pay-pending-start,
 .pay-alert,
 .pay-history {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--card);
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 254, 250, 0.92);
+  box-shadow: 0 12px 32px rgba(20, 63, 86, 0.06);
 }
 
 .pay-ticket {
@@ -147,6 +146,39 @@
   font-weight: 700;
 }
 
+.pay-ticket span.is-future {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: #9a742b;
+}
+
+.pay-ticket span.is-expired,
+.pay-ticket span.is-none {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.pay-pending-start {
+  padding: 15px;
+  display: grid;
+  gap: 6px;
+  border-color: rgba(240, 210, 146, 0.85);
+  background:
+    linear-gradient(135deg, rgba(251, 242, 218, 0.9), rgba(255, 254, 250, 0.96));
+}
+
+.pay-pending-start strong {
+  font-size: 17px;
+}
+
+.pay-pending-start p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .pay-calendar {
   padding: 13px;
 }
@@ -168,7 +200,7 @@
   height: 34px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--card);
+  background: #fff;
   color: var(--ink);
   font-size: 18px;
   font-weight: 800;
@@ -248,7 +280,7 @@
 
 .pay-alert {
   border-color: var(--mint-line);
-  background: var(--mint-soft);
+  background: linear-gradient(135deg, var(--mint-soft), rgba(255, 254, 250, 0.9));
   padding: 13px;
   display: grid;
   grid-template-columns: 44px 1fr;
@@ -281,7 +313,7 @@
 .pay-fees > div button {
   border: 1px solid var(--mint-line);
   border-radius: 12px;
-  background: var(--card);
+  background: #fffefa;
   padding: 13px;
   text-align: left;
   color: var(--ink);
@@ -377,10 +409,10 @@
 
 .pay-row button {
   min-height: 30px;
-  border: 1px solid var(--ink);
+  border: 1px solid rgba(20, 63, 86, 0.4);
   border-radius: 999px;
   font-weight: 700;
-  background: var(--card);
+  background: #fff;
   color: var(--ink);
 }
 
@@ -390,7 +422,7 @@
 
 .pay-row a {
   min-height: 30px;
-  border: 1px solid var(--ink);
+  border: 1px solid rgba(20, 63, 86, 0.4);
   border-radius: 999px;
   color: var(--ink);
   display: inline-flex;
@@ -453,34 +485,55 @@
   }
 }
 
+@media (min-width: 521px) and (max-width: 899px) {
+  .pay {
+    width: min(calc(100vw - 28px), 720px);
+    max-width: none;
+  }
+
+  .pay-body {
+    padding: 16px;
+  }
+
+  .pay-fees > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .pay-row {
+    grid-template-columns: 1fr 72px 30px 118px;
+  }
+}
+
 /* final desktop/tablet organization: payment */
 @media (min-width: 900px) {
   .pay {
-    width: min(calc(100vw - 56px), 1080px);
+    width: min(calc(100vw - 56px), 1180px);
     max-width: none;
     margin: 0 auto;
     background:
-      radial-gradient(circle at 25% 12%, rgba(159, 206, 180, 0.08), transparent 30%),
+      radial-gradient(circle at 18% 12%, rgba(159, 206, 180, 0.1), transparent 28%),
+      radial-gradient(circle at 88% 16%, rgba(244, 134, 120, 0.08), transparent 26%),
       var(--paper);
   }
 
   .pay-head {
     min-height: 80px;
-    padding-inline: 10px;
+    padding-inline: 18px;
     grid-template-columns: 160px minmax(0, 1fr) 160px;
   }
 
   .pay-body {
     display: grid;
-    grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
+    grid-template-columns: minmax(360px, 0.76fr) minmax(0, 1.24fr);
     grid-template-areas:
       "error error"
+      "pending pending"
       "ticket fees"
       "calendar fees"
       "calendar history"
       "alert history";
     gap: 14px 16px;
-    padding: 22px 10px 38px;
+    padding: 22px 18px 38px;
     align-items: start;
   }
 
@@ -491,6 +544,16 @@
   .pay-ticket {
     grid-area: ticket;
     min-height: 78px;
+  }
+
+  .pay-pending-start {
+    grid-area: pending;
+    grid-template-columns: 190px 1fr;
+    align-items: center;
+  }
+
+  .pay-pending-start strong {
+    font-size: 18px;
   }
 
   .pay-calendar {
@@ -543,9 +606,10 @@
 /* final desktop payment card polish */
 @media (min-width: 900px) {
   .pay-fees {
-    border: 1px solid var(--ink);
-    border-radius: var(--radius);
-    background: var(--card);
+    border: 1px solid rgba(20, 63, 86, 0.12);
+    border-radius: 16px;
+    background: rgba(255, 254, 250, 0.92);
+    box-shadow: 0 12px 32px rgba(20, 63, 86, 0.06);
     padding: 16px;
   }
 
