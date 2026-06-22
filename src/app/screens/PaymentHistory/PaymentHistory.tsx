@@ -7,7 +7,6 @@ import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import {
   checkoutMembership,
-  confirmMembershipPayment,
   getMembershipPlans,
   getMyMembership,
   getMyPayments,
@@ -22,7 +21,7 @@ import type {
 import { useAuth } from "../../context/AuthContext";
 import "./payment-history.css";
 
-type PaymentPhase = "idle" | "checkout" | "portone" | "confirming";
+type PaymentPhase = "idle" | "checkout" | "portone";
 
 const FALLBACK_PLANS: MembershipPlan[] = [
   { months: 1, days: 30, total: 370000 },
@@ -48,7 +47,6 @@ function dateText(value?: string | null): string {
 function paymentPhaseText(phase: PaymentPhase): string {
   if (phase === "checkout") return "결제 정보를 준비하는 중...";
   if (phase === "portone") return "카드 결제창에서 결제를 진행해주세요.";
-  if (phase === "confirming") return "결제 완료 후 이용기간을 갱신하는 중...";
   return "카드로 연장하기";
 }
 
@@ -146,17 +144,12 @@ export default function PaymentHistory() {
         return;
       }
 
-      setPaymentPhase("confirming");
-      await confirmMembershipPayment({ paymentId: response.paymentId });
-      const [membershipData, paymentData] = await Promise.all([
-        getMyMembership(),
-        getMyPayments(),
-      ]);
-      setMembership(membershipData);
-      setPayments(paymentData);
-      navigate(
-        "/payments/success?paymentId=" + encodeURIComponent(response.paymentId),
-      );
+      const successParams = new URLSearchParams({
+        paymentId: response.paymentId,
+      });
+      const paymentKey = (response as { paymentKey?: string }).paymentKey;
+      if (paymentKey) successParams.set("paymentKey", paymentKey);
+      navigate("/payments/success?" + successParams.toString());
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "결제를 시작하지 못했습니다.",

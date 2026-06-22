@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import CheckIcon from "@mui/icons-material/Check";
 import { confirmMembershipPayment } from "../../services/membership.service";
+import { getMe } from "../../services/auth.service";
+import { useAuth } from "../../context/AuthContext";
 import "./payment-result.css";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { refreshUser } = useAuth();
   const [message, setMessage] = useState("결제 승인 중입니다.");
   const [done, setDone] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -42,6 +45,12 @@ export default function PaymentSuccess() {
           paymentId,
           pgKey: paymentKey,
         });
+        try {
+          const user = await getMe();
+          if (alive) refreshUser(user);
+        } catch {
+          // Payment is already confirmed; profile refresh can self-heal later.
+        }
         if (!alive) return;
         setDone(true);
         setMessage("결제가 완료되었고 이용기간이 연장되었습니다.");

@@ -5,9 +5,16 @@ export function isManager(user?: AuthUser | null): boolean {
 }
 
 export function hasActiveMembership(user?: AuthUser | null): boolean {
-  if (!user?.membershipEnd) return false;
+  if (!user?.startDate || !user.membershipEnd) return false;
+  const start = new Date(user.startDate);
   const end = new Date(user.membershipEnd);
-  return !Number.isNaN(end.getTime()) && end.getTime() > Date.now();
+  const now = Date.now();
+  return (
+    !Number.isNaN(start.getTime()) &&
+    !Number.isNaN(end.getTime()) &&
+    start.getTime() <= now &&
+    end.getTime() > now
+  );
 }
 
 export function memberHomePath(user?: AuthUser | null): string {

@@ -18,6 +18,7 @@ export interface AuthUser {
   prepDuration?: string | null;
   notes?: string | null;
   isActive?: boolean;
+  startDate?: string | null;
   membershipEnd?: string | null;
 }
 
@@ -79,7 +80,8 @@ export interface MembershipStatus {
 
 export interface PaymentRecord {
   id: string;
-  userId: string;
+  userId?: string | null;
+  consultationId?: string | null;
   planMonths: number;
   amount: number;
   method: string | null;
@@ -95,12 +97,42 @@ export interface PaymentRecord {
   refundedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  user?: Pick<AdminUser, "id" | "name" | "phone"> | null;
+  consultation?: Pick<ConsultationRecord, "id" | "name" | "phone"> | null;
 }
 
 export interface CheckoutResult {
   paymentId: string;
   amount: number;
   planMonths: number;
+}
+
+export interface ConsultationCheckoutResult extends CheckoutResult {
+  periodStart: string;
+  periodEnd: string;
+  consultation: Pick<ConsultationRecord, "id" | "name" | "phone">;
+}
+
+export interface ConsultationCheckoutRecord {
+  id: string;
+  planMonths: number;
+  amount: number;
+  status: PaymentStatus;
+  periodStart: string | null;
+  periodEnd: string | null;
+  consultation: Pick<
+    ConsultationRecord,
+    "id" | "name" | "desiredDate" | "timeSlot" | "consultType"
+  > & { phoneLast4?: string | null };
+}
+
+export interface PublicPaymentResult {
+  id: string;
+  status: PaymentStatus;
+  amount: number;
+  planMonths: number;
+  periodStart: string | null;
+  periodEnd: string | null;
 }
 
 
@@ -140,6 +172,7 @@ export interface ConsultationRecord {
   residenceArea?: string | null;
   examType?: string | null;
   studyPeriod?: string | null;
+  prepDuration?: string | null;
   studyPlace?: string | null;
   fullTime?: boolean | null;
   reason?: string | null;
@@ -152,6 +185,7 @@ export interface ConsultationRecord {
   agoraRoomId?: string | null;
   createdAt: string;
   feedback?: ConsultationFeedback | null;
+  payments?: PaymentRecord[];
 }
 
 export interface ConsultationFeedback {

@@ -20,6 +20,7 @@ import {
 } from "../../services/consultation.service";
 import {
   attachPaymentReceipt,
+  createConsultationCheckout,
   getAdminPayments,
   recordManualPayment,
 } from "../../services/membership.service";
@@ -103,6 +104,7 @@ export default function AdminDashboard() {
   const [manualReceiptFile, setManualReceiptFile] = useState<File | null>(null);
   const [savingManualPayment, setSavingManualPayment] = useState(false);
   const [preRegister, setPreRegister] = useState({
+    consultationId: "",
     name: "",
     branchId: "",
     phone: "",
@@ -318,6 +320,7 @@ export default function AdminDashboard() {
     if (!isAdmin || !preRegister.name.trim() || !preRegister.branchId) return;
     await runAdminAction(async () => {
       await preRegisterUser({
+        consultationId: preRegister.consultationId || undefined,
         name: preRegister.name.trim(),
         branchId: preRegister.branchId,
         phone: preRegister.phone.trim() || undefined,
@@ -329,6 +332,7 @@ export default function AdminDashboard() {
       });
       setPreRegister((current) => ({
         ...current,
+        consultationId: "",
         name: "",
         phone: "",
         residenceArea: "",
@@ -363,6 +367,38 @@ export default function AdminDashboard() {
     } finally {
       setSavingManualPayment(false);
     }
+  }
+
+  async function createConsultationPaymentLink(input: {
+    consultationId: string;
+    planMonths: number;
+    startDate: string;
+  }): Promise<string> {
+    if (!isAdmin) return "";
+    let checkoutUrl = "";
+    await runAdminAction(async () => {
+      const checkout = await createConsultationCheckout(input);
+      checkoutUrl = window.location.origin + "/checkout/" + checkout.paymentId;
+      await load();
+    }, "결제링크를 만들지 못했습니다.");
+    return checkoutUrl;
+  }
+
+  function preparePreRegisterFromConsultation(id: string) {
+    const item = data.consultations.find((consultation) => consultation.id === id);
+    if (!item) return;
+    setPreRegister((current) => ({
+      ...current,
+      consultationId: item.id,
+      name: item.name ?? "",
+      phone: item.phone ?? "",
+      residenceArea: item.residenceArea ?? "",
+      age: item.age ? String(item.age) : "",
+      examType: item.examType ?? "",
+      prepDuration: item.prepDuration ?? item.studyPeriod ?? "",
+      notes: current.notes,
+    }));
+    setTab("members");
   }
 
   async function completeConsultation(id: string) {
@@ -613,6 +649,8 @@ export default function AdminDashboard() {
             onSearchChange={(value) => changeSearch("consultations", value)}
             onConfirm={confirmConsultation}
             onComplete={completeConsultation}
+            onCreateCheckout={createConsultationPaymentLink}
+            onPreparePreRegister={preparePreRegisterFromConsultation}
             pageMeta={pageMeta.consultations}
             onPageChange={(page) => changePage("consultations", page)}
           />

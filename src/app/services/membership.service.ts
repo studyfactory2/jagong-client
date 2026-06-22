@@ -1,11 +1,14 @@
 import { http } from "./http";
 import type {
   CheckoutResult,
+  ConsultationCheckoutRecord,
+  ConsultationCheckoutResult,
   MembershipPlan,
   MembershipStatus,
   PaginatedResult,
   PaymentRecord,
   PaymentStatus,
+  PublicPaymentResult,
 } from "../../lib/types";
 
 /** MEMBER MEMBERSHIP API **/
@@ -42,7 +45,41 @@ export async function confirmMembershipPayment(input: {
   return data;
 }
 
+/** PUBLIC CONSULTATION CHECKOUT API **/
+
+export async function getPublicCheckout(
+  paymentId: string,
+): Promise<ConsultationCheckoutRecord> {
+  const { data } = await http.get<ConsultationCheckoutRecord>(
+    "/memberships/public/" + paymentId,
+  );
+  return data;
+}
+
+export async function confirmPublicPayment(input: {
+  paymentId: string;
+  pgKey?: string;
+}): Promise<PublicPaymentResult> {
+  const { data } = await http.post<PublicPaymentResult>(
+    "/memberships/public/confirm",
+    input,
+  );
+  return data;
+}
+
 /** ADMIN MEMBERSHIP API **/
+
+export async function createConsultationCheckout(input: {
+  consultationId: string;
+  planMonths: number;
+  startDate: string;
+}): Promise<ConsultationCheckoutResult> {
+  const { data } = await http.post<ConsultationCheckoutResult>(
+    "/memberships/consultations/" + input.consultationId + "/checkout",
+    { planMonths: input.planMonths, startDate: input.startDate },
+  );
+  return data;
+}
 
 export async function getAdminPayments(input?: {
   status?: PaymentStatus;

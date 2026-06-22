@@ -49,7 +49,7 @@ export default function Payments(props: PaymentsProps) {
         )}
         {payments.map((payment) => (
           <div className="admin-row is-payment" key={payment.id}>
-            <strong>{userName(users, payment.userId)}</strong>
+            <strong>{payment.userId ? userName(users, payment.userId) : (payment.consultation?.name ?? "상담 결제")}</strong>
             <span>{payment.planMonths}개월 · {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}</span>
             <span>{PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}</span>
             <span>

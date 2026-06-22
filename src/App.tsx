@@ -4,6 +4,7 @@ import MembershipRoute from "./app/components/MembershipRoute";
 import Login from "./app/screens/Login";
 import Register from "./app/screens/Register";
 import ConsultationBooking from "./app/screens/ConsultationBooking";
+import ConsultationCheckout from "./app/screens/ConsultationCheckout";
 import WaitingRoom from "./app/screens/WaitingRoom";
 import StudyLine from "./app/screens/StudyLine";
 import StudyRoom from "./app/screens/StudyRoom";
@@ -33,6 +34,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/booking" element={<ConsultationBooking />} />
+      <Route path="/checkout/:paymentId" element={<ConsultationCheckout />} />
 
       {/* behind login */}
       <Route element={<ProtectedRoute />}>
