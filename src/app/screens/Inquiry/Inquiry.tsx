@@ -50,6 +50,16 @@ function noticeDate(value: string) {
   }).format(date);
 }
 
+function appendUniqueMessage(
+  messages: ChatRoomMessage[],
+  incoming: ChatRoomMessage,
+): ChatRoomMessage[] {
+  if (incoming.id && messages.some((message) => message.id === incoming.id)) {
+    return messages;
+  }
+  return [...messages, incoming];
+}
+
 export default function Inquiry() {
   /** STATE **/
   const navigate = useNavigate();
@@ -100,7 +110,10 @@ export default function Inquiry() {
       if (!incoming) return;
       setRoom((current) =>
         current
-          ? { ...current, messages: [...(current.messages ?? []), incoming] }
+          ? {
+              ...current,
+              messages: appendUniqueMessage(current.messages ?? [], incoming),
+            }
           : current,
       );
     };
@@ -178,7 +191,10 @@ export default function Inquiry() {
       const sent = await sendMyChatMessage(content);
       setRoom((current) =>
         current
-          ? { ...current, messages: [...(current.messages ?? []), sent] }
+          ? {
+              ...current,
+              messages: appendUniqueMessage(current.messages ?? [], sent),
+            }
           : current,
       );
       setMessage("");

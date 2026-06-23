@@ -298,6 +298,18 @@ export default function StudyRoom() {
     publishedVideoTrackRef.current = null;
   }
 
+  async function unpublishCameraTrack() {
+    const room = roomRef.current;
+    const publishedTrack = publishedVideoTrackRef.current;
+    if (!room || !publishedTrack) {
+      publishedVideoTrackRef.current = null;
+      return;
+    }
+
+    await room.localParticipant.unpublishTrack(publishedTrack);
+    publishedVideoTrackRef.current = null;
+  }
+
   async function refreshDevices() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     const allDevices = await navigator.mediaDevices.enumerateDevices();
@@ -334,12 +346,7 @@ export default function StudyRoom() {
     if (!room || !token?.canPublish || !newTrack) return;
 
     const { Track } = await import("livekit-client");
-    if (publishedVideoTrackRef.current) {
-      await room.localParticipant.unpublishTrack(
-        publishedVideoTrackRef.current,
-      );
-    }
-
+    await unpublishCameraTrack();
     await room.localParticipant.publishTrack(newTrack, {
       source: Track.Source.Camera,
     });
@@ -355,17 +362,22 @@ export default function StudyRoom() {
       dynacast: true,
     });
 
-    await room.connect(token.url, token.token);
-    roomRef.current = room;
+    try {
+      await room.connect(token.url, token.token);
+      roomRef.current = room;
 
-    if (token.canPublish) {
-      const videoTrack = streamRef.current?.getVideoTracks()[0];
-      if (videoTrack) {
-        await room.localParticipant.publishTrack(videoTrack, {
-          source: Track.Source.Camera,
-        });
-        publishedVideoTrackRef.current = videoTrack;
+      if (token.canPublish) {
+        const videoTrack = streamRef.current?.getVideoTracks()[0];
+        if (videoTrack) {
+          await room.localParticipant.publishTrack(videoTrack, {
+            source: Track.Source.Camera,
+          });
+          publishedVideoTrackRef.current = videoTrack;
+        }
       }
+    } catch (err) {
+      room.disconnect();
+      throw err;
     }
   }
 
@@ -373,6 +385,9 @@ export default function StudyRoom() {
     setSelectedDeviceId(deviceId);
     setError("");
     try {
+      if (joined) {
+        await unpublishCameraTrack();
+      }
       await startLocalCamera(deviceId || undefined);
       if (joined) {
         await republishCameraTrack();

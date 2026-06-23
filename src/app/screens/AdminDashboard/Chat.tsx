@@ -51,6 +51,11 @@ export default function Chat(props: ChatProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const onRoomReadRef = useRef(onRoomRead);
+
+  useEffect(() => {
+    onRoomReadRef.current = onRoomRead;
+  }, [onRoomRead]);
 
   /** DERIVED **/
   const selectedUserId = useMemo(() => {
@@ -74,7 +79,7 @@ export default function Chat(props: ChatProps) {
       const room = await getAdminChatRoom(userId);
       setActiveRoom(room);
       await markAdminChatRoomRead(userId);
-      onRoomRead(userId);
+      onRoomReadRef.current(userId);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "대화를 불러오지 못했습니다.",
@@ -82,14 +87,15 @@ export default function Chat(props: ChatProps) {
     } finally {
       setLoadingRoom(false);
     }
-  }, [onRoomRead]);
+  }, []);
 
   /** EFFECTS **/
   useEffect(() => {
     if (!selectedUserId) return;
-    queueMicrotask(() => {
+    const timer = window.setTimeout(() => {
       void loadRoom(selectedUserId);
-    });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selectedUserId, loadRoom]);
 
   useEffect(() => {

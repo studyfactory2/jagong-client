@@ -74,9 +74,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         body: payload.body ?? "",
       });
     });
-    queueMicrotask(() => setSocket(s));
+    const socketReadyTimer = window.setTimeout(() => setSocket(s), 0);
 
     return () => {
+      window.clearTimeout(socketReadyTimer);
       s.disconnect();
       setSocket(null);
       setConnected(false);

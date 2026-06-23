@@ -41,12 +41,16 @@ export default function ConsultationCheckout() {
 
   const returnedCode = params.get("code");
   const returnedMessage = params.get("message");
-  const returnedPaymentId =
-    params.get("paymentId") ?? params.get("orderId") ?? paymentId;
+  const returnedPaymentId = params.get("paymentId") ?? params.get("orderId");
   const returnedPaymentKey = params.get("paymentKey") ?? undefined;
-  const hasReturnedPayment = params.has("paymentId") || params.has("orderId");
+  const hasReturnedPayment = Boolean(returnedPaymentId);
+  const hasPaymentMismatch = Boolean(
+    returnedPaymentId && returnedPaymentId !== paymentId,
+  );
   const urlError = returnedCode
     ? (returnedMessage ?? "결제가 완료되지 않았습니다.")
+    : hasPaymentMismatch
+      ? "결제 승인 정보가 현재 결제 링크와 일치하지 않습니다."
     : "";
   const displayError = urlError || error;
   const isPaid = checkout?.status === "PAID";
@@ -84,8 +88,8 @@ export default function ConsultationCheckout() {
 
   useEffect(() => {
     if (urlError || !hasReturnedPayment) return;
-    confirm(returnedPaymentId, returnedPaymentKey);
-  }, [hasReturnedPayment, returnedPaymentId, returnedPaymentKey, urlError]);
+    confirm(paymentId, returnedPaymentKey);
+  }, [hasReturnedPayment, paymentId, returnedPaymentKey, urlError]);
 
   async function confirm(id: string, pgKey?: string) {
     if (!id || confirmingRef.current) return;
@@ -143,7 +147,11 @@ export default function ConsultationCheckout() {
         setError(response.message ?? "결제에 실패했습니다.");
         return;
       }
-      await confirm(response.paymentId);
+      if (response.paymentId !== checkout.id) {
+        setError("결제 승인 정보가 현재 결제 링크와 일치하지 않습니다.");
+        return;
+      }
+      await confirm(checkout.id);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "결제를 시작하지 못했습니다.",
