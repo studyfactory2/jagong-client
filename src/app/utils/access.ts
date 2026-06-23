@@ -38,3 +38,12 @@ export function memberHomePath(user?: AuthUser | null): string {
   if (isManager(user)) return "/admin";
   return hasActiveMembership(user) ? "/waiting-room" : "/payments";
 }
+
+export function isMembershipAccessError(message: string): boolean {
+  if (!message) return false;
+  return (
+    message.includes("이용권") ||
+    message.includes("멤버십") ||
+    message.includes("membership")
+  );
+}

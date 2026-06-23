@@ -10,6 +10,7 @@ import {
   saveMonthlyGoal,
   saveWeeklyPlan,
 } from "../../services/study-plan.service";
+import { isMembershipAccessError } from "../../utils/access";
 import type { DayOfWeekName, WeeklyPlanTaskRecord } from "../../../lib/types";
 import "./weekly-plan.css";
 
@@ -124,7 +125,7 @@ export default function WeeklyPlan() {
   const month = monthKey(weekStartDate);
   const taskList = filledTasks(tasks);
   const doneCount = taskList.filter((task) => task.isDone).length;
-  const membershipLocked = error.includes("이용권 결제");
+  const membershipLocked = isMembershipAccessError(error);
 
   useEffect(() => {
     let alive = true;

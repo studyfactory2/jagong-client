@@ -21,8 +21,7 @@ import {
 } from "../../services/consultation.service";
 import "./booking.css";
 
-// TODO(대표님): real 자격증공장 카카오톡 채널 1:1 채팅 URL
-const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_xxxxx/chat";
+const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_ZRvnX/chat";
 
 const STEPS = [
   { n: 1, label: "상담예약", sub: "현재페이지" },
@@ -78,6 +77,8 @@ export default function ConsultationBooking() {
   const [done, setDone] = useState<null | "PHONE" | "VIDEO">(null);
   const [booking, setBooking] = useState(false);
   const [takenSlots, setTakenSlots] = useState<string[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityFailed, setAvailabilityFailed] = useState(false);
 
   const dates = useMemo(() => {
     const days = ["일", "월", "화", "수", "목", "금", "토"];
@@ -113,32 +114,31 @@ export default function ConsultationBooking() {
   useEffect(() => {
     let alive = true;
 
-    if (!date) {
-      return;
-    }
+    if (!date) return;
 
     getConsultationAvailability(date)
       .then((result) => {
         if (!alive) return;
         setTakenSlots(result.takenSlots);
-        if (result.takenSlots.includes(slot)) {
-          setSlot("");
-        }
       })
       .catch((error) => {
         if (!alive) return;
         setTakenSlots([]);
+        setAvailabilityFailed(true);
         setErr(
           error instanceof Error
             ? error.message
             : "예약 가능 시간을 불러오지 못했습니다.",
         );
       })
+      .finally(() => {
+        if (alive) setAvailabilityLoading(false);
+      });
 
     return () => {
       alive = false;
     };
-  }, [date, slot]);
+  }, [date]);
 
   function validate() {
     if (!name.trim()) return "이름을 입력해 주세요.";
@@ -149,7 +149,11 @@ export default function ConsultationBooking() {
     if (!exam) return "시험 종류를 선택해 주세요.";
     if (!fullTime) return "전업 수험생 여부를 선택해 주세요.";
     if (!date) return "희망 상담 날짜를 선택해 주세요.";
+    if (availabilityLoading) return "예약 가능 시간을 확인 중입니다.";
+    if (availabilityFailed)
+      return "예약 가능 시간을 불러온 뒤 다시 선택해주세요.";
     if (!slot) return "희망 상담 시간을 선택해 주세요.";
+    if (takenSlots.includes(slot)) return "이미 예약된 시간입니다.";
     if (slot === "other" && !customTime.trim())
       return "원하는 시간을 적어 주세요.";
     return "";
@@ -195,6 +199,11 @@ export default function ConsultationBooking() {
 
   // 질문하기 / 바로시작 → 자격증공장 카카오톡 채널 1:1 채팅
   function openKakao() {
+    if (KAKAO_CHANNEL_URL.includes("_xxxxx")) {
+      setErr("카카오톡 채널 주소가 아직 설정되지 않았습니다.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     window.open(KAKAO_CHANNEL_URL, "_blank");
   }
 
@@ -352,7 +361,8 @@ export default function ConsultationBooking() {
           <span className="bk-q">전업 수험생이신가요?</span>
           <label className="bk-radio">
             <input
-              type="checkbox"
+              type="radio"
+              name="fullTime"
               checked={fullTime === "yes"}
               onChange={() => setFullTime("yes")}
             />{" "}
@@ -360,7 +370,8 @@ export default function ConsultationBooking() {
           </label>
           <label className="bk-radio">
             <input
-              type="checkbox"
+              type="radio"
+              name="fullTime"
               checked={fullTime === "no"}
               onChange={() => setFullTime("no")}
             />{" "}
@@ -412,6 +423,9 @@ export default function ConsultationBooking() {
                   onClick={() => {
                     setDate(d.v);
                     setSlot("");
+                    setTakenSlots([]);
+                    setAvailabilityFailed(false);
+                    setAvailabilityLoading(true);
                     setDateOpen(false);
                   }}
                 >
@@ -431,24 +445,37 @@ export default function ConsultationBooking() {
         <div className="bk-slots">
           {SLOTS.map((s) => {
             const isTaken = takenSlots.includes(s.id);
+            const isDisabled =
+              !date || availabilityLoading || availabilityFailed || isTaken;
+            const stateText = !date
+              ? "날짜선택"
+              : availabilityLoading
+                ? "확인중"
+                : availabilityFailed
+                  ? "확인필요"
+                  : isTaken
+                    ? "예약완료"
+                    : "예약가능";
             return (
               <button
                 key={s.id}
-                disabled={isTaken}
-                className={`bk-slot${slot === s.id ? " is-sel" : ""}${isTaken ? " is-closed" : ""}`}
-                onClick={() => !isTaken && setSlot(s.id)}
+                disabled={isDisabled}
+                className={`bk-slot${slot === s.id ? " is-sel" : ""}${isTaken || availabilityFailed ? " is-closed" : ""}`}
+                onClick={() => !isDisabled && setSlot(s.id)}
+                type="button"
               >
                 <span className="bk-slot-time">{s.label}</span>
                 <span className="bk-slot-state">
-                  <FiberManualRecordIcon />{" "}
-                  {isTaken ? "예약완료" : "예약가능"}
+                  <FiberManualRecordIcon /> {stateText}
                 </span>
               </button>
             );
           })}
           <button
             className={`bk-slot bk-slot--other${slot === "other" ? " is-sel" : ""}`}
+            disabled={!date || availabilityLoading || availabilityFailed}
             onClick={() => setSlot("other")}
+            type="button"
           >
             다른시간 선택하기
           </button>
@@ -472,6 +499,7 @@ export default function ConsultationBooking() {
             className="bk-act bk-act--coral"
             onClick={() => book("PHONE")}
             disabled={booking}
+            type="button"
           >
             <CallOutlinedIcon />
             <span>{booking ? "신청중" : "전화상담"}</span>
@@ -480,15 +508,16 @@ export default function ConsultationBooking() {
             className="bk-act bk-act--mint"
             onClick={() => book("VIDEO")}
             disabled={booking}
+            type="button"
           >
             <VideocamOutlinedIcon />
             <span>{booking ? "신청중" : "화상상담"}</span>
           </button>
-          <button className="bk-act bk-act--cream" onClick={openKakao}>
+          <button className="bk-act bk-act--cream" onClick={openKakao} type="button">
             <ChatBubbleOutlineIcon />
             <span>질문하기</span>
           </button>
-          <button className="bk-act bk-act--coral" onClick={openKakao}>
+          <button className="bk-act bk-act--coral" onClick={openKakao} type="button">
             <BoltIcon />
             <span>바로시작</span>
           </button>

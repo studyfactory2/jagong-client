@@ -7,6 +7,7 @@ import {
   getLeaveCalendar,
   requestLeave,
 } from "../../services/leave.service";
+import { isMembershipAccessError } from "../../utils/access";
 import type { LeaveRecord, LeaveTypeName, SpecialLeaveRecord } from "../../../lib/types";
 import "./leave-request.css";
 
@@ -78,7 +79,7 @@ export default function LeaveRequest() {
   const month = monthKey(currentMonth);
   const days = useMemo(() => Array.from({ length: monthDays(currentMonth) }, (_, i) => i + 1), [currentMonth]);
   const selectedDate = month + "-" + String(selectedDay).padStart(2, "0");
-  const membershipLocked = error.includes("이용권 결제");
+  const membershipLocked = isMembershipAccessError(error);
   const canRequestSelectedDate = isFutureDate(selectedDate);
 
   useEffect(() => {
