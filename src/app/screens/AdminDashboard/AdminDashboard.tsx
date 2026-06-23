@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
@@ -132,43 +132,8 @@ export default function AdminDashboard() {
     ? tab
     : (visibleTabs[0]?.key ?? "camera");
 
-  /** EFFECTS **/
-  useEffect(() => {
-    load();
-  }, [
-    allowed,
-    isAdmin,
-    pages.users,
-    pages.consultations,
-    pages.payments,
-    pages.leaves,
-    pages.chats,
-    debouncedSearch.users,
-    debouncedSearch.consultations,
-    debouncedSearch.payments,
-    debouncedSearch.leaves,
-    debouncedSearch.chats,
-  ]);
-
-  useEffect(() => {
-    if (!socket || !allowed) return;
-    const refreshCamera = () => refreshLiveData();
-    socket.on("cam:join", refreshCamera);
-    socket.on("cam:leave", refreshCamera);
-    socket.on("cam:alert", refreshCamera);
-    socket.on("cam:warning-sent", refreshCamera);
-    socket.on("chat:room-updated", refreshCamera);
-    return () => {
-      socket.off("cam:join", refreshCamera);
-      socket.off("cam:leave", refreshCamera);
-      socket.off("cam:alert", refreshCamera);
-      socket.off("cam:warning-sent", refreshCamera);
-      socket.off("chat:room-updated", refreshCamera);
-    };
-  }, [socket, allowed, isAdmin]);
-
-  /** HANDLERS **/
-  async function load() {
+  /** DATA LOADERS **/
+  const load = useCallback(async () => {
     if (!allowed) return;
     setError("");
     setLoading(true);
@@ -265,9 +230,22 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    allowed,
+    debouncedSearch.chats,
+    debouncedSearch.consultations,
+    debouncedSearch.leaves,
+    debouncedSearch.payments,
+    debouncedSearch.users,
+    isAdmin,
+    pages.chats,
+    pages.consultations,
+    pages.leaves,
+    pages.payments,
+    pages.users,
+  ]);
 
-  async function refreshLiveData() {
+  const refreshLiveData = useCallback(async () => {
     if (!allowed) return;
     try {
       const [camSessions, chatsResult, statsResult] = await Promise.all([
@@ -293,7 +271,34 @@ export default function AdminDashboard() {
           : "실시간 정보를 갱신하지 못했습니다.",
       );
     }
-  }
+  }, [allowed, debouncedSearch.chats, pages.chats]);
+
+  /** EFFECTS **/
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  useEffect(() => {
+    if (!socket || !allowed) return;
+    const refreshCamera = () => refreshLiveData();
+    socket.on("cam:join", refreshCamera);
+    socket.on("cam:leave", refreshCamera);
+    socket.on("cam:alert", refreshCamera);
+    socket.on("cam:warning-sent", refreshCamera);
+    socket.on("chat:room-updated", refreshCamera);
+    return () => {
+      socket.off("cam:join", refreshCamera);
+      socket.off("cam:leave", refreshCamera);
+      socket.off("cam:alert", refreshCamera);
+      socket.off("cam:warning-sent", refreshCamera);
+      socket.off("chat:room-updated", refreshCamera);
+    };
+  }, [allowed, refreshLiveData, socket]);
+
+  /** HANDLERS **/
 
   async function runAdminAction(action: () => Promise<void>, fallback: string) {
     setError("");

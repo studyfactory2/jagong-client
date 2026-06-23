@@ -28,10 +28,17 @@ const STATUS_CLASS: Record<AttendanceStatusName, string> = {
   EXCUSED: "is-excused",
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+function dateKey(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+const todayKey = () => dateKey(new Date());
 
 function monthKey(value: Date) {
-  return value.toISOString().slice(0, 7);
+  return dateKey(value).slice(0, 7);
 }
 
 function formatDate(value: string | Date) {
@@ -101,7 +108,10 @@ export default function Attendance() {
   );
 
   const todayRecords = useMemo(
-    () => monthRecords.filter((record) => String(record.date).slice(0, 10) === todayKey()),
+    () =>
+      monthRecords.filter(
+        (record) => String(record.date).slice(0, 10) === todayKey(),
+      ),
     [monthRecords],
   );
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -151,7 +151,10 @@ function formatDate(date: Date) {
 }
 
 function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function workerGradient(index: number) {
@@ -175,6 +178,7 @@ export default function WaitingRoom() {
   const [bellMsg, setBellMsg] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const bellTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
@@ -216,13 +220,18 @@ export default function WaitingRoom() {
   }, []);
 
   useEffect(() => {
-    void refreshRoomMembers();
-    void refreshAttendance();
+    const initialTimer = window.setTimeout(() => {
+      void refreshRoomMembers();
+      void refreshAttendance();
+    }, 0);
     const timer = window.setInterval(() => {
       void refreshRoomMembers();
       void refreshAttendance();
     }, 20000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, [refreshAttendance, refreshRoomMembers]);
 
   useEffect(() => {
@@ -244,8 +253,12 @@ export default function WaitingRoom() {
               : "";
 
       if (!message) return;
+      if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       setBellMsg(message);
-      window.setTimeout(() => setBellMsg(""), 8000);
+      bellTimerRef.current = window.setTimeout(() => {
+        setBellMsg("");
+        bellTimerRef.current = null;
+      }, 8000);
     };
 
     socket.on("bell", onBell);
@@ -255,6 +268,10 @@ export default function WaitingRoom() {
       socket.off("bell", onBell);
       socket.off("cam:join", refreshRoomMembers);
       socket.off("cam:leave", refreshRoomMembers);
+      if (bellTimerRef.current) {
+        window.clearTimeout(bellTimerRef.current);
+        bellTimerRef.current = null;
+      }
     };
   }, [refreshRoomMembers, socket]);
 

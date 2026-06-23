@@ -64,11 +64,11 @@ export default function PaymentSuccess() {
         confirmingRef.current = false;
       }
     }
-    confirm();
+    void confirm();
     return () => {
       alive = false;
     };
-  }, [params]);
+  }, [params, refreshUser]);
 
   return (
     <main className="pay-result">

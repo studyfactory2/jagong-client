@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import {
@@ -35,7 +35,11 @@ const STATUS_OPTIONS: Array<{
 ];
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function recordKey(userId: string, slot: number) {
@@ -87,11 +91,7 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
     });
   }, [search, users]);
 
-  useEffect(() => {
-    void load();
-  }, [selectedDate]);
-
-  async function load() {
+  const load = useCallback(async () => {
     setError("");
     try {
       const data = await getAdminAttendance({ date: selectedDate });
@@ -103,7 +103,14 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
           : "출석 정보를 불러오지 못했습니다.",
       );
     }
-  }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
   async function updateStatus(status: AttendanceStatusName) {
     if (!selected) return;

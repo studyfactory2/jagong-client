@@ -67,8 +67,8 @@ export default function Consultations(props: ConsultationsProps) {
     {},
   );
   const [copiedId, setCopiedId] = useState("");
-  const startMin = useMemo(todayText, []);
-  const startMax = useMemo(maxStartDate, []);
+  const startMin = useMemo(() => todayText(), []);
+  const startMax = useMemo(() => maxStartDate(), []);
 
   function checkoutForm(id: string) {
     return checkoutForms[id] ?? { months: 1, startDate: startMin };

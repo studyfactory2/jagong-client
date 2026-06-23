@@ -155,6 +155,7 @@ export default function StudyRoom() {
   const joinedSlotRef = useRef<number | null>(null);
   const syncedAttendanceSlotRef = useRef<number | null>(null);
   const myId = session?.user.userId ?? session?.user.id ?? "";
+  const myName = session?.user.name ?? "나";
 
   const refreshRoomMembers = useCallback(async () => {
     try {
@@ -166,9 +167,14 @@ export default function StudyRoom() {
   }, []);
 
   useEffect(() => {
-    void refreshRoomMembers();
+    const initialTimer = window.setTimeout(() => {
+      void refreshRoomMembers();
+    }, 0);
     const timer = window.setInterval(() => void refreshRoomMembers(), 15000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, [refreshRoomMembers]);
 
   useEffect(() => {
@@ -265,7 +271,7 @@ export default function StudyRoom() {
     if (myId && !withSelfStatus.some((member) => member.id === myId)) {
       withSelfStatus.unshift({
         id: myId,
-        name: session?.user.name ?? "나",
+        name: myName,
         isWorking: joined,
         joinedAt: joined ? new Date().toISOString() : null,
       });
@@ -277,7 +283,7 @@ export default function StudyRoom() {
       if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
       return a.name.localeCompare(b.name, "ko");
     });
-  }, [joined, myId, roomMembers, session?.user.name]);
+  }, [joined, myId, myName, roomMembers]);
 
   function stopLocalCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());

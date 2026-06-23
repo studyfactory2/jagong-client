@@ -39,6 +39,16 @@ export default function ConsultationCheckout() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const returnedCode = params.get("code");
+  const returnedMessage = params.get("message");
+  const returnedPaymentId =
+    params.get("paymentId") ?? params.get("orderId") ?? paymentId;
+  const returnedPaymentKey = params.get("paymentKey") ?? undefined;
+  const hasReturnedPayment = params.has("paymentId") || params.has("orderId");
+  const urlError = returnedCode
+    ? (returnedMessage ?? "결제가 완료되지 않았습니다.")
+    : "";
+  const displayError = urlError || error;
   const isPaid = checkout?.status === "PAID";
   const canPay = checkout?.status === "PENDING";
   const orderName = useMemo(() => {
@@ -73,19 +83,9 @@ export default function ConsultationCheckout() {
   }, [paymentId]);
 
   useEffect(() => {
-    const code = params.get("code");
-    const messageText = params.get("message");
-    const returnedPaymentId =
-      params.get("paymentId") ?? params.get("orderId") ?? paymentId;
-    const paymentKey = params.get("paymentKey") ?? undefined;
-
-    if (code) {
-      setError(messageText ?? "결제가 완료되지 않았습니다.");
-      return;
-    }
-    if (!params.has("paymentId") && !params.has("orderId")) return;
-    confirm(returnedPaymentId, paymentKey);
-  }, [params, paymentId]);
+    if (urlError || !hasReturnedPayment) return;
+    confirm(returnedPaymentId, returnedPaymentKey);
+  }, [hasReturnedPayment, returnedPaymentId, returnedPaymentKey, urlError]);
 
   async function confirm(id: string, pgKey?: string) {
     if (!id || confirmingRef.current) return;
@@ -167,7 +167,7 @@ export default function ConsultationCheckout() {
         {loading && (
           <p className="checkout-muted">결제 정보를 불러오는 중입니다.</p>
         )}
-        {error && <p className="checkout-error">{error}</p>}
+        {displayError && <p className="checkout-error">{displayError}</p>}
         {message && <p className="checkout-status">{message}</p>}
 
         {checkout && (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -125,6 +125,7 @@ export default function StudyLine() {
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
+  const bellTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     getTimetable()
@@ -158,13 +159,21 @@ export default function StudyLine() {
               : "";
 
       if (!message) return;
+      if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       setBellMsg(message);
-      window.setTimeout(() => setBellMsg(""), 8000);
+      bellTimerRef.current = window.setTimeout(() => {
+        setBellMsg("");
+        bellTimerRef.current = null;
+      }, 8000);
     };
 
     socket.on("bell", onBell);
     return () => {
       socket.off("bell", onBell);
+      if (bellTimerRef.current) {
+        window.clearTimeout(bellTimerRef.current);
+        bellTimerRef.current = null;
+      }
     };
   }, [socket]);
 

@@ -8,6 +8,7 @@ export default function MembershipRoute() {
   const { session, refreshUser } = useAuth();
   const [checkedToken, setCheckedToken] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
+  const token = session?.token ?? null;
 
   useEffect(() => {
     let alive = true;
@@ -40,14 +41,12 @@ export default function MembershipRoute() {
       }
     }
 
-    setAllowed(false);
-    setCheckedToken(null);
     void checkMembership();
 
     return () => {
       alive = false;
     };
-  }, [session?.token]);
+  }, [refreshUser, session, token]);
 
   if (!session) return <Navigate to="/login" replace />;
   if (checkedToken !== session.token) return null;
