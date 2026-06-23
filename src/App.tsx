@@ -10,6 +10,7 @@ import StudyLine from "./app/screens/StudyLine";
 import StudyRoom from "./app/screens/StudyRoom";
 import WeeklyPlan from "./app/screens/WeeklyPlan";
 import LeaveRequest from "./app/screens/LeaveRequest";
+import Attendance from "./app/screens/Attendance";
 import Inquiry from "./app/screens/Inquiry";
 import VideoConsult from "./app/screens/VideoConsult";
 import PaymentHistory from "./app/screens/PaymentHistory";
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/study-room" element={<StudyRoom />} />
           <Route path="/weekly-plan" element={<WeeklyPlan />} />
           <Route path="/leaves" element={<LeaveRequest />} />
+          <Route path="/attendance" element={<Attendance />} />
           <Route path="/inquiry" element={<Inquiry />} />
           <Route path="/video-consult" element={<VideoConsult />} />
         </Route>

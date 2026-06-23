@@ -304,6 +304,20 @@ export interface CamWarningRecord {
   createdAt: string;
 }
 
+export type AttendanceStatusName = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
+
+export interface AttendanceRecord {
+  id: string;
+  userId: string;
+  date: string;
+  slot: number;
+  status: AttendanceStatusName | string;
+  markedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: Pick<AdminUser, "id" | "name" | "branchId"> | null;
+}
+
 export interface MonthlyGoalRecord {
   id: string;
   userId: string;

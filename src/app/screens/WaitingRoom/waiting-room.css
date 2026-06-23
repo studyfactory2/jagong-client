@@ -114,7 +114,7 @@
 }
 
 .wr-panel {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--card);
   padding: 12px;
@@ -197,7 +197,7 @@
 .wr-worker {
   position: relative;
   aspect-ratio: 1.22 / 1;
-  border: 1px solid var(--ink);
+  border: 1px solid rgba(20, 63, 86, 0.18);
   border-radius: 9px;
   overflow: hidden;
   background-size: cover !important;
@@ -246,6 +246,21 @@
   padding: 0 7px;
   font-size: 9px;
   font-weight: 800;
+}
+
+.wr-worker-state.is-off {
+  background: rgba(125, 136, 140, 0.76);
+}
+
+.wr-worker-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .wr-preview-note,
@@ -320,13 +335,100 @@
   white-space: nowrap;
 }
 
+.wr-attendance,
 .wr-progress {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 14px;
+  background: var(--card);
+}
+
+.wr-attendance {
+  min-height: 70px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wr-att-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wr-att-main svg {
+  color: var(--accent);
+  font-size: 30px;
+}
+
+.wr-att-main div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.wr-att-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wr-att-main strong {
+  color: var(--ink);
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.wr-att-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wr-att-side span {
+  min-width: 50px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.wr-att-side span.is-late {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.wr-att-side span.is-absent {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.wr-att-side span.is-excused {
+  background: var(--card-2);
+  color: var(--ink);
+}
+
+.wr-att-side button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wr-progress {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 150px;
   overflow: hidden;
-  background: var(--card);
 }
 
 .wr-progress-card {
@@ -358,7 +460,7 @@
 .wr-progress-bar {
   grid-column: 1 / -1;
   height: 13px;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 999px;
   overflow: hidden;
   background: var(--card);
@@ -378,7 +480,7 @@
 }
 
 .wr-countdown {
-  border-left: 1px solid var(--ink);
+  border-left: 1px solid var(--line);
   padding: 10px 12px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -448,7 +550,7 @@
 
 .wr-entry-btn {
   min-height: 72px;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 13px;
   padding: 10px 14px;
   display: grid;
@@ -507,13 +609,13 @@
 
 .wr-shortcuts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .wr-shortcuts button {
   min-height: 52px;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--card);
   color: var(--ink);
@@ -755,7 +857,7 @@
 
   .wr-countdown {
     border-left: 0;
-    border-top: 1px solid var(--ink);
+    border-top: 1px solid var(--line);
   }
 
   .wr-entry {
@@ -906,7 +1008,7 @@
   }
 
   .wr-shortcuts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
     gap: 11px;
   }
 
@@ -939,9 +1041,8 @@
     grid-template-columns: minmax(720px, 1.55fr) minmax(420px, 0.95fr);
     grid-template-areas:
       "workers time"
-      "workers progress"
-      "workers notice"
-      "entry entry"
+      "attendance progress"
+      "notice entry"
       "shortcuts shortcuts"
       "user user";
     align-items: start;
@@ -950,11 +1051,46 @@
 
   .wr-workers { grid-area: workers; }
   .wr-time { grid-area: time; }
+  .wr-attendance { grid-area: attendance; }
   .wr-progress { grid-area: progress; }
   .wr-notice { grid-area: notice; }
   .wr-entry { grid-area: entry; }
   .wr-shortcuts { grid-area: shortcuts; }
   .wr-user { grid-area: user; }
+
+  .wr-attendance,
+  .wr-progress,
+  .wr-notice {
+    width: 100%;
+  }
+
+  .wr-notice {
+    border-radius: 16px;
+    padding: 10px 14px;
+  }
+
+  .wr-entry {
+    align-self: stretch;
+  }
+
+  .wr-entry-btn {
+    min-height: 64px;
+    border-radius: 16px;
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 12px 15px;
+  }
+
+  .wr-entry-btn svg {
+    font-size: 34px;
+  }
+
+  .wr-entry-btn strong {
+    font-size: 16px;
+  }
+
+  .wr-entry-btn em {
+    font-size: 11px;
+  }
 
   .wr-panel {
     padding: 18px;
@@ -976,7 +1112,7 @@
   }
 
   .wr-shortcuts {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
   }
 }
@@ -990,6 +1126,6 @@
 /* my page shortcut layout */
 @media (min-width: 900px) {
   .wr-shortcuts {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
   }
 }

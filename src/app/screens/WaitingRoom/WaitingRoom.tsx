@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
@@ -15,52 +15,20 @@ import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import { getMyAttendance } from "../../services/attendance.service";
+import { getCamRoomMembers } from "../../services/cam.service";
 import { getOnlineCount } from "../../services/status.service";
 import { getTimetable } from "../../services/timetable.service";
-import type { TimetableSlot } from "../../../lib/types";
+import type {
+  AttendanceRecord,
+  AttendanceStatusName,
+  CamRoomMember,
+  TimetableSlot,
+} from "../../../lib/types";
 import "./waiting-room.css";
-
-type PreviewWorker = {
-  nick: string;
-  gradient: string;
-};
-
-const PREVIEW: PreviewWorker[] = [
-  {
-    nick: "오늘도합격",
-    gradient: "linear-gradient(135deg,#3f5b6e,#273d4d)",
-  },
-  {
-    nick: "정리왕",
-    gradient: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
-  },
-  {
-    nick: "해피스터디",
-    gradient: "linear-gradient(135deg,#7d7aa8,#5d5a88)",
-  },
-  {
-    nick: "공부는내일",
-    gradient: "linear-gradient(135deg,#b08a4f,#8a6a2f)",
-  },
-  {
-    nick: "꾸준히가자",
-    gradient: "linear-gradient(135deg,#5f8aa8,#3f6a88)",
-  },
-  {
-    nick: "합격기원",
-    gradient: "linear-gradient(135deg,#a85f7a,#88405a)",
-  },
-  {
-    nick: "포기하지마",
-    gradient: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
-  },
-  {
-    nick: "노력은배신X",
-    gradient: "linear-gradient(135deg,#7d6a55,#5a4a38)",
-  },
-];
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
   {
@@ -160,12 +128,40 @@ const formatDuration = (seconds: number) => {
 const isClockInSlot = (slot?: TimetableSlot | null) =>
   Boolean(slot && (slot.slot === 0 || slot.label.includes("출근")));
 
+const ATTENDANCE_TEXT: Record<AttendanceStatusName, string> = {
+  PRESENT: "출석",
+  LATE: "지각",
+  ABSENT: "결석",
+  EXCUSED: "인정",
+};
+
+const ATTENDANCE_CLASS: Record<AttendanceStatusName, string> = {
+  PRESENT: "is-present",
+  LATE: "is-late",
+  ABSENT: "is-absent",
+  EXCUSED: "is-excused",
+};
+
 function formatDate(date: Date) {
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
     2,
     "0",
   )}. ${String(date.getDate()).padStart(2, "0")} (${days[date.getDay()]})`;
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function workerGradient(index: number) {
+  return index % 4 === 0
+    ? "linear-gradient(135deg,#3f5b6e,#273d4d)"
+    : index % 4 === 1
+      ? "linear-gradient(135deg,#6a8f6f,#4f7a5a)"
+      : index % 4 === 2
+        ? "linear-gradient(135deg,#7d7aa8,#5d5a88)"
+        : "linear-gradient(135deg,#b08a4f,#8a6a2f)";
 }
 
 export default function WaitingRoom() {
@@ -177,6 +173,8 @@ export default function WaitingRoom() {
   const [now, setNow] = useState(() => new Date());
   const [onlineFallback, setOnlineFallback] = useState<number | null>(null);
   const [bellMsg, setBellMsg] = useState("");
+  const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
 
   useEffect(() => {
     if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
@@ -199,6 +197,34 @@ export default function WaitingRoom() {
       .catch(() => {});
   }, []);
 
+  const refreshRoomMembers = useCallback(async () => {
+    try {
+      const members = await getCamRoomMembers();
+      setRoomMembers(members);
+    } catch {
+      setRoomMembers([]);
+    }
+  }, []);
+
+  const refreshAttendance = useCallback(async () => {
+    try {
+      const records = await getMyAttendance({ date: isoDate(new Date()) });
+      setAttendance(records);
+    } catch {
+      setAttendance([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshRoomMembers();
+    void refreshAttendance();
+    const timer = window.setInterval(() => {
+      void refreshRoomMembers();
+      void refreshAttendance();
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [refreshAttendance, refreshRoomMembers]);
+
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
@@ -211,7 +237,7 @@ export default function WaitingRoom() {
       const message =
         data.type === "countdown"
           ? `곧 ${data.label ?? "다음 교시"} 시작돼요`
-        : data.type === "periodStart"
+          : data.type === "periodStart"
             ? `${data.label ?? "교시"} 시작! 카메라 상태를 확인해 주세요.`
             : data.type === "breakStart"
               ? "쉬는시간입니다. 다음 교시 전까지 준비해 주세요."
@@ -223,10 +249,14 @@ export default function WaitingRoom() {
     };
 
     socket.on("bell", onBell);
+    socket.on("cam:join", refreshRoomMembers);
+    socket.on("cam:leave", refreshRoomMembers);
     return () => {
       socket.off("bell", onBell);
+      socket.off("cam:join", refreshRoomMembers);
+      socket.off("cam:leave", refreshRoomMembers);
     };
-  }, [socket]);
+  }, [refreshRoomMembers, socket]);
 
   const nowSec =
     now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -276,6 +306,26 @@ export default function WaitingRoom() {
   const enterStatusText = canEnterRoom ? "입장 가능" : "교시중 입장 불가";
   const canUseAdmin =
     session?.user.role === "ADMIN" || session?.user.role === "STAFF";
+  const attendanceBySlot = useMemo(
+    () => new Map(attendance.map((record) => [record.slot, record])),
+    [attendance],
+  );
+  const currentAttendance = current
+    ? attendanceBySlot.get(current.slot)
+    : undefined;
+  const currentAttendanceStatus =
+    (currentAttendance?.status as AttendanceStatusName | undefined) ?? null;
+  const attendanceCount = attendance.filter(
+    (record) => record.status === "PRESENT" || record.status === "EXCUSED",
+  ).length;
+  const sortedMembers = useMemo(
+    () =>
+      [...roomMembers].sort((a, b) => {
+        if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
+        return a.name.localeCompare(b.name, "ko");
+      }),
+    [roomMembers],
+  );
 
   return (
     <div className="wr">
@@ -334,28 +384,29 @@ export default function WaitingRoom() {
           </div>
 
           <div className="wr-worker-grid">
-            {PREVIEW.map((worker, index) => (
+            {sortedMembers.slice(0, 8).map((worker, index) => (
               <div
                 className="wr-worker"
-                key={worker.nick}
-                style={{ background: worker.gradient }}
+                key={worker.id}
+                style={{ background: workerGradient(index) }}
               >
-                <img
-                  src={`/preview/${index + 1}.jpg`}
-                  alt=""
-                  className="wr-worker-img"
-                  onError={(event) => {
-                    event.currentTarget.style.display = "none";
-                  }}
-                />
-                <span className="wr-worker-name">{worker.nick}</span>
-                <span className="wr-worker-state">입장</span>
+                <span className="wr-worker-name">{worker.name}</span>
+                <span
+                  className={`wr-worker-state${
+                    worker.isWorking ? "" : " is-off"
+                  }`}
+                >
+                  {worker.isWorking ? "입장" : "대기"}
+                </span>
               </div>
             ))}
+            {sortedMembers.length === 0 && (
+              <p className="wr-worker-empty">표시할 작업장 회원이 없습니다.</p>
+            )}
           </div>
 
           <p className="wr-preview-note">
-            *위 미리보기 화면은, 실제 이용자의 랜덤화면으로, 수시로 권한 됩니다.
+            *미리보기는 같은 지점의 실제 회원 입장 상태를 요약해서 보여줍니다.
           </p>
         </section>
 
@@ -407,6 +458,36 @@ export default function WaitingRoom() {
             *출근시간과 쉬는시간에는 입장 가능하며, 교시중에는 관리자 허용 후
             입장합니다.
           </p>
+        </section>
+
+        <section className="wr-attendance">
+          <div className="wr-att-main">
+            <FactCheckOutlinedIcon />
+            <div>
+              <span>오늘 출석현황</span>
+              <strong>
+                {current?.label ?? "대기"} ·{" "}
+                {currentAttendanceStatus
+                  ? ATTENDANCE_TEXT[currentAttendanceStatus]
+                  : "기록 전"}
+              </strong>
+            </div>
+          </div>
+
+          <div className="wr-att-side">
+            <span
+              className={
+                currentAttendanceStatus
+                  ? ATTENDANCE_CLASS[currentAttendanceStatus]
+                  : ""
+              }
+            >
+              {attendanceCount}/{totalWorkSlots}
+            </span>
+            <button type="button" onClick={() => navigate("/attendance")}>
+              자세히 보기
+            </button>
+          </div>
         </section>
 
         <section className="wr-progress">
@@ -478,6 +559,10 @@ export default function WaitingRoom() {
           <button onClick={() => navigate("/leaves")}>
             <LockOutlinedIcon />
             휴가내역 및 신청
+          </button>
+          <button onClick={() => navigate("/attendance")}>
+            <FactCheckOutlinedIcon />
+            출석현황
           </button>
           <button onClick={() => navigate("/inquiry")}>
             <ArticleOutlinedIcon />

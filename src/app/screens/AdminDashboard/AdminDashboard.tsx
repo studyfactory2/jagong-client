@@ -35,6 +35,7 @@ import { createNotice } from "../../services/notice.service";
 import { getBranches } from "../../services/branch.service";
 import { getTimetable } from "../../services/timetable.service";
 import Camera from "./Camera";
+import Attendance from "./Attendance";
 import Chat from "./Chat";
 import Consultations from "./Consultations";
 import Leaves from "./Leaves";
@@ -677,6 +678,10 @@ export default function AdminDashboard() {
             pageMeta={pageMeta.leaves}
             onPageChange={(page) => changePage("leaves", page)}
           />
+        )}
+
+        {activeTab === "attendance" && (
+          <Attendance users={data.allMembers} timetable={timetable} />
         )}
 
         {activeTab === "chat" && (

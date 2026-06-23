@@ -13,8 +13,13 @@ import {
   joinCam,
   leaveCam,
 } from "../../services/cam.service";
+import { syncCamAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
-import type { CamRoomMember, CamTokenDto, TimetableSlot } from "../../../lib/types";
+import type {
+  CamRoomMember,
+  CamTokenDto,
+  TimetableSlot,
+} from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import "./study-room.css";
 
@@ -148,6 +153,7 @@ export default function StudyRoom() {
   const roomRef = useRef<Room | null>(null);
   const joinedRef = useRef(false);
   const joinedSlotRef = useRef<number | null>(null);
+  const syncedAttendanceSlotRef = useRef<number | null>(null);
   const myId = session?.user.userId ?? session?.user.id ?? "";
 
   const refreshRoomMembers = useCallback(async () => {
@@ -180,6 +186,18 @@ export default function StudyRoom() {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!joined) return;
+    const slot = currentSlot(timetable);
+    if (!slot || syncedAttendanceSlotRef.current === slot) return;
+
+    syncCamAttendance(slot)
+      .then(() => {
+        syncedAttendanceSlotRef.current = slot;
+      })
+      .catch(() => undefined);
+  }, [joined, now, timetable]);
 
   useEffect(() => {
     const element = selfTileVideoRef.current;
@@ -218,7 +236,11 @@ export default function StudyRoom() {
     : nextSlot
       ? toMin(nextSlot.startTime) - nowMin
       : 0;
-  const remainingLabel = current ? "종료까지" : nextSlot ? "시작까지" : "오늘 종료";
+  const remainingLabel = current
+    ? "종료까지"
+    : nextSlot
+      ? "시작까지"
+      : "오늘 종료";
   const remainingText = timeLeftText(remainingMinutes);
   const periodWindow = current
     ? `${current.startTime} - ${current.endTime}`
@@ -235,7 +257,9 @@ export default function StudyRoom() {
       : "오늘 작업장 일정이 종료되었습니다.";
   const membersForGrid = useMemo(() => {
     const withSelfStatus = roomMembers.map((member) =>
-      member.id === myId ? { ...member, isWorking: joined || member.isWorking } : member,
+      member.id === myId
+        ? { ...member, isWorking: joined || member.isWorking }
+        : member,
     );
 
     if (myId && !withSelfStatus.some((member) => member.id === myId)) {
@@ -361,7 +385,9 @@ export default function StudyRoom() {
       await startLocalCamera(selectedDeviceId || undefined);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "카메라 미리보기를 시작하지 못했습니다.",
+        err instanceof Error
+          ? err.message
+          : "카메라 미리보기를 시작하지 못했습니다.",
       );
     } finally {
       setJoining(false);
@@ -378,6 +404,7 @@ export default function StudyRoom() {
         stopLocalCamera();
         joinedRef.current = false;
         joinedSlotRef.current = null;
+        syncedAttendanceSlotRef.current = null;
         setJoined(false);
         setCamToken(null);
         await refreshRoomMembers();
@@ -389,6 +416,7 @@ export default function StudyRoom() {
         await joinCam(slot ?? undefined);
         joinedRef.current = true;
         joinedSlotRef.current = slot;
+        syncedAttendanceSlotRef.current = slot;
         setCamToken(token);
         setJoined(true);
         await refreshRoomMembers();
@@ -398,6 +426,7 @@ export default function StudyRoom() {
       stopLocalCamera();
       joinedRef.current = false;
       joinedSlotRef.current = null;
+      syncedAttendanceSlotRef.current = null;
       setError(
         err instanceof Error
           ? err.message
@@ -596,7 +625,9 @@ export default function StudyRoom() {
                   }
                   disabled={joining || devices.length === 0}
                 >
-                  {devices.length === 0 && <option value="">카메라 선택</option>}
+                  {devices.length === 0 && (
+                    <option value="">카메라 선택</option>
+                  )}
                   {devices.map((device, index) => (
                     <option key={device.deviceId} value={device.deviceId}>
                       {device.label || `카메라 ${index + 1}`}
@@ -605,8 +636,7 @@ export default function StudyRoom() {
                 </select>
               </label>
               <div className="sr-live-badge">
-                <span className="sr-live-dot" />
-                캠 송출 중
+                <span className="sr-live-dot" />캠 송출 중
               </div>
               <p>
                 큰 셀프 화면은 띄우지 않고, 관리자는 작업장 모니터에서 캠을

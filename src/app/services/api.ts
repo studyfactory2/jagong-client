@@ -1,4 +1,5 @@
 export * from "./admin.service";
+export * from "./attendance.service";
 export * from "./auth.service";
 export * from "./branch.service";
 export * from "./cam.service";
