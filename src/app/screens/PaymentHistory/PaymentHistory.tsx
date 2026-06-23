@@ -80,6 +80,36 @@ function daysUntil(value?: string | null): number | null {
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
+function paymentNotice(
+  viewState: MembershipViewState,
+  membership: MembershipStatus | null,
+): { title: string; body: string } | null {
+  if (viewState === "future") {
+    return {
+      title: "이용 시작 전입니다",
+      body: `결제는 완료되어 있어요. ${dateText(
+        membership?.startDate,
+      )}부터 대기장과 공부방 전체 기능을 이용할 수 있습니다.`,
+    };
+  }
+
+  if (viewState === "expired") {
+    return {
+      title: "이용권이 만료되었습니다",
+      body: "다시 이용하려면 아래에서 이용권을 결제하거나 연장해주세요.",
+    };
+  }
+
+  if (viewState === "none") {
+    return {
+      title: "이용권 결제가 필요합니다",
+      body: "결제가 완료되면 시작일에 맞춰 대기장과 공부방 기능을 이용할 수 있습니다.",
+    };
+  }
+
+  return null;
+}
+
 export default function PaymentHistory() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -98,6 +128,8 @@ export default function PaymentHistory() {
   );
   const viewState = membershipViewState(membership, loading);
   const hasValidMembership = viewState === "active" || viewState === "future";
+  const canEnterWaitingRoom = viewState === "active";
+  const notice = paymentNotice(viewState, membership);
   const startDDay = daysUntil(membership?.startDate);
   const ticketBadge =
     viewState === "loading"
@@ -202,12 +234,14 @@ export default function PaymentHistory() {
   }
 
   const paidPayments = payments.filter((p) => p.status === "PAID");
+  const backPath = canEnterWaitingRoom ? "/waiting-room" : "/my-page";
+  const backLabel = canEnterWaitingRoom ? "대기장" : "내 정보";
 
   return (
     <div className="pay">
       <header className="pay-head">
-        <button onClick={() => navigate("/waiting-room")}>
-          <ArrowBackIcon /> 대기장
+        <button onClick={() => navigate(backPath)} type="button">
+          <ArrowBackIcon /> {backLabel}
         </button>
         <h1>결제/이용내역</h1>
         <span aria-hidden="true" />
@@ -233,13 +267,10 @@ export default function PaymentHistory() {
           <span className={`is-${viewState}`}>{ticketBadge}</span>
         </section>
 
-        {viewState === "future" && (
+        {notice && (
           <section className="pay-pending-start">
-            <strong>이용 시작 전입니다</strong>
-            <p>
-              결제는 완료되어 있어요. {dateText(membership?.startDate)}부터
-              대기장과 공부방 전체 기능을 이용할 수 있습니다.
-            </p>
+            <strong>{notice.title}</strong>
+            <p>{notice.body}</p>
           </section>
         )}
 
