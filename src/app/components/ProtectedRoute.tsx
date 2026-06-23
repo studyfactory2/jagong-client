@@ -12,13 +12,13 @@ export default function ProtectedRoute() {
     let alive = true;
 
     async function verify() {
-      if (!session) return;
+      if (!token) return;
 
       try {
         const user = await getMe();
         if (!alive) return;
         refreshUser(user);
-        setVerifiedToken(session.token);
+        setVerifiedToken(token);
       } catch {
         if (!alive) return;
         logout();
@@ -31,7 +31,7 @@ export default function ProtectedRoute() {
     return () => {
       alive = false;
     };
-  }, [logout, refreshUser, session, token]);
+  }, [logout, refreshUser, token]);
 
   if (!session) return <Navigate to="/login" replace />;
   if (verifiedToken !== session.token) return null;

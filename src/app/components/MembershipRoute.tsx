@@ -6,38 +6,30 @@ import { hasActiveMembership, isManager } from "../utils/access";
 
 export default function MembershipRoute() {
   const { session, refreshUser } = useAuth();
-  const [checkedToken, setCheckedToken] = useState<string | null>(null);
-  const [allowed, setAllowed] = useState(false);
+  const [remoteCheck, setRemoteCheck] = useState<{
+    token: string | null;
+    allowed: boolean;
+  }>({ token: null, allowed: false });
   const token = session?.token ?? null;
+  const isCurrentManager = session ? isManager(session.user) : false;
+  const hasLocalMembership = session
+    ? hasActiveMembership(session.user)
+    : false;
 
   useEffect(() => {
     let alive = true;
 
     async function checkMembership() {
-      if (!session) return;
-
-      if (isManager(session.user)) {
-        setAllowed(false);
-        setCheckedToken(session.token);
-        return;
-      }
-
-      if (hasActiveMembership(session.user)) {
-        setAllowed(true);
-        setCheckedToken(session.token);
-        return;
-      }
+      if (!token || isCurrentManager || hasLocalMembership) return;
 
       try {
         const user = await getMe();
         if (!alive) return;
         refreshUser(user);
-        setAllowed(hasActiveMembership(user));
+        setRemoteCheck({ token, allowed: hasActiveMembership(user) });
       } catch {
         if (!alive) return;
-        setAllowed(false);
-      } finally {
-        if (alive) setCheckedToken(session.token);
+        setRemoteCheck({ token, allowed: false });
       }
     }
 
@@ -46,12 +38,13 @@ export default function MembershipRoute() {
     return () => {
       alive = false;
     };
-  }, [refreshUser, session, token]);
+  }, [hasLocalMembership, isCurrentManager, refreshUser, token]);
 
   if (!session) return <Navigate to="/login" replace />;
-  if (checkedToken !== session.token) return null;
-  if (isManager(session.user)) return <Navigate to="/admin" replace />;
-  if (!allowed) return <Navigate to="/payments" replace />;
+  if (isCurrentManager) return <Navigate to="/admin" replace />;
+  if (hasLocalMembership) return <Outlet />;
+  if (remoteCheck.token !== session.token) return null;
+  if (!remoteCheck.allowed) return <Navigate to="/payments" replace />;
 
   return <Outlet />;
 }
