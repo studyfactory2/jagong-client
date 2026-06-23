@@ -74,8 +74,16 @@ export default function Register() {
       } else {
         navigate("/login");
       }
-    } catch {
-      setNoInfo(true);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "회원가입을 완료하지 못했습니다.";
+      if (message.includes("사전 등록")) {
+        setNoInfo(true);
+      } else {
+        setErr(message);
+      }
     } finally {
       setBusy(false);
     }

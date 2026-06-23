@@ -48,6 +48,10 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function isFutureDate(value: string) {
+  return value > dateKey(new Date());
+}
+
 function tagFor(day: number, leaves: LeaveRecord[], special: SpecialLeaveRecord[]) {
   const suffix = "-" + String(day).padStart(2, "0");
   const leave = leaves.find((item) => item.date.slice(0, 10).endsWith(suffix));
@@ -75,6 +79,7 @@ export default function LeaveRequest() {
   const days = useMemo(() => Array.from({ length: monthDays(currentMonth) }, (_, i) => i + 1), [currentMonth]);
   const selectedDate = month + "-" + String(selectedDay).padStart(2, "0");
   const membershipLocked = error.includes("이용권 결제");
+  const canRequestSelectedDate = isFutureDate(selectedDate);
 
   useEffect(() => {
     let alive = true;
@@ -105,6 +110,10 @@ export default function LeaveRequest() {
   }
 
   async function submit() {
+    if (!canRequestSelectedDate) {
+      setError("휴가는 내일 이후 날짜만 신청할 수 있습니다.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -123,6 +132,12 @@ export default function LeaveRequest() {
   }
 
   async function cancel(id: string) {
+    const target = leaves.find((item) => item.id === id);
+    if (!target || !isFutureDate(String(target.date).slice(0, 10))) {
+      setError("오늘 또는 지난 휴가는 직접 취소할 수 없습니다. 관리자에게 문의해주세요.");
+      return;
+    }
+
     setError("");
     try {
       const updated = await cancelLeave(id);
@@ -211,7 +226,7 @@ export default function LeaveRequest() {
                 {type.label}
               </button>
             ))}
-            <button className="lv-submit" disabled={saving || membershipLocked} onClick={submit} type="button">
+            <button className="lv-submit" disabled={saving || membershipLocked || !canRequestSelectedDate} onClick={submit} type="button">
               {saving ? "신청중" : "신청하기"}
             </button>
           </div>
@@ -237,11 +252,18 @@ export default function LeaveRequest() {
                 {TYPE_LABEL[leave.leaveType] ?? leave.leaveType}
               </em>
               <button
-                disabled={leave.status === "CANCELLED"}
+                disabled={
+                  leave.status === "CANCELLED" ||
+                  !isFutureDate(String(leave.date).slice(0, 10))
+                }
                 onClick={() => cancel(leave.id)}
                 type="button"
               >
-                {leave.status === "CANCELLED" ? "취소됨" : "취소"}
+                {leave.status === "CANCELLED"
+                  ? "취소됨"
+                  : isFutureDate(String(leave.date).slice(0, 10))
+                    ? "취소"
+                    : "취소불가"}
               </button>
             </div>
           ))}

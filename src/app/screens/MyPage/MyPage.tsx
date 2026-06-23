@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
@@ -41,6 +41,16 @@ export default function MyPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setForm((current) => ({
+        ...fromUser(session?.user),
+        password: current.password,
+      }));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [session?.user]);
 
   /** DERIVED **/
   const passwordInvalid = form.password.length > 0 && form.password.length !== 4;
