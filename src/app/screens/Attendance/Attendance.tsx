@@ -15,6 +15,17 @@ import type {
 import "./attendance.css";
 
 type AttendanceView = "daily" | "weekly" | "monthly";
+type AttendanceCounts = {
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+};
+type AttendanceDayGroup = {
+  date: string;
+  records: AttendanceRecord[];
+  counts: AttendanceCounts;
+};
 
 const STATUS_TEXT: Record<AttendanceStatusName, string> = {
   PRESENT: "출석",
@@ -83,6 +94,38 @@ function statusClass(status?: string) {
 
 function slotLabel(slots: TimetableSlot[], slot: number) {
   return slots.find((item) => item.slot === slot)?.label ?? `${slot}교시`;
+}
+
+function emptyCounts(): AttendanceCounts {
+  return { present: 0, late: 0, absent: 0, excused: 0 };
+}
+
+function addStatusCount(counts: AttendanceCounts, status: string) {
+  const key = status as AttendanceStatusName;
+  if (key === "PRESENT") counts.present += 1;
+  else if (key === "LATE") counts.late += 1;
+  else if (key === "ABSENT") counts.absent += 1;
+  else if (key === "EXCUSED") counts.excused += 1;
+}
+
+function summarize(records: AttendanceRecord[]) {
+  return records.reduce((acc, record) => {
+    addStatusCount(acc, record.status);
+    return acc;
+  }, emptyCounts());
+}
+
+function groupByDate(records: AttendanceRecord[]): AttendanceDayGroup[] {
+  const groups = new Map<string, AttendanceRecord[]>();
+  records.forEach((record) => {
+    const key = String(record.date).slice(0, 10);
+    groups.set(key, [...(groups.get(key) ?? []), record]);
+  });
+  return Array.from(groups.entries()).map(([date, groupedRecords]) => ({
+    date,
+    records: groupedRecords,
+    counts: summarize(groupedRecords),
+  }));
 }
 
 export default function Attendance() {
@@ -164,35 +207,14 @@ export default function Attendance() {
     return monthRecords;
   }, [monthRecords, todayRecords, view, weekRecords]);
 
-  const counts = useMemo(
-    () =>
-      monthRecords.reduce(
-        (acc, record) => {
-          const key = record.status as AttendanceStatusName;
-          if (key === "PRESENT") acc.present += 1;
-          else if (key === "LATE") acc.late += 1;
-          else if (key === "ABSENT") acc.absent += 1;
-          else if (key === "EXCUSED") acc.excused += 1;
-          return acc;
-        },
-        { present: 0, late: 0, absent: 0, excused: 0 },
-      ),
-    [monthRecords],
-  );
+  const counts = useMemo(() => summarize(monthRecords), [monthRecords]);
 
   const selectedCounts = useMemo(
-    () =>
-      selectedRecords.reduce(
-        (acc, record) => {
-          const key = record.status as AttendanceStatusName;
-          if (key === "PRESENT") acc.present += 1;
-          else if (key === "LATE") acc.late += 1;
-          else if (key === "ABSENT") acc.absent += 1;
-          else if (key === "EXCUSED") acc.excused += 1;
-          return acc;
-        },
-        { present: 0, late: 0, absent: 0, excused: 0 },
-      ),
+    () => summarize(selectedRecords),
+    [selectedRecords],
+  );
+  const selectedGroups = useMemo(
+    () => groupByDate(selectedRecords),
     [selectedRecords],
   );
 
@@ -306,16 +328,35 @@ export default function Attendance() {
                 ))}
               </div>
             ) : (
-              <div className="attendance-list">
-                {selectedRecords.slice(0, 60).map((record) => (
-                  <article className="attendance-row" key={record.id}>
-                    <div>
-                      <strong>{formatDate(record.date)}</strong>
-                      <span>{slotLabel(slots, record.slot)}</span>
+              <div className="attendance-day-list">
+                {selectedGroups.map((group) => (
+                  <article className="attendance-day-card" key={group.date}>
+                    <header>
+                      <div>
+                        <strong>{formatDate(group.date)}</strong>
+                        <span>{group.records.length}개 교시 기록</span>
+                      </div>
+                      <div className="attendance-day-summary">
+                        <em className="is-present">출석 {group.counts.present}</em>
+                        <em className="is-late">지각 {group.counts.late}</em>
+                        <em className="is-excused">인정 {group.counts.excused}</em>
+                        <em className="is-absent">결석 {group.counts.absent}</em>
+                      </div>
+                    </header>
+
+                    <div className="attendance-slot-list">
+                      {group.records.map((record) => (
+                        <span
+                          className={`attendance-slot-chip ${statusClass(
+                            record.status,
+                          )}`}
+                          key={record.id}
+                        >
+                          <b>{slotLabel(slots, record.slot)}</b>
+                          <em>{statusText(record.status)}</em>
+                        </span>
+                      ))}
                     </div>
-                    <em className={statusClass(record.status)}>
-                      {statusText(record.status)}
-                    </em>
                   </article>
                 ))}
               </div>

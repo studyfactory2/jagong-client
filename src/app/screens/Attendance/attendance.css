@@ -207,25 +207,33 @@
 
 .attendance-stats .is-present svg,
 .attendance-today-card .is-present,
-.attendance-row .is-present {
+.attendance-row .is-present,
+.attendance-day-summary .is-present,
+.attendance-slot-chip.is-present em {
   color: var(--mint-deep);
 }
 
 .attendance-stats .is-late svg,
 .attendance-today-card .is-late,
-.attendance-row .is-late {
+.attendance-row .is-late,
+.attendance-day-summary .is-late,
+.attendance-slot-chip.is-late em {
   color: #c39848;
 }
 
 .attendance-stats .is-excused svg,
 .attendance-today-card .is-excused,
-.attendance-row .is-excused {
+.attendance-row .is-excused,
+.attendance-day-summary .is-excused,
+.attendance-slot-chip.is-excused em {
   color: var(--ink);
 }
 
 .attendance-stats .is-absent svg,
 .attendance-today-card .is-absent,
-.attendance-row .is-absent {
+.attendance-row .is-absent,
+.attendance-day-summary .is-absent,
+.attendance-slot-chip.is-absent em {
   color: var(--accent-deep);
 }
 
@@ -294,12 +302,100 @@
   font-size: 18px;
 }
 
-.attendance-list {
+.attendance-list,
+.attendance-day-list {
   max-height: 420px;
   overflow: auto;
   display: grid;
   gap: 8px;
   padding-right: 4px;
+}
+
+.attendance-day-list {
+  gap: 12px;
+}
+
+.attendance-day-card {
+  border: 1px solid rgba(20, 63, 86, 0.07);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(237, 248, 243, 0.22)),
+    var(--card);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.attendance-day-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.attendance-day-card header > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.attendance-day-card strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.attendance-day-card header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.attendance-day-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.attendance-day-summary em,
+.attendance-slot-chip em {
+  border-radius: 999px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.attendance-day-summary em {
+  background: rgba(237, 248, 243, 0.76);
+  padding: 6px 9px;
+  font-size: 11px;
+}
+
+.attendance-slot-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attendance-slot-chip {
+  min-height: 38px;
+  border: 1px solid rgba(20, 63, 86, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 7px 6px 12px;
+}
+
+.attendance-slot-chip b {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.attendance-slot-chip em {
+  background: var(--mint-soft);
+  padding: 5px 8px;
+  font-size: 11px;
 }
 
 .attendance-row {
@@ -435,8 +531,17 @@
     justify-self: start;
   }
 
-  .attendance-list {
+  .attendance-list,
+  .attendance-day-list {
     max-height: none;
     overflow: visible;
+  }
+
+  .attendance-day-card header {
+    display: grid;
+  }
+
+  .attendance-day-summary {
+    justify-content: flex-start;
   }
 }
