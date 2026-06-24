@@ -1,38 +1,38 @@
 .iq {
-  font-family: var(--sans);
-  color: var(--ink);
-  max-width: 560px;
+  width: min(100%, 1180px);
   min-height: 100vh;
   margin: 0 auto;
-  background: var(--card);
-}
-
-@media (min-width: 481px) {
-  .iq {
-    margin: 18px auto;
-    min-height: auto;
-    border-radius: 24px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
+  padding: 0 18px 32px;
+  color: var(--ink);
+  font-family: var(--sans);
+  background:
+    radial-gradient(circle at 83% 8%, rgba(244, 127, 114, 0.055), transparent 30%),
+    radial-gradient(circle at 8% 4%, rgba(159, 206, 180, 0.13), transparent 26%),
+    var(--paper);
 }
 
 .iq-head {
-  min-height: 76px;
-  padding: 13px 18px;
+  min-height: 82px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: 150px minmax(0, 1fr) 150px;
   align-items: center;
-  border-bottom: 2px dotted var(--accent-line);
+  gap: 12px;
+  border-bottom: 1px dashed rgba(244, 127, 114, 0.34);
 }
 
 .iq-head button {
+  min-height: 40px;
+  width: fit-content;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.68);
   color: var(--ink);
+  padding: 0 14px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 900;
 }
 
 .iq-head button:last-child {
@@ -40,38 +40,43 @@
 }
 
 .iq-head svg {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .iq-head h1 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 900;
+  letter-spacing: 0;
 }
 
 .iq-body {
-  padding: 14px 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  padding-top: 24px;
+  display: grid;
+  gap: 16px;
 }
 
 .iq-panel {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--card);
-  padding: 13px;
   min-height: 0;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 254, 250, 0.9)),
+    var(--card);
+  box-shadow: 0 18px 44px rgba(20, 63, 86, 0.05);
+  padding: 18px;
 }
 
 .iq-panel-title,
 .iq-chat-head {
   display: grid;
-  grid-template-columns: 42px 1fr auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 2px dotted var(--accent-line);
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed rgba(244, 127, 114, 0.34);
 }
 
 .iq-panel-title svg {
@@ -79,70 +84,104 @@
   font-size: 34px;
 }
 
+.iq-chat-head > span {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--mint-line);
+  border-radius: 999px;
+  background: var(--mint-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+}
+
 .iq-panel-title strong,
 .iq-chat-head strong {
-  font-size: 18px;
+  display: block;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 900;
 }
 
 .iq-panel-title p,
 .iq-chat-head p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .iq-panel-title button,
-.iq-chat-head button,
-.iq-chat-meta button {
+.iq-chat-head button {
+  min-height: 36px;
   border: 1px solid var(--accent-line);
   border-radius: 999px;
+  background: rgba(255, 247, 244, 0.64);
   color: var(--accent-deep);
-  padding: 8px 12px;
+  padding: 0 13px;
   font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.iq-error {
+  margin: 12px 0 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 11px 13px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .iq-notices {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  margin-top: 12px;
-  max-height: 360px;
-  overflow: hidden;
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
   overflow-y: auto;
+  padding-right: 4px;
 }
 
 .iq-notices button {
   width: 100%;
-  min-height: 58px;
-  border-bottom: 1px solid var(--line-soft);
+  min-height: 74px;
+  border: 1px solid rgba(20, 63, 86, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
   display: grid;
-  grid-template-columns: 56px 1fr 28px;
+  grid-template-columns: 58px minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 10px;
+  padding: 12px;
   text-align: left;
   position: relative;
   transition:
     background-color 0.16s ease,
+    border-color 0.16s ease,
     transform 0.16s ease;
 }
 
-.iq-notices button:last-child {
-  border-bottom: 0;
-}
-
 .iq-notices button:hover {
-  background: rgba(237, 248, 243, 0.55);
+  border-color: rgba(159, 206, 180, 0.7);
+  background: rgba(237, 248, 243, 0.58);
+  transform: translateY(-1px);
 }
 
 .iq-notices button.is-new {
-  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  background: linear-gradient(135deg, var(--accent-soft), rgba(255, 255, 255, 0.86));
 }
 
 .iq-notices button.is-new::after {
   content: "NEW";
   position: absolute;
-  top: 8px;
-  right: 42px;
+  top: 9px;
+  right: 40px;
   border-radius: 999px;
   background: var(--accent);
   color: #ffffff;
@@ -151,18 +190,20 @@
   font-weight: 900;
 }
 
-.iq-notices span {
+.iq-notices span,
+.iq-notice-detail span {
   border: 1px solid var(--mint-line);
-  border-radius: 9px;
+  border-radius: 999px;
   background: var(--mint-soft);
   color: var(--mint-deep);
-  padding: 7px 8px;
+  padding: 7px 9px;
   text-align: center;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
-.iq-notices .is-hot {
+.iq-notices .is-hot,
+.iq-notice-detail span.is-hot {
   border-color: var(--accent-line);
   background: var(--accent-soft);
   color: var(--accent-deep);
@@ -170,85 +211,124 @@
 
 .iq-notices strong {
   display: block;
+  color: var(--ink);
   font-size: 14px;
+  font-weight: 900;
+  line-height: 1.3;
 }
 
-.iq-notices em {
+.iq-notices em,
+.iq-notices small {
+  display: block;
   color: var(--muted);
   font-size: 12px;
   font-style: normal;
+  line-height: 1.38;
 }
 
-.iq-chat-head > span {
-  font-size: 35px;
+.iq-notices small {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iq-notices svg {
+  color: var(--ink);
+}
+
+.iq-empty-chat {
+  border: 1px dashed rgba(20, 63, 86, 0.13);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 18px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .iq-chat-meta {
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  margin: 12px 0;
+  min-height: 42px;
+  border: 1px solid rgba(20, 63, 86, 0.08);
+  border-radius: 16px;
+  margin: 14px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
+  padding: 10px 13px;
+  background: rgba(255, 255, 255, 0.7);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .iq-chat-date {
   width: fit-content;
-  margin: 0 auto 12px;
-  border: 1px solid var(--line);
+  margin: 0 auto 14px;
+  border: 1px solid rgba(20, 63, 86, 0.09);
   border-radius: 999px;
-  padding: 6px 26px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 7px 24px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 800;
 }
 
 .iq-messages {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 0;
-  max-height: 430px;
+  min-height: 300px;
+  max-height: 520px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding: 2px 4px 2px 0;
 }
 
 .iq-msg {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  grid-template-columns: 42px minmax(0, 1fr) 44px;
   gap: 8px;
   align-items: end;
 }
 
 .iq-msg.is-me {
-  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  grid-template-columns: 44px minmax(0, 1fr) 42px;
 }
 
 .iq-avatar {
-  font-size: 30px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .iq-msg em {
   display: block;
+  margin-bottom: 5px;
   color: var(--muted);
   font-size: 11px;
   font-style: normal;
-  margin-bottom: 4px;
+  font-weight: 800;
 }
 
 .iq-msg p {
   margin: 0;
   width: fit-content;
-  max-width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #fff9ef;
-  padding: 11px 13px;
-  font-size: 13px;
-  line-height: 1.45;
+  max-width: min(100%, 520px);
+  border: 1px solid rgba(20, 63, 86, 0.07);
+  border-radius: 16px;
+  background: #fff8ed;
+  padding: 12px 14px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .iq-msg.is-me div {
@@ -257,13 +337,14 @@
 }
 
 .iq-msg.is-me p {
-  background: var(--mint-soft);
   border-color: var(--mint-line);
+  background: var(--mint-soft);
 }
 
 .iq-msg time {
   color: var(--muted);
   font-size: 11px;
+  white-space: nowrap;
 }
 
 .iq-msg.is-me time {
@@ -274,13 +355,14 @@
 
 .iq-input {
   margin-top: 14px;
-  min-height: 50px;
-  border: 1px solid var(--line);
+  min-height: 54px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
   display: grid;
-  grid-template-columns: 32px 1fr 86px;
+  grid-template-columns: 32px minmax(0, 1fr) 92px;
   align-items: center;
-  padding: 5px 6px 5px 12px;
+  padding: 6px 7px 6px 13px;
   gap: 8px;
 }
 
@@ -289,91 +371,29 @@
 }
 
 .iq-input input {
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--ink);
+  font-size: 14px;
 }
 
 .iq-input button {
-  min-height: 40px;
+  min-height: 42px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .iq-input button svg {
-  color: #fff;
+  color: #ffffff;
   font-size: 17px;
-}
-
-.iq .app-foot {
-  display: none;
-}
-
-@media (max-width: 520px) {
-  .iq {
-    max-width: none;
-    margin: 0;
-    box-shadow: none;
-    border-radius: 0;
-  }
-
-  .iq-body {
-    padding: 12px;
-  }
-
-  .iq-panel-title,
-  .iq-chat-head {
-    grid-template-columns: 36px 1fr;
-  }
-
-  .iq-panel-title button,
-  .iq-chat-head button {
-    grid-column: 1 / -1;
-    width: fit-content;
-    margin-left: auto;
-  }
-}
-
-
-.iq-error {
-  border: 1px solid var(--accent-line);
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.iq-empty-chat {
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  background: #ffffff;
-  padding: 18px 14px;
-  color: var(--muted);
-  font-size: 13px;
-  text-align: center;
-}
-
-.iq-chat-head > span {
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--mint-line);
-  border-radius: 999px;
-  background: var(--mint-soft);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 900;
 }
 
 .iq-input button:disabled {
@@ -381,71 +401,11 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 430px) {
-  .iq-head {
-    min-height: 64px;
-    padding: 10px 12px;
-  }
-
-  .iq-head h1 {
-    font-size: 21px;
-  }
-
-  .iq-head button {
-    font-size: 12px;
-  }
-
-  .iq-panel {
-    padding: 11px;
-    border-radius: 14px;
-  }
-
-  .iq-chat-meta {
-    border-radius: 13px;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .iq-msg,
-  .iq-msg.is-me {
-    grid-template-columns: 34px minmax(0, 1fr) 36px;
-  }
-
-  .iq-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 999px;
-    background: var(--mint-soft);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--ink);
-    font-size: 9px;
-    font-weight: 900;
-  }
-
-  .iq-input {
-    border-radius: 14px;
-    grid-template-columns: 24px 1fr;
-    padding: 8px;
-  }
-
-  .iq-input button {
-    grid-column: 1 / -1;
-  }
-}
-
-/* real notice body */
-.iq-notices small {
-  display: block;
-  max-width: 100%;
+.iq .app-foot {
+  margin: 20px 0 0;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  text-align: center;
 }
 
 .iq-notice-detail {
@@ -455,11 +415,11 @@
   z-index: 1002;
   width: min(520px, calc(100vw - 28px));
   transform: translate(-50%, -50%);
-  border: 1px solid var(--ink);
-  border-radius: 18px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 22px;
   background: #fffefa;
-  box-shadow: 0 30px 88px rgba(20, 63, 86, 0.26);
-  padding: 18px;
+  box-shadow: 0 30px 88px rgba(20, 63, 86, 0.22);
+  padding: 20px;
   color: var(--ink);
 }
 
@@ -478,27 +438,12 @@
   gap: 12px;
 }
 
-.iq-notice-detail span {
-  border: 1px solid var(--mint-line);
-  border-radius: 999px;
-  background: var(--mint-soft);
-  color: var(--mint-deep);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.iq-notice-detail span.is-hot {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-}
-
 .iq-notice-detail button {
   min-height: 34px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(20, 63, 86, 0.11);
   border-radius: 999px;
-  padding: 0 13px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0 14px;
   color: var(--ink);
   font-size: 12px;
   font-weight: 900;
@@ -507,7 +452,8 @@
 .iq-notice-detail strong {
   display: block;
   margin-top: 16px;
-  font-size: 21px;
+  color: var(--ink);
+  font-size: 22px;
   line-height: 1.35;
 }
 
@@ -516,70 +462,45 @@
   margin-top: 5px;
   color: var(--muted);
   font-size: 12px;
+  font-weight: 800;
 }
 
 .iq-notice-detail p {
   margin: 16px 0 0;
-  border: 1px solid var(--line-soft);
-  border-radius: 14px;
-  background: #ffffff;
-  padding: 14px;
+  border: 1px solid rgba(20, 63, 86, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 15px;
   color: var(--ink-2);
   font-size: 14px;
   line-height: 1.65;
   white-space: pre-wrap;
 }
 
-/* desktop member inquiry layout */
 @media (min-width: 900px) {
-  .iq {
-    width: min(calc(100vw - 56px), 1080px);
-    max-width: none;
-    margin: 0 auto;
-    min-height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
-    background:
-      radial-gradient(circle at 80% 10%, rgba(244, 134, 120, 0.06), transparent 28%),
-      var(--paper);
-  }
-
-  .iq-head {
-    min-height: 80px;
-    padding-inline: 10px;
-    grid-template-columns: 160px minmax(0, 1fr) 160px;
-  }
-
   .iq-body {
-    display: grid;
-    grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr);
-    align-items: start;
-    gap: 16px;
-    height: calc(100vh - 104px);
-    min-height: 620px;
-    padding: 22px 10px 38px;
+    grid-template-columns: minmax(360px, 0.88fr) minmax(0, 1.12fr);
+    align-items: stretch;
+    height: calc(100vh - 128px);
+    min-height: 650px;
+    max-height: 820px;
   }
 
   .iq-notice-panel,
   .iq-chat {
-    height: 100%;
     display: grid;
     min-height: 0;
   }
 
   .iq-notice-panel {
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
   }
 
   .iq-chat {
     grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   }
 
-  .iq-notices {
-    max-height: none;
-    min-height: 0;
-  }
-
+  .iq-notices,
   .iq-messages {
     max-height: none;
     min-height: 0;
@@ -588,11 +509,112 @@
 
 @media (min-width: 900px) and (max-width: 1100px) {
   .iq {
-    width: min(calc(100vw - 32px), 960px);
+    padding-inline: 14px;
   }
 
   .iq-body {
-    grid-template-columns: minmax(340px, 0.88fr) minmax(0, 1.12fr);
-    padding-inline: 8px;
+    grid-template-columns: minmax(320px, 0.84fr) minmax(0, 1.16fr);
+    gap: 14px;
+  }
+}
+
+@media (max-width: 899px) {
+  .iq {
+    max-width: 620px;
+    padding: 0 14px 24px;
+  }
+
+  .iq-head {
+    min-height: 72px;
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .iq-head button {
+    border-color: transparent;
+    background: transparent;
+    padding: 0;
+  }
+
+  .iq-body {
+    padding-top: 14px;
+  }
+
+  .iq-notices {
+    max-height: 340px;
+  }
+
+  .iq-messages {
+    min-height: 320px;
+    max-height: 480px;
+  }
+}
+
+@media (max-width: 520px) {
+  .iq {
+    padding-inline: 10px;
+  }
+
+  .iq-head {
+    min-height: 64px;
+  }
+
+  .iq-head h1 {
+    font-size: 22px;
+  }
+
+  .iq-head button {
+    font-size: 12px;
+  }
+
+  .iq-panel {
+    border-radius: 18px;
+    padding: 13px;
+  }
+
+  .iq-panel-title,
+  .iq-chat-head {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .iq-panel-title button,
+  .iq-chat-head button {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .iq-notices button {
+    grid-template-columns: 52px minmax(0, 1fr) 22px;
+    min-height: 70px;
+    padding: 10px;
+  }
+
+  .iq-chat-meta {
+    border-radius: 14px;
+    align-items: flex-start;
+  }
+
+  .iq-msg,
+  .iq-msg.is-me {
+    grid-template-columns: 36px minmax(0, 1fr) 38px;
+  }
+
+  .iq-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 9px;
+  }
+
+  .iq-msg p {
+    font-size: 13px;
+  }
+
+  .iq-input {
+    border-radius: 16px;
+    grid-template-columns: 26px minmax(0, 1fr);
+    padding: 9px;
+  }
+
+  .iq-input button {
+    grid-column: 1 / -1;
   }
 }

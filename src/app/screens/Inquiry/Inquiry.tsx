@@ -308,7 +308,6 @@ export default function Inquiry() {
                 ? "대화를 불러오는 중입니다."
                 : `전체 대화 ${messages.length}개`}
             </span>
-            <button type="button">히스토리</button>
           </div>
 
           {error && <p className="iq-error">{error}</p>}
