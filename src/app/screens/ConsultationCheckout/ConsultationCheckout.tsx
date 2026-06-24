@@ -191,7 +191,9 @@ export default function ConsultationCheckout() {
                     : ""}
                 </p>
               </div>
-              <span>{isPaid ? "결제완료" : "결제대기"}</span>
+              <span className={isPaid ? "is-paid" : "is-pending"}>
+                {isPaid ? "결제완료" : "결제대기"}
+              </span>
             </div>
 
             <dl className="checkout-info">

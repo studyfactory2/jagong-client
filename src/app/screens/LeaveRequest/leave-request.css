@@ -1,20 +1,14 @@
 .lv {
-  font-family: var(--sans);
-  color: var(--ink);
+  width: 100%;
   max-width: 560px;
   min-height: 100vh;
   margin: 0 auto;
-  background: var(--card);
-}
-
-@media (min-width: 481px) {
-  .lv {
-    margin: 18px auto;
-    min-height: auto;
-    border-radius: 24px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-  }
+  background:
+    radial-gradient(circle at 12% 8%, rgba(159, 206, 180, 0.12), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(244, 127, 114, 0.06), transparent 28%),
+    var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
 }
 
 .lv-head {
@@ -23,7 +17,7 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  border-bottom: 2px dotted var(--accent-line);
+  border-bottom: 1px solid rgba(20, 63, 86, 0.07);
 }
 
 .lv-head button {
@@ -32,7 +26,7 @@
   gap: 5px;
   color: var(--ink);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .lv-head svg {
@@ -42,189 +36,259 @@
 .lv-head h1 {
   margin: 0;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .lv-head span {
   justify-self: end;
-  border: 1px solid var(--gold);
+  border: 1px solid rgba(240, 210, 146, 0.92);
   border-radius: 999px;
   background: var(--gold-soft);
   padding: 8px 13px;
   font-size: 13px;
+  font-weight: 800;
 }
 
 .lv-body {
-  padding: 14px 18px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
 }
 
 .lv-guide,
 .lv-calendar,
 .lv-apply,
-.lv-list {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--card);
+.lv-list,
+.lv-info,
+.lv-error {
+  border: 1px solid rgba(20, 63, 86, 0.09);
+  border-radius: 22px;
+  background: rgba(255, 254, 250, 0.9);
+  box-shadow: 0 18px 44px rgba(20, 63, 86, 0.045);
 }
 
 .lv-guide {
-  padding: 14px;
+  padding: 18px;
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
 }
 
 .lv-guide > span {
-  font-size: 38px;
+  min-width: 58px;
+  min-height: 58px;
+  border-radius: 18px;
+  background: rgba(244, 127, 114, 0.12);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .lv-guide strong {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .lv-guide p {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.55;
 }
 
 .lv-calendar {
-  padding: 12px;
+  padding: 16px;
 }
 
 .lv-cal-head {
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
-  text-align: center;
+  grid-template-columns: 42px 1fr 42px;
   align-items: center;
-  font-size: 20px;
+  text-align: center;
 }
 
 .lv-cal-head button {
-  font-size: 24px;
-  font-weight: 700;
+  min-height: 40px;
+  border-radius: 14px;
+  background: rgba(237, 248, 243, 0.72);
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.lv-cal-head strong {
+  font-size: 21px;
+  font-weight: 900;
 }
 
 .lv-weekdays,
 .lv-days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   text-align: center;
 }
 
 .lv-weekdays {
-  margin-top: 10px;
-  font-size: 13px;
-  font-weight: 700;
+  margin-top: 14px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.lv-days {
+  gap: 4px;
+  margin-top: 8px;
 }
 
 .lv-days button {
-  min-height: 51px;
-  border-radius: 12px;
+  min-height: 52px;
+  border-radius: 16px;
+  color: var(--ink);
   font-size: 15px;
+  font-weight: 800;
   position: relative;
 }
 
+.lv-days button:hover {
+  background: rgba(237, 248, 243, 0.65);
+}
+
 .lv-days .is-picked {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #f7a89c);
   color: #fff;
+  box-shadow: 0 10px 22px rgba(244, 127, 114, 0.2);
 }
 
 .lv-days em {
   display: block;
   width: fit-content;
   margin: 4px auto 0;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(159, 206, 180, 0.64);
   border-radius: 999px;
   padding: 2px 7px;
   font-size: 10px;
   font-style: normal;
-  color: var(--ink);
-  background: var(--card);
-}
-
-.lv-info {
-  border-radius: 12px;
-  padding: 12px 14px;
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-.lv-info.is-yellow {
-  border: 1px solid var(--gold);
-  background: var(--gold-soft);
-}
-
-.lv-info.is-green {
-  border: 1px solid var(--mint-line);
+  color: var(--mint-deep);
   background: var(--mint-soft);
 }
 
+.lv-info {
+  padding: 13px 15px;
+  font-size: 13px;
+  line-height: 1.65;
+  box-shadow: none;
+}
+
+.lv-info.is-yellow {
+  border-color: rgba(240, 210, 146, 0.82);
+  background: rgba(255, 240, 213, 0.68);
+}
+
+.lv-info.is-green {
+  border-color: rgba(159, 206, 180, 0.5);
+  background: rgba(237, 248, 243, 0.78);
+}
+
 .lv-apply {
-  padding: 13px;
+  padding: 16px;
 }
 
 .lv-apply strong {
   display: block;
-  margin-bottom: 11px;
+  margin-bottom: 12px;
   font-size: 17px;
 }
 
 .lv-apply div {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
 }
 
 .lv-apply button {
-  min-height: 42px;
-  border: 1px solid var(--line);
+  min-height: 44px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 900;
 }
 
 .lv-apply .is-active {
-  border-color: var(--mint-line);
+  border-color: rgba(159, 206, 180, 0.72);
   background: var(--mint-soft);
 }
 
 .lv-submit {
-  background: var(--accent) !important;
-  color: #fff !important;
   border-color: var(--accent) !important;
+  background: linear-gradient(135deg, var(--accent), #df665b) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(244, 127, 114, 0.18);
+}
+
+.lv-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.lv-reason {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 10px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  padding: 0 13px;
+  font: inherit;
+  outline: none;
+}
+
+.lv-reason:focus {
+  border-color: rgba(244, 127, 114, 0.72);
+  box-shadow: 0 0 0 3px rgba(244, 127, 114, 0.1);
 }
 
 .lv-list {
-  padding: 12px;
-}
-
-.lv-list-head,
-.lv-list-row {
-  display: grid;
-  grid-template-columns: 32px 1fr 90px 72px;
-  align-items: center;
-  gap: 8px;
+  padding: 16px;
 }
 
 .lv-list-head {
-  grid-template-columns: 1fr auto;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.lv-list-head strong {
+  font-size: 17px;
 }
 
 .lv-list-head span {
   color: var(--muted);
   font-size: 12px;
+  font-weight: 800;
 }
 
 .lv-list-row {
-  min-height: 40px;
-  border-top: 1px solid var(--line-soft);
+  min-height: 54px;
+  border: 1px solid rgba(20, 63, 86, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.68);
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
   font-size: 13px;
+}
+
+.lv-list-row + .lv-list-row {
+  margin-top: 8px;
 }
 
 .lv-list-row svg {
@@ -232,16 +296,18 @@
 }
 
 .lv-list-row em {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(20, 63, 86, 0.08);
   border-radius: 999px;
-  padding: 5px 8px;
+  padding: 6px 10px;
   text-align: center;
   font-style: normal;
+  font-weight: 900;
 }
 
 .lv-list-row em.is-green {
-  border-color: var(--mint-line);
+  border-color: rgba(159, 206, 180, 0.64);
   background: var(--mint-soft);
+  color: var(--mint-deep);
 }
 
 .lv-list-row em.is-coral {
@@ -251,67 +317,28 @@
 }
 
 .lv-list-row button {
+  min-height: 32px;
   border: 1px solid var(--accent-line);
   border-radius: 999px;
   color: var(--accent-deep);
-  min-height: 30px;
-}
-
-.lv .app-foot {
-  display: none;
-}
-
-@media (max-width: 520px) {
-  .lv {
-    max-width: none;
-    margin: 0;
-    box-shadow: none;
-    border-radius: 0;
-  }
-
-  .lv-body {
-    padding: 12px;
-  }
-
-  .lv-apply div {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .lv-list-row {
-    grid-template-columns: 28px 1fr 78px 58px;
-    font-size: 12px;
-  }
-}
-
-/* real leave request fields */
-.lv-error,
-.lv-empty {
-  border: 1px solid var(--accent-line);
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-  padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.lv-reason {
-  width: 100%;
-  min-height: 42px;
-  margin-top: 10px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--card);
-  color: var(--ink);
-  padding: 0 12px;
-  font: inherit;
+  padding: 0 11px;
+  font-weight: 900;
 }
 
 .lv-list-row button:disabled {
-  opacity: 0.5;
+  opacity: 0.48;
 }
 
-/* membership lock callout */
+.lv-error,
+.lv-empty {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .lv-error {
   display: flex;
   align-items: center;
@@ -321,30 +348,24 @@
 
 .lv-error button {
   min-height: 34px;
-  border: 1px solid var(--accent);
   border-radius: 999px;
   background: var(--accent);
-  color: #ffffff;
+  color: #fff;
   padding: 0 12px;
   font-size: 12px;
   font-weight: 900;
   white-space: nowrap;
 }
 
-.lv-submit:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.lv .app-foot {
+  display: none;
 }
 
-/* final desktop/tablet organization: leave */
 @media (min-width: 900px) {
   .lv {
     width: min(calc(100vw - 56px), 1080px);
     max-width: none;
     margin: 0 auto;
-    background:
-      radial-gradient(circle at 20% 12%, rgba(159, 206, 180, 0.08), transparent 28%),
-      var(--paper);
   }
 
   .lv-head {
@@ -354,8 +375,7 @@
   }
 
   .lv-body {
-    display: grid;
-    grid-template-columns: minmax(420px, 1fr) minmax(360px, 0.82fr);
+    grid-template-columns: minmax(420px, 1.05fr) minmax(360px, 0.9fr);
     grid-template-areas:
       "guide guide"
       "calendar notice"
@@ -363,26 +383,18 @@
       "calendar special"
       "calendar list"
       ". final";
-    gap: 14px 16px;
+    align-items: start;
+    gap: 16px;
     padding: 22px 10px 38px;
   }
 
   .lv-guide {
     grid-area: guide;
-    padding: 18px 20px;
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .lv-guide > span {
-    min-width: 74px;
-    font-size: 18px;
-    line-height: 1;
-    letter-spacing: 0;
   }
 
   .lv-calendar {
     grid-area: calendar;
-    padding: 16px;
+    padding: 20px;
   }
 
   .lv-body > .lv-info:nth-of-type(1) {
@@ -399,16 +411,14 @@
 
   .lv-apply {
     grid-area: apply;
-    padding: 16px;
   }
 
   .lv-list {
     grid-area: list;
-    padding: 16px;
   }
 
   .lv-days button {
-    min-height: 56px;
+    min-height: 58px;
   }
 }
 
@@ -420,5 +430,43 @@
   .lv-body {
     grid-template-columns: minmax(360px, 0.95fr) minmax(330px, 0.9fr);
     padding-inline: 8px;
+  }
+}
+
+@media (max-width: 620px) {
+  .lv {
+    max-width: none;
+  }
+
+  .lv-body {
+    padding: 12px;
+  }
+
+  .lv-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .lv-guide > span {
+    min-width: 0;
+    width: fit-content;
+    min-height: 38px;
+    padding: 0 14px;
+  }
+
+  .lv-apply div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lv-submit {
+    grid-column: 1 / -1;
+  }
+
+  .lv-list-row {
+    grid-template-columns: 28px 1fr auto;
+  }
+
+  .lv-list-row button {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 }
