@@ -20,6 +20,7 @@ type ProfileForm = {
   examType: string;
   prepDuration: string;
   password: string;
+  passwordConfirm: string;
 };
 
 function fromUser(user?: AuthUser | null): ProfileForm {
@@ -30,6 +31,7 @@ function fromUser(user?: AuthUser | null): ProfileForm {
     examType: user?.examType ?? "",
     prepDuration: user?.prepDuration ?? "",
     password: "",
+    passwordConfirm: "",
   };
 }
 
@@ -47,6 +49,7 @@ export default function MyPage() {
       setForm((current) => ({
         ...fromUser(session?.user),
         password: current.password,
+        passwordConfirm: current.passwordConfirm,
       }));
     }, 0);
     return () => window.clearTimeout(timer);
@@ -54,6 +57,16 @@ export default function MyPage() {
 
   /** DERIVED **/
   const passwordInvalid = form.password.length > 0 && form.password.length !== 4;
+  const passwordMismatch =
+    form.password.length === 4 &&
+    form.passwordConfirm.length > 0 &&
+    form.password !== form.passwordConfirm;
+  const canSave =
+    !saving &&
+    !!form.name.trim() &&
+    !passwordInvalid &&
+    !passwordMismatch &&
+    (form.password.length === 0 || form.passwordConfirm.length === 4);
   const membershipText = session?.user.membershipEnd
     ? new Intl.DateTimeFormat("ko-KR", {
         year: "numeric",
@@ -68,7 +81,7 @@ export default function MyPage() {
   }
 
   async function save() {
-    if (!form.name.trim() || passwordInvalid || saving) return;
+    if (!canSave) return;
     setSaving(true);
     setError("");
     setMessage("");
@@ -82,7 +95,7 @@ export default function MyPage() {
         password: form.password.length === 4 ? form.password : undefined,
       });
       refreshUser(updated);
-      setForm({ ...fromUser(updated), password: "" });
+      setForm({ ...fromUser(updated), password: "", passwordConfirm: "" });
       setMessage("내 정보가 저장되었습니다.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "내 정보를 저장하지 못했습니다.");
@@ -99,7 +112,7 @@ export default function MyPage() {
           <ArrowBackIcon /> 대기장
         </button>
         <h1>내 정보</h1>
-        <button onClick={save} disabled={saving || !form.name.trim() || passwordInvalid} type="button">
+        <button onClick={save} disabled={!canSave} type="button">
           {saving ? "저장중" : "저장"}
         </button>
       </header>
@@ -152,6 +165,23 @@ export default function MyPage() {
                 placeholder="변경할 때만 입력"
               />
               {passwordInvalid && <em>비밀번호는 4자리로 입력해주세요.</em>}
+            </label>
+            <label>
+              <span><LockOutlinedIcon /> 새 비밀번호 확인</span>
+              <input
+                inputMode="numeric"
+                maxLength={4}
+                value={form.passwordConfirm}
+                onChange={(event) =>
+                  update("passwordConfirm", event.target.value.replace(/\D/g, ""))
+                }
+                placeholder="한 번 더 입력"
+                disabled={form.password.length === 0}
+              />
+              {passwordMismatch && <em>비밀번호가 서로 다릅니다.</em>}
+              {form.password.length > 0 && form.passwordConfirm.length === 0 && (
+                <em>비밀번호 변경을 위해 한 번 더 입력해주세요.</em>
+              )}
             </label>
           </div>
         </section>

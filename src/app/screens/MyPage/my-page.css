@@ -3,7 +3,7 @@
   max-width: 560px;
   min-height: 100vh;
   margin: 0 auto;
-  background: var(--card);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
 }
@@ -20,7 +20,7 @@
 
 .mp-head {
   min-height: 76px;
-  border-bottom: 2px dotted var(--accent-line);
+  border-bottom: 1px solid rgba(20, 63, 86, 0.08);
   display: grid;
   grid-template-columns: 94px 1fr 94px;
   align-items: center;
@@ -40,9 +40,10 @@
 
 .mp-head button:last-child {
   justify-self: end;
-  border: 1px solid var(--ink);
+  border: 1px solid rgba(20, 63, 86, 0.22);
   border-radius: 999px;
   padding: 0 14px;
+  background: var(--card);
 }
 
 .mp-head button:disabled {
@@ -58,17 +59,18 @@
 }
 
 .mp-body {
-  padding: 14px 18px 24px;
+  padding: 18px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .mp-hero,
 .mp-card {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 20px;
   background: var(--card);
-  padding: 14px;
+  box-shadow: 0 18px 48px rgba(20, 63, 86, 0.05);
+  padding: 16px;
 }
 
 .mp-hero {
@@ -76,6 +78,9 @@
   grid-template-columns: 54px 1fr;
   align-items: center;
   gap: 12px;
+  background:
+    linear-gradient(135deg, rgba(237, 248, 243, 0.9), rgba(255, 254, 250, 0.94)),
+    var(--card);
 }
 
 .mp-hero svg {
@@ -125,12 +130,27 @@
 .mp-grid input {
   width: 100%;
   min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 14px;
   background: var(--card);
   color: var(--ink);
   padding: 0 12px;
   outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.mp-grid input:focus {
+  border-color: rgba(244, 127, 114, 0.72);
+  box-shadow: 0 0 0 3px rgba(244, 127, 114, 0.12);
+}
+
+.mp-grid input:disabled {
+  background: rgba(237, 248, 243, 0.48);
+  color: rgba(20, 63, 86, 0.42);
+  cursor: not-allowed;
 }
 
 .mp-grid em {
@@ -160,6 +180,11 @@
   gap: 6px;
 }
 
+.mp-note p {
+  margin: 0;
+  line-height: 1.7;
+}
+
 @media (min-width: 900px) {
   .mp {
     width: min(calc(100vw - 56px), 1040px);
@@ -169,7 +194,8 @@
     border-radius: 0;
     box-shadow: none;
     background:
-      radial-gradient(circle at 18% 12%, rgba(159, 206, 180, 0.08), transparent 28%),
+      radial-gradient(circle at 18% 12%, rgba(159, 206, 180, 0.1), transparent 28%),
+      radial-gradient(circle at 92% 10%, rgba(244, 127, 114, 0.06), transparent 30%),
       var(--paper);
   }
 
@@ -185,22 +211,19 @@
       "hero form"
       "note form";
     align-items: start;
-    gap: 14px 16px;
+    gap: 18px;
     padding: 22px 10px 38px;
   }
 
   .mp-hero {
     grid-area: hero;
-    min-height: 110px;
-    padding: 18px;
-    background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(237, 248, 243, 0.78)),
-      var(--card);
+    min-height: 116px;
+    padding: 22px;
   }
 
   .mp-card:not(.mp-note) {
     grid-area: form;
-    padding: 18px;
+    padding: 22px;
   }
 
   .mp-alert {
@@ -209,12 +232,12 @@
 
   .mp-note {
     grid-area: note;
-    padding: 18px;
+    padding: 22px;
   }
 
   .mp-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
   }
 
   .mp-grid input {
