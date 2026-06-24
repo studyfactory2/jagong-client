@@ -143,7 +143,7 @@ export type ConsultationTypeName = "PHONE" | "VIDEO" | "QUESTION" | "IMMEDIATE" 
 export type LeaveTypeName = "FULL" | "MORNING" | "AFTERNOON";
 export type LeaveStatusName = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 export type SpecialLeaveTypeName = "OUTING" | "MOCK_EXAM" | "STUDY";
-export type DayOfWeekName = "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+export type DayOfWeekName = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
 
 export interface AdminUser extends AuthUser {
   id: string;

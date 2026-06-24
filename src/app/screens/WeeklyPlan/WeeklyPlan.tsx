@@ -15,13 +15,13 @@ import type { DayOfWeekName, WeeklyPlanTaskRecord } from "../../../lib/types";
 import "./weekly-plan.css";
 
 const DAYS: Array<{ key: DayOfWeekName; label: string }> = [
-  { key: "MONDAY", label: "월" },
-  { key: "TUESDAY", label: "화" },
-  { key: "WEDNESDAY", label: "수" },
-  { key: "THURSDAY", label: "목" },
-  { key: "FRIDAY", label: "금" },
-  { key: "SATURDAY", label: "토" },
-  { key: "SUNDAY", label: "일" },
+  { key: "MON", label: "월" },
+  { key: "TUE", label: "화" },
+  { key: "WED", label: "수" },
+  { key: "THU", label: "목" },
+  { key: "FRI", label: "금" },
+  { key: "SAT", label: "토" },
+  { key: "SUN", label: "일" },
 ];
 
 const PERIODS = [
@@ -108,18 +108,30 @@ function screenError(err: unknown, fallback: string) {
 export default function WeeklyPlan() {
   const navigate = useNavigate();
   const [boardMode, setBoardMode] = useState(false);
-  const [weekStart, setWeekStart] = useState(() => dateKey(startOfWeek(new Date())));
+  const [weekStart, setWeekStart] = useState(() =>
+    dateKey(startOfWeek(new Date())),
+  );
   const [goal, setGoal] = useState("");
   const [memo, setMemo] = useState("");
   const [tasks, setTasks] = useState<DraftMap>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [saveState, setSaveState] = useState<"idle" | "dirty" | "saved">(
+    "idle",
+  );
 
-  const weekStartDate = useMemo(() => new Date(weekStart + "T00:00:00"), [weekStart]);
+  const weekStartDate = useMemo(
+    () => new Date(weekStart + "T00:00:00"),
+    [weekStart],
+  );
   const weekEndDate = useMemo(() => addDays(weekStartDate, 6), [weekStartDate]);
   const weekDays = useMemo(
-    () => DAYS.map((day, index) => ({ ...day, date: addDays(weekStartDate, index) })),
+    () =>
+      DAYS.map((day, index) => ({
+        ...day,
+        date: addDays(weekStartDate, index),
+      })),
     [weekStartDate],
   );
   const month = monthKey(weekStartDate);
@@ -142,6 +154,7 @@ export default function WeeklyPlan() {
         setGoal(goalData?.goal ?? "");
         setMemo(weekData?.memo ?? "");
         setTasks(toDraft(weekData?.tasks ?? []));
+        setSaveState("idle");
       } catch (err) {
         if (!alive) return;
         setError(screenError(err, "주간계획을 불러오지 못했습니다."));
@@ -160,17 +173,29 @@ export default function WeeklyPlan() {
     setWeekStart(dateKey(addDays(weekStartDate, delta * 7)));
   }
 
-  function updateTask(dayOfWeek: DayOfWeekName, slot: number, index: number, value: string) {
+  function updateTask(
+    dayOfWeek: DayOfWeekName,
+    slot: number,
+    index: number,
+    value: string,
+  ) {
     const key = taskKey(dayOfWeek, slot);
+    setSaveState("dirty");
     setTasks((current) => {
-      const next = current[key] ? [...current[key]] : [emptyTask(dayOfWeek, slot)];
-      next[index] = { ...(next[index] ?? emptyTask(dayOfWeek, slot)), title: value };
+      const next = current[key]
+        ? [...current[key]]
+        : [emptyTask(dayOfWeek, slot)];
+      next[index] = {
+        ...(next[index] ?? emptyTask(dayOfWeek, slot)),
+        title: value,
+      };
       return { ...current, [key]: next };
     });
   }
 
   function toggleTask(dayOfWeek: DayOfWeekName, slot: number, index: number) {
     const key = taskKey(dayOfWeek, slot);
+    setSaveState("dirty");
     setTasks((current) => {
       const next = current[key] ? [...current[key]] : [];
       const task = next[index];
@@ -182,6 +207,7 @@ export default function WeeklyPlan() {
 
   function addTask(dayOfWeek: DayOfWeekName, slot: number) {
     const key = taskKey(dayOfWeek, slot);
+    setSaveState("dirty");
     setTasks((current) => ({
       ...current,
       [key]: [...(current[key] ?? []), emptyTask(dayOfWeek, slot)],
@@ -211,6 +237,7 @@ export default function WeeklyPlan() {
             })),
         ),
       });
+      setSaveState("saved");
     } catch (err) {
       setError(screenError(err, "주간계획을 저장하지 못했습니다."));
     } finally {
@@ -225,7 +252,11 @@ export default function WeeklyPlan() {
           <ArrowBackIcon /> 대기장
         </button>
         <h1>{boardMode ? "주간학습장" : "나의 주간 작업계획"}</h1>
-        <button className="wp-save" onClick={() => setBoardMode((value) => !value)} type="button">
+        <button
+          className="wp-save"
+          onClick={() => setBoardMode((value) => !value)}
+          type="button"
+        >
           {boardMode ? <SaveOutlinedIcon /> : <EditNoteOutlinedIcon />}
           {boardMode ? "계획보기" : "학습장 →"}
         </button>
@@ -254,12 +285,18 @@ export default function WeeklyPlan() {
 
           <section className="wp-calendar">
             <div className="wp-cal-head">
-              <button onClick={() => moveWeek(-1)} type="button">{"<"}</button>
+              <button onClick={() => moveWeek(-1)} type="button">
+                {"<"}
+              </button>
               <strong>{month.replace("-", "년 ")}월</strong>
-              <button onClick={() => moveWeek(1)} type="button">{">"}</button>
+              <button onClick={() => moveWeek(1)} type="button">
+                {">"}
+              </button>
             </div>
             <div className="wp-weekdays">
-              {weekDays.map((day) => <span key={day.key}>{day.label}</span>)}
+              {weekDays.map((day) => (
+                <span key={day.key}>{day.label}</span>
+              ))}
             </div>
             <div className="wp-days">
               {weekDays.map((day) => (
@@ -280,7 +317,10 @@ export default function WeeklyPlan() {
             </label>
             <input
               value={goal}
-              onChange={(event) => setGoal(event.target.value)}
+              onChange={(event) => {
+                setGoal(event.target.value);
+                setSaveState("dirty");
+              }}
               placeholder="예) 재무회계 2회독 + 기출 300문제 완료"
             />
           </section>
@@ -292,23 +332,31 @@ export default function WeeklyPlan() {
             </label>
             <input
               value={memo}
-              onChange={(event) => setMemo(event.target.value)}
+              onChange={(event) => {
+                setMemo(event.target.value);
+                setSaveState("dirty");
+              }}
               placeholder="예) 오전에는 기출, 오후에는 오답 정리"
             />
           </section>
 
           <section className="wp-actions">
-            <button className="wp-week-select" type="button">
-              {weekStart} - {dateKey(weekEndDate)}
-            </button>
             <button
               className="wp-main-action"
-              disabled={membershipLocked}
-              onClick={() => setBoardMode(true)}
+              disabled={saving || membershipLocked}
+              onClick={save}
               type="button"
             >
-              <EditNoteOutlinedIcon /> 주간학습장 작성하기 →
+              <SaveOutlinedIcon />
+              {saving ? "저장중" : "이번 주 계획 저장하기"}
             </button>
+            <p className={`wp-save-state is-${saveState}`}>
+              {saveState === "dirty"
+                ? "저장되지 않은 변경사항이 있어요."
+                : saveState === "saved"
+                  ? "저장 완료"
+                  : "목표와 메모는 저장 후 다시 열어도 유지됩니다."}
+            </p>
           </section>
 
           <section className="wp-stats">
@@ -326,7 +374,10 @@ export default function WeeklyPlan() {
             <span>안내</span>
             <div>
               <strong>{loading ? "불러오는 중" : "주간학습장 사용법"}</strong>
-              <p>각 교시 칸에 할 일을 여러 개 적고 저장하면 관리자도 확인할 수 있어요.</p>
+              <p>
+                각 교시 칸에 할 일을 여러 개 적고 저장하면 관리자도 확인할 수
+                있어요.
+              </p>
             </div>
           </section>
         </main>
@@ -338,14 +389,18 @@ export default function WeeklyPlan() {
               <strong>{month} 목표 작업량</strong>
               <p>{goal || "이번 달 목표를 먼저 작성해 주세요."}</p>
             </div>
-            <button onClick={save} disabled={saving || membershipLocked} type="button">
+            <button
+              onClick={save}
+              disabled={saving || membershipLocked}
+              type="button"
+            >
               {saving ? "저장중" : "저장"}
             </button>
           </section>
 
           <div className="wp-board-note">
-            <MenuBookOutlinedIcon />
-            각 칸은 여러 줄 할 일을 작성하고 체크박스로 완료 표시합니다.
+            <MenuBookOutlinedIcon />각 칸은 여러 줄 할 일을 작성하고 체크박스로
+            완료 표시합니다.
           </div>
 
           <section className="wp-table">
@@ -354,7 +409,9 @@ export default function WeeklyPlan() {
               {weekDays.map((day) => (
                 <b key={day.key}>
                   {day.label}
-                  <small>{day.date.getMonth() + 1}/{day.date.getDate()}</small>
+                  <small>
+                    {day.date.getMonth() + 1}/{day.date.getDate()}
+                  </small>
                 </b>
               ))}
             </div>
@@ -372,22 +429,40 @@ export default function WeeklyPlan() {
                   </div>
                   {weekDays.map((day) => {
                     const key = taskKey(day.key, period.slot);
-                    const cellTasks = tasks[key]?.length ? tasks[key] : [emptyTask(day.key, period.slot)];
+                    const cellTasks = tasks[key]?.length
+                      ? tasks[key]
+                      : [emptyTask(day.key, period.slot)];
                     return (
                       <div className="wp-cell" key={key}>
                         {cellTasks.map((task, index) => (
                           <div className="wp-cell-task" key={index}>
-                            <button onClick={() => toggleTask(day.key, period.slot, index)} type="button">
+                            <button
+                              onClick={() =>
+                                toggleTask(day.key, period.slot, index)
+                              }
+                              type="button"
+                            >
                               {task.isDone ? "✓" : ""}
                             </button>
                             <input
                               value={task.title}
-                              onChange={(event) => updateTask(day.key, period.slot, index, event.target.value)}
+                              onChange={(event) =>
+                                updateTask(
+                                  day.key,
+                                  period.slot,
+                                  index,
+                                  event.target.value,
+                                )
+                              }
                               placeholder="+ 할 일"
                             />
                           </div>
                         ))}
-                        <button className="wp-add-task" onClick={() => addTask(day.key, period.slot)} type="button">
+                        <button
+                          className="wp-add-task"
+                          onClick={() => addTask(day.key, period.slot)}
+                          type="button"
+                        >
                           + 추가
                         </button>
                       </div>
@@ -399,9 +474,18 @@ export default function WeeklyPlan() {
           </section>
 
           <section className="wp-board-actions">
-            <button onClick={() => moveWeek(-1)} type="button">지난주</button>
-            <button onClick={() => moveWeek(1)} type="button">다음주</button>
-            <button className="is-save" onClick={save} disabled={saving || membershipLocked} type="button">
+            <button onClick={() => moveWeek(-1)} type="button">
+              지난주
+            </button>
+            <button onClick={() => moveWeek(1)} type="button">
+              다음주
+            </button>
+            <button
+              className="is-save"
+              onClick={save}
+              disabled={saving || membershipLocked}
+              type="button"
+            >
               이번 주 계획 저장하기
             </button>
           </section>
