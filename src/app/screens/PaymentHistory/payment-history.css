@@ -32,6 +32,7 @@
   grid-template-columns: minmax(96px, 1fr) auto minmax(44px, 1fr);
   align-items: center;
   gap: 8px;
+  border-bottom: 1px dashed rgba(244, 134, 120, 0.25);
 }
 
 .pay-head button {
@@ -47,9 +48,11 @@
 
 .pay-head button:first-child {
   justify-self: start;
-  border: 1px solid transparent;
+  border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 999px;
-  padding: 0 8px 0 0;
+  background: rgba(255, 254, 250, 0.74);
+  padding: 0 12px 0 8px;
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.035);
 }
 
 .pay-head > span[aria-hidden="true"] {
@@ -105,9 +108,9 @@
 .pay-alert,
 .pay-history {
   border: 1px solid rgba(20, 63, 86, 0.1);
-  border-radius: 16px;
+  border-radius: 18px;
   background: rgba(255, 254, 250, 0.92);
-  box-shadow: 0 10px 28px rgba(20, 63, 86, 0.045);
+  box-shadow: 0 14px 34px rgba(20, 63, 86, 0.05);
 }
 
 .pay-ticket {
@@ -307,12 +310,15 @@
 }
 
 .pay-fees > div button {
-  border: 1px solid var(--mint-line);
-  border-radius: 12px;
-  background: #fffefa;
+  border: 1px solid rgba(159, 206, 180, 0.5);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.96), rgba(255, 254, 250, 0.82)),
+    var(--card);
   padding: 13px;
   text-align: left;
   color: var(--ink);
+  box-shadow: 0 8px 20px rgba(20, 63, 86, 0.035);
   transition:
     border-color 0.16s ease,
     background-color 0.16s ease,
@@ -342,7 +348,10 @@
 
 .pay-fees .is-active {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 244, 0.98), rgba(255, 227, 223, 0.45)),
+    var(--accent-soft);
+  box-shadow: 0 12px 26px rgba(244, 127, 114, 0.12);
 }
 
 .pay-fees .is-active span {
@@ -358,14 +367,22 @@
 .pay-extend {
   width: 100%;
   min-height: 50px;
-  border-radius: 12px;
-  background: var(--accent);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #df665b);
   color: #fff;
   margin-top: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  border: 1px solid var(--accent);
-  box-shadow: 0 8px 18px rgba(244, 134, 120, 0.2);
+  font-size: 17px;
+  font-weight: 900;
+  border: 0;
+  box-shadow: 0 14px 28px rgba(244, 127, 114, 0.24);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.pay-extend:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 32px rgba(244, 127, 114, 0.28);
 }
 
 .pay-extend:disabled {
@@ -405,10 +422,10 @@
 
 .pay-row button {
   min-height: 30px;
-  border: 1px solid rgba(20, 63, 86, 0.4);
+  border: 1px solid rgba(20, 63, 86, 0.22);
   border-radius: 999px;
   font-weight: 700;
-  background: #fff;
+  background: rgba(255, 254, 250, 0.9);
   color: var(--ink);
 }
 
@@ -418,9 +435,10 @@
 
 .pay-row a {
   min-height: 30px;
-  border: 1px solid rgba(20, 63, 86, 0.4);
+  border: 1px solid rgba(20, 63, 86, 0.22);
   border-radius: 999px;
   color: var(--ink);
+  background: rgba(255, 254, 250, 0.9);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -606,9 +624,9 @@
 @media (min-width: 900px) {
   .pay-fees {
     border: 1px solid rgba(20, 63, 86, 0.1);
-    border-radius: 16px;
+    border-radius: 18px;
     background: rgba(255, 254, 250, 0.92);
-    box-shadow: 0 10px 28px rgba(20, 63, 86, 0.045);
+    box-shadow: 0 14px 34px rgba(20, 63, 86, 0.05);
     padding: 18px;
   }
 
@@ -619,5 +637,643 @@
 
   .pay-row {
     min-height: 48px;
+  }
+}
+
+/* reference-style payment layout */
+.pay-ticket {
+  display: block;
+  min-height: 220px;
+  border: 0;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 14%, rgba(159, 206, 180, 0.18), transparent 25%),
+    linear-gradient(135deg, #143f56, #174f5e 54%, #103547);
+  color: #ffffff;
+  padding: 24px 26px;
+  box-shadow: 0 24px 48px rgba(20, 63, 86, 0.18);
+}
+
+.pay-ticket-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pay-ticket-top span {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pay-ticket-top em {
+  border-radius: 999px;
+  background: rgba(159, 206, 180, 0.22);
+  color: #dff3e9;
+  padding: 7px 13px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.pay-ticket-top em.is-future {
+  background: rgba(240, 210, 146, 0.22);
+  color: #fff0d5;
+}
+
+.pay-ticket-top em.is-expired,
+.pay-ticket-top em.is-none {
+  background: rgba(244, 127, 114, 0.22);
+  color: #ffe3df;
+}
+
+.pay-ticket-dday {
+  display: inline-block;
+  margin-top: 28px;
+  font-size: clamp(44px, 8vw, 64px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.pay-ticket > p {
+  display: inline-block;
+  margin: 0 0 0 10px;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+}
+
+.pay-ticket dl {
+  display: flex;
+  gap: 22px;
+  margin: 28px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.pay-ticket dl div {
+  min-width: 0;
+}
+
+.pay-ticket dt {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pay-ticket dd {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.pay-ticket small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+}
+
+.pay-fees {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pay-fees h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.pay-fees > div {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.pay-fees > div button {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 254, 250, 0.92);
+  padding: 14px 18px;
+  box-shadow: 0 10px 24px rgba(20, 63, 86, 0.04);
+}
+
+.pay-fees > div button i {
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(20, 63, 86, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.86);
+}
+
+.pay-fees > div button span {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.pay-fees > div button span strong {
+  display: block;
+  font-size: 17px;
+}
+
+.pay-fees > div button span small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pay-fees > div button b {
+  text-align: right;
+  font-size: 20px;
+}
+
+.pay-fees > div button b small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pay-fees .is-active {
+  border-color: rgba(20, 63, 86, 0.75);
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.98), rgba(237, 248, 243, 0.7)),
+    var(--card);
+  box-shadow: 0 12px 30px rgba(20, 63, 86, 0.08);
+}
+
+.pay-fees .is-active i {
+  border-color: var(--ink);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 6px var(--ink);
+}
+
+.pay-fee-note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pay-summary {
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 22px;
+  background: rgba(255, 254, 250, 0.94);
+  padding: 20px;
+  box-shadow: 0 18px 44px rgba(20, 63, 86, 0.07);
+}
+
+.pay-summary > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 16px;
+}
+
+.pay-summary > div + div {
+  border-top: 1px solid rgba(20, 63, 86, 0.08);
+  padding-top: 16px;
+}
+
+.pay-summary span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pay-summary strong {
+  font-size: 22px;
+  text-align: right;
+}
+
+.pay-summary small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.pay-summary p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.pay-alert {
+  min-height: 66px;
+  border: 0;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(251, 242, 218, 0.74), rgba(255, 254, 250, 0.9)),
+    var(--gold-soft);
+  box-shadow: 0 12px 28px rgba(20, 63, 86, 0.04);
+}
+
+.pay-history {
+  padding: 18px;
+}
+
+.pay-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.pay-history-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pay-history-head h2 {
+  margin: 3px 0 0;
+}
+
+.pay-history-toggle {
+  min-height: 34px;
+  border: 1px solid rgba(20, 63, 86, 0.14) !important;
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.9) !important;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pay-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pay-history-list.is-open {
+  max-height: 340px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.pay-row {
+  min-height: 66px;
+  border: 1px solid rgba(20, 63, 86, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 254, 250, 0.72);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px 28px 118px;
+  padding: 10px 12px;
+}
+
+.pay-row > div strong {
+  display: block;
+  font-size: 14px;
+}
+
+.pay-row > div span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pay-row em {
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+  border-color: rgba(159, 206, 180, 0.55);
+  font-weight: 900;
+}
+
+.pay-row svg {
+  color: var(--ink);
+}
+
+.pay-history-more {
+  margin: 10px 0 0 !important;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (min-width: 900px) and (max-width: 1099px) {
+  .pay {
+    width: min(calc(100vw - 40px), 820px);
+  }
+
+  .pay-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-inline: 0;
+  }
+}
+
+/* final visual correction after the reference layout */
+.pay {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(159, 206, 180, 0.1), transparent 28%),
+    radial-gradient(circle at 86% 10%, rgba(244, 134, 120, 0.08), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+
+.pay-ticket {
+  min-height: 204px;
+  background:
+    radial-gradient(circle at 86% 13%, rgba(223, 243, 233, 0.22), transparent 24%),
+    linear-gradient(135deg, #2f7580 0%, #2c6f7c 52%, #245d6b 100%);
+  box-shadow: 0 22px 46px rgba(20, 63, 86, 0.13);
+}
+
+.pay-ticket .pay-ticket-top > span {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.76);
+  padding: 0;
+}
+
+.pay-ticket .pay-ticket-top > em {
+  background: rgba(223, 243, 233, 0.18);
+  color: #eefbf7;
+}
+
+.pay-ticket-dday {
+  color: #f7fffc;
+  font-size: clamp(38px, 5vw, 54px);
+}
+
+.pay-ticket > p,
+.pay-ticket small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.pay-ticket dl {
+  margin-top: 24px;
+}
+
+.pay-fees > div button.is-active {
+  border-color: rgba(244, 127, 114, 0.76);
+  background:
+    linear-gradient(90deg, rgba(255, 247, 244, 0.98), rgba(255, 254, 250, 0.94)),
+    var(--card);
+  box-shadow: 0 14px 30px rgba(244, 127, 114, 0.12);
+}
+
+.pay-fees > div button.is-active i {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 5px #fff;
+}
+
+.pay-fees > div button.is-active span {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+}
+
+.pay-fees > div button.is-active span strong {
+  color: var(--ink);
+}
+
+.pay-fees > div button.is-active b {
+  color: var(--ink);
+}
+
+.pay-summary {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.98), rgba(255, 250, 247, 0.96)),
+    var(--card);
+}
+
+.pay-summary .pay-extend {
+  margin-top: 16px;
+}
+
+.pay-alert {
+  background:
+    linear-gradient(135deg, rgba(237, 248, 243, 0.82), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+}
+
+.pay-history {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.98), rgba(255, 254, 250, 0.9)),
+    var(--card);
+}
+
+.pay-history-list {
+  max-height: 250px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.pay-row {
+  border-top: 0;
+  border-color: rgba(20, 63, 86, 0.075);
+  background: rgba(255, 254, 250, 0.9);
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.025);
+}
+
+.pay-row + .pay-row {
+  margin-top: 0;
+}
+
+@media (min-width: 1100px) {
+  .pay-body {
+    grid-template-columns: minmax(560px, 1fr) minmax(360px, 430px);
+    grid-template-areas:
+      "error error"
+      "pending pending"
+      "ticket summary"
+      "fees history"
+      "alert history";
+    gap: 18px 28px;
+  }
+
+  .pay-history {
+    align-self: start;
+  }
+
+  .pay-alert {
+    align-self: start;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1099px) {
+  .pay {
+    width: min(calc(100vw - 40px), 860px);
+  }
+
+  .pay-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    padding-inline: 0;
+  }
+
+  .pay-body > * {
+    width: 100%;
+  }
+
+  .pay-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .pay-ticket-dday {
+    display: block;
+    margin-top: 24px;
+  }
+
+  .pay-ticket > p {
+    margin: 8px 0 0;
+  }
+
+  .pay-history-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pay-history {
+    padding: 16px;
+  }
+
+  .pay-history-head {
+    align-items: flex-start;
+  }
+
+  .pay-row {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 12px;
+    padding: 14px;
+  }
+
+  .pay-row > div {
+    grid-column: 1 / -1;
+  }
+
+  .pay-row > div strong {
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .pay-row > div span {
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  .pay-row em {
+    grid-column: 1;
+    justify-self: start;
+    align-self: center;
+    min-width: 82px;
+    padding: 7px 12px;
+  }
+
+  .pay-row svg {
+    display: none;
+  }
+
+  .pay-row a,
+  .pay-row button {
+    grid-column: 2;
+    justify-self: end;
+    align-self: center;
+    min-width: 104px;
+    min-height: 36px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pay-body {
+    grid-template-columns: minmax(520px, 1fr) minmax(360px, 430px);
+    grid-template-areas:
+      "error error"
+      "pending pending"
+      "ticket summary"
+      "fees history"
+      "alert history";
+    gap: 18px 28px;
+  }
+
+  .pay-status {
+    grid-area: error;
+  }
+
+  .pay-ticket {
+    grid-area: ticket;
+  }
+
+  .pay-fees {
+    grid-area: fees;
+  }
+
+  .pay-summary {
+    grid-area: summary;
+    position: sticky;
+    top: 18px;
+  }
+
+  .pay-alert {
+    grid-area: alert;
+  }
+
+  .pay-history {
+    grid-area: history;
+  }
+}
+
+@media (max-width: 640px) {
+  .pay-ticket {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .pay-ticket dl {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pay-fees > div button,
+  .pay-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+  }
+
+  .pay-fees > div button b {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .pay-row em,
+  .pay-row svg,
+  .pay-row a,
+  .pay-row button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .pay-summary > div {
+    display: grid;
+  }
+
+  .pay-summary strong,
+  .pay-summary small {
+    text-align: left;
   }
 }

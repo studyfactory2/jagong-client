@@ -1,6 +1,9 @@
 .pay-result {
   min-height: 100vh;
-  background: var(--paper);
+  background:
+    radial-gradient(circle at 22% 18%, rgba(159, 206, 180, 0.12), transparent 28%),
+    radial-gradient(circle at 84% 12%, rgba(244, 134, 120, 0.08), transparent 26%),
+    var(--paper);
   color: var(--ink);
   font-family: var(--sans);
   display: grid;
@@ -10,21 +13,28 @@
 
 .pay-result section {
   width: min(420px, 100%);
-  border: 1px solid var(--ink);
-  border-radius: 18px;
-  background: var(--card);
-  padding: 28px 22px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.96), rgba(255, 254, 250, 0.88)),
+    var(--card);
+  padding: 32px 24px;
   text-align: center;
-  box-shadow: var(--shadow);
+  box-shadow: 0 24px 60px rgba(20, 63, 86, 0.08);
 }
 
 .pay-result svg {
   color: var(--mint-deep);
   font-size: 56px;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  padding: 10px;
+  box-sizing: content-box;
 }
 
 .pay-result svg.is-failed {
   color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .pay-result h1 {
@@ -42,8 +52,10 @@
   width: 100%;
   min-height: 48px;
   margin-top: 22px;
-  border-radius: 12px;
-  background: var(--ink);
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--ink), #0d2f43);
   color: #fff;
   font-weight: 800;
+  box-shadow: 0 14px 26px rgba(20, 63, 86, 0.18);
 }

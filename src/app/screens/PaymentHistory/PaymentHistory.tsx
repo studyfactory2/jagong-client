@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import {
@@ -120,6 +119,7 @@ export default function PaymentHistory() {
   const [loading, setLoading] = useState(true);
   const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>("idle");
   const [error, setError] = useState("");
+  const [showAllPayments, setShowAllPayments] = useState(false);
   const paying = paymentPhase !== "idle";
 
   const selectedPlan = useMemo(
@@ -234,8 +234,12 @@ export default function PaymentHistory() {
   }
 
   const paidPayments = payments.filter((p) => p.status === "PAID");
+  const visiblePayments = showAllPayments ? paidPayments : paidPayments.slice(0, 3);
   const backPath = canEnterWaitingRoom ? "/waiting-room" : "/my-page";
   const backLabel = canEnterWaitingRoom ? "대기장" : "내 정보";
+  const selectedMonthly = selectedPlan
+    ? Math.round(selectedPlan.total / selectedPlan.months)
+    : 0;
 
   return (
     <div className="pay">
@@ -256,15 +260,37 @@ export default function PaymentHistory() {
         )}
 
         <section className="pay-ticket">
-          <ConfirmationNumberOutlinedIcon />
-          <div>
-            <strong>현재 이용권</strong>
-            <p>
-              시작일 {dateText(membership?.startDate)} · 만료일{" "}
-              {dateText(membership?.membershipEnd)}
-            </p>
+          <div className="pay-ticket-top">
+            <span>현재 이용권</span>
+            <em className={`is-${viewState}`}>
+              {viewState === "active"
+                ? "이용 중"
+                : viewState === "future"
+                  ? "시작 전"
+                  : viewState === "loading"
+                    ? "확인 중"
+                    : "결제 필요"}
+            </em>
           </div>
-          <span className={`is-${viewState}`}>{ticketBadge}</span>
+          <strong className="pay-ticket-dday">{ticketBadge}</strong>
+          <p>
+            {viewState === "active"
+              ? "남았어요"
+              : viewState === "future"
+                ? "부터 시작합니다"
+                : "이용권 상태를 확인해주세요"}
+          </p>
+          <dl>
+            <div>
+              <dt>시작일</dt>
+              <dd>{dateText(membership?.startDate)}</dd>
+            </div>
+            <div>
+              <dt>만료일</dt>
+              <dd>{dateText(membership?.membershipEnd)}</dd>
+            </div>
+          </dl>
+          <small>남은 기간 뒤로 누적 적용돼요</small>
         </section>
 
         {notice && (
@@ -274,28 +300,8 @@ export default function PaymentHistory() {
           </section>
         )}
 
-        <section className="pay-calendar">
-          <div className="pay-cal-head">
-            <button type="button">{"<"}</button>
-            <strong>이용기간</strong>
-            <button type="button">{">"}</button>
-          </div>
-          <div className="pay-period-box">
-            <p>언제든 연장 가능하며 남은 이용기간 뒤로 누적 적용됩니다.</p>
-            <strong>{dateText(membership?.membershipEnd)}</strong>
-          </div>
-        </section>
-
-        <section className="pay-alert">
-          <HeadsetMicOutlinedIcon />
-          <div>
-            <strong>관리자 알림</strong>
-            <p>만료 5일 전 · 3일 전 · 1일 전 · 당일에 자동 알림이 가요</p>
-          </div>
-        </section>
-
         <section className="pay-fees">
-          <h2>{hasValidMembership ? "연장 이용료" : "이용료"}</h2>
+          <h2>이용권 선택</h2>
           <div>
             {plans.map((plan) => (
               <button
@@ -304,17 +310,34 @@ export default function PaymentHistory() {
                 onClick={() => setSelected(plan.months)}
                 type="button"
               >
-                <span>{plan.months}달</span>
-                <p>
-                  월{" "}
-                  {money(Math.round(plan.total / plan.months)).replace(
-                    "원",
-                    "원",
-                  )}
-                </p>
-                <strong>총 {money(plan.total)}</strong>
+                <i aria-hidden="true" />
+                <span>
+                  <strong>{plan.months}달</strong>
+                  <small>
+                    {plan.days}일 · 총 {money(plan.total)}
+                  </small>
+                </span>
+                <b>
+                  {money(plan.total)}
+                  <small>월 {money(Math.round(plan.total / plan.months))}</small>
+                </b>
               </button>
             ))}
+          </div>
+          <p className="pay-fee-note">모든 금액은 부가세 포함 금액이에요</p>
+        </section>
+
+        <section className="pay-summary">
+          <div>
+            <span>선택한 이용권</span>
+            <strong>
+              {selectedPlan?.months ?? "-"}달 · {selectedPlan?.days ?? "-"}일
+            </strong>
+          </div>
+          <div>
+            <span>결제 금액</span>
+            <strong>{selectedPlan ? money(selectedPlan.total) : "-"}</strong>
+            <small>월 {selectedMonthly ? money(selectedMonthly) : "-"}</small>
           </div>
           <button
             className="pay-extend"
@@ -328,36 +351,68 @@ export default function PaymentHistory() {
                 ? "카드로 연장하기"
                 : "카드로 결제하기"}
           </button>
+          <p>결제는 포트원(PG)을 통해 안전하게 처리돼요</p>
+        </section>
+
+        <section className="pay-alert">
+          <HeadsetMicOutlinedIcon />
+          <div>
+            <strong>만료 5일 전부터 미리 알려드려요</strong>
+            <p>5일 · 3일 · 1일 · 당일에 알림을 보내드려요</p>
+          </div>
         </section>
 
         <section className="pay-history">
-          <div>
-            <h2>지난 결제내역</h2>
-            <p>카드결제와 관리자 수동 등록 내역을 확인할 수 있어요</p>
-          </div>
-          {paidPayments.length === 0 && (
-            <p className="pay-empty">아직 완료된 결제내역이 없습니다.</p>
-          )}
-          {paidPayments.map((payment) => (
-            <div className="pay-row" key={payment.id}>
-              <span>{dateText(payment.createdAt)}</span>
-              <em>{payment.planMonths}개월</em>
-              <ReceiptLongOutlinedIcon />
-              {payment.receiptSignedUrl ? (
-                <a
-                  href={payment.receiptSignedUrl}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  영수증 보기
-                </a>
-              ) : (
-                <button type="button" disabled>
-                  영수증 준비중
-                </button>
-              )}
+          <div className="pay-history-head">
+            <div>
+              <span>지난 결제내역</span>
+              <h2>최근 결제 기록</h2>
             </div>
-          ))}
+            {paidPayments.length > 3 && (
+              <button
+                className="pay-history-toggle"
+                onClick={() => setShowAllPayments((value) => !value)}
+                type="button"
+              >
+                {showAllPayments ? "접기" : "전체 보기"}
+              </button>
+            )}
+          </div>
+          <div className={showAllPayments ? "pay-history-list is-open" : "pay-history-list"}>
+            {paidPayments.length === 0 && (
+              <p className="pay-empty">아직 완료된 결제내역이 없습니다.</p>
+            )}
+            {visiblePayments.map((payment) => (
+              <div className="pay-row" key={payment.id}>
+                <div>
+                  <strong>{dateText(payment.createdAt)}</strong>
+                  <span>
+                    {payment.planMonths}개월 · {money(payment.amount)}
+                  </span>
+                </div>
+                <em>{payment.status === "PAID" ? "결제완료" : payment.status}</em>
+                <ReceiptLongOutlinedIcon />
+                {payment.receiptSignedUrl ? (
+                  <a
+                    href={payment.receiptSignedUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    영수증 보기
+                  </a>
+                ) : (
+                  <button type="button" disabled>
+                    영수증 준비중
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {paidPayments.length > 3 && !showAllPayments && (
+            <p className="pay-history-more">
+              총 {paidPayments.length}건 중 최근 3건만 표시 중입니다.
+            </p>
+          )}
         </section>
       </main>
 
