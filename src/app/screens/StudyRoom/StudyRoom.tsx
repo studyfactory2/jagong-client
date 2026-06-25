@@ -12,6 +12,8 @@ import {
   issueCamToken,
   joinCam,
   leaveCam,
+  logCamAlert,
+  resolveCamAlert,
 } from "../../services/cam.service";
 import { syncCamAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
@@ -106,6 +108,29 @@ const FALLBACK_TIMETABLE: TimetableSlot[] = [
   },
 ];
 
+const FACE_DETECTOR_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite";
+const MEDIAPIPE_WASM_URL =
+  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm";
+const FACE_MISSING_GRACE_MS = 8000;
+const ALERT_SEND_INTERVAL_MS = 15000;
+
+type FaceDetectorRuntime = {
+  detectForVideo: (
+    video: HTMLVideoElement,
+    timestampMs: number,
+  ) => { detections?: unknown[] };
+  close?: () => void;
+};
+
+type SmartAlertState = {
+  activeType: string | null;
+  missingSince: number | null;
+  lastSentAt: number;
+  sending: boolean;
+  resolving: boolean;
+};
+
 const toMin = (time: string) => {
   const [hour, minute] = time.split(":").map(Number);
   return hour * 60 + minute;
@@ -138,6 +163,11 @@ export default function StudyRoom() {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [smartStatus, setSmartStatus] = useState<
+    "idle" | "checking" | "ok" | "warning" | "unsupported"
+  >("idle");
+  const [smartMessage, setSmartMessage] =
+    useState("입장 후 스마트 출석 확인이 시작됩니다.");
   const [error, setError] = useState("");
   const [camToken, setCamToken] = useState<CamTokenDto | null>(null);
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
@@ -151,6 +181,15 @@ export default function StudyRoom() {
   const streamRef = useRef<MediaStream | null>(null);
   const publishedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const faceDetectorRef = useRef<FaceDetectorRuntime | null>(null);
+  const smartTimerRef = useRef<number | null>(null);
+  const smartAlertRef = useRef<SmartAlertState>({
+    activeType: null,
+    missingSince: null,
+    lastSentAt: 0,
+    sending: false,
+    resolving: false,
+  });
   const joinedRef = useRef(false);
   const joinedSlotRef = useRef<number | null>(null);
   const syncedAttendanceSlotRef = useRef<number | null>(null);
@@ -217,6 +256,7 @@ export default function StudyRoom() {
       if (joinedRef.current) {
         void leaveCam();
       }
+      stopSmartMonitor();
       roomRef.current?.disconnect();
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -290,6 +330,170 @@ export default function StudyRoom() {
     streamRef.current = null;
     setCameraReady(false);
     if (videoRef.current) videoRef.current.srcObject = null;
+  }
+
+  async function ensureFaceDetector(): Promise<FaceDetectorRuntime | null> {
+    if (faceDetectorRef.current) return faceDetectorRef.current;
+
+    try {
+      const { FaceDetector, FilesetResolver } = await import(
+        "@mediapipe/tasks-vision"
+      );
+      const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
+      const detector = await FaceDetector.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: FACE_DETECTOR_MODEL_URL,
+        },
+        minDetectionConfidence: 0.5,
+        runningMode: "VIDEO",
+      });
+      faceDetectorRef.current = detector as FaceDetectorRuntime;
+      return faceDetectorRef.current;
+    } catch (err) {
+      console.error("MediaPipe face detector failed", err);
+      setSmartStatus("unsupported");
+      setSmartMessage("스마트 출석 확인을 시작하지 못했습니다.");
+      return null;
+    }
+  }
+
+  function stopSmartMonitor() {
+    if (smartTimerRef.current) {
+      window.clearInterval(smartTimerRef.current);
+      smartTimerRef.current = null;
+    }
+    faceDetectorRef.current?.close?.();
+    faceDetectorRef.current = null;
+    smartAlertRef.current = {
+      activeType: null,
+      missingSince: null,
+      lastSentAt: 0,
+      sending: false,
+      resolving: false,
+    };
+    setSmartStatus("idle");
+    setSmartMessage("입장 후 스마트 출석 확인이 시작됩니다.");
+  }
+
+  async function sendSmartAlert(alertType: string, duration: number) {
+    const state = smartAlertRef.current;
+    const nowMs = Date.now();
+    if (
+      state.sending ||
+      (state.activeType === alertType &&
+        nowMs - state.lastSentAt < ALERT_SEND_INTERVAL_MS)
+    ) {
+      return;
+    }
+
+    state.sending = true;
+    state.activeType = alertType;
+    state.lastSentAt = nowMs;
+    try {
+      await logCamAlert({
+        slot: currentSlot(timetable) ?? joinedSlotRef.current ?? undefined,
+        alertType,
+        duration,
+      });
+    } catch (err) {
+      console.error("Smart attendance alert failed", err);
+    } finally {
+      state.sending = false;
+    }
+  }
+
+  async function resolveSmartAlert() {
+    const state = smartAlertRef.current;
+    if (!state.activeType || state.resolving) return;
+
+    const alertType = state.activeType;
+    state.resolving = true;
+    try {
+      await resolveCamAlert({ alertType });
+      state.activeType = null;
+      state.missingSince = null;
+      setSmartStatus("ok");
+      setSmartMessage("화면 상태가 정상입니다.");
+    } catch (err) {
+      console.error("Smart attendance resolve failed", err);
+    } finally {
+      state.resolving = false;
+    }
+  }
+
+  async function evaluateSmartAttendance(detector: FaceDetectorRuntime) {
+    if (!joinedRef.current) return;
+
+    const video = selfTileVideoRef.current;
+    const track = streamRef.current?.getVideoTracks()[0];
+    const trackLive =
+      track &&
+      track.readyState === "live" &&
+      track.enabled &&
+      !track.muted;
+
+    if (!video || !trackLive) {
+      setSmartStatus("warning");
+      setSmartMessage("카메라 송출 상태를 확인해 주세요.");
+      await sendSmartAlert("CAMERA_OFF", 0);
+      return;
+    }
+
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setSmartStatus("checking");
+      setSmartMessage("카메라 화면을 확인하는 중입니다.");
+      return;
+    }
+
+    try {
+      const result = detector.detectForVideo(video, performance.now());
+      const faceCount = result.detections?.length ?? 0;
+      const state = smartAlertRef.current;
+
+      if (faceCount > 0) {
+        state.missingSince = null;
+        if (state.activeType) {
+          await resolveSmartAlert();
+        } else {
+          setSmartStatus("ok");
+          setSmartMessage("화면 상태가 정상입니다.");
+        }
+        return;
+      }
+
+      const nowMs = Date.now();
+      state.missingSince ??= nowMs;
+      const missingMs = nowMs - state.missingSince;
+
+      setSmartStatus("warning");
+      setSmartMessage(
+        missingMs >= FACE_MISSING_GRACE_MS
+          ? "화면에 얼굴이 보이지 않습니다."
+          : "얼굴 위치를 확인하는 중입니다.",
+      );
+
+      if (missingMs >= FACE_MISSING_GRACE_MS) {
+        await sendSmartAlert("FACE_MISSING", Math.floor(missingMs / 1000));
+      }
+    } catch (err) {
+      console.error("Smart attendance detection failed", err);
+      setSmartStatus("unsupported");
+      setSmartMessage("스마트 출석 확인 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function startSmartMonitor() {
+    if (smartTimerRef.current) return;
+
+    const detector = await ensureFaceDetector();
+    if (!detector) return;
+
+    setSmartStatus("checking");
+    setSmartMessage("스마트 출석 확인을 시작합니다.");
+    smartTimerRef.current = window.setInterval(() => {
+      void evaluateSmartAttendance(detector);
+    }, 1600);
+    void evaluateSmartAttendance(detector);
   }
 
   function disconnectLiveKit() {
@@ -420,6 +624,7 @@ export default function StudyRoom() {
     setJoining(true);
     try {
       if (joined) {
+        stopSmartMonitor();
         await leaveCam();
         disconnectLiveKit();
         stopLocalCamera();
@@ -440,9 +645,11 @@ export default function StudyRoom() {
         syncedAttendanceSlotRef.current = slot;
         setCamToken(token);
         setJoined(true);
+        void startSmartMonitor();
         await refreshRoomMembers();
       }
     } catch (err) {
+      stopSmartMonitor();
       disconnectLiveKit();
       stopLocalCamera();
       joinedRef.current = false;
@@ -658,6 +865,10 @@ export default function StudyRoom() {
               </label>
               <div className="sr-live-badge">
                 <span className="sr-live-dot" />캠 송출 중
+              </div>
+              <div className={`sr-smart-badge is-${smartStatus}`}>
+                <span />
+                {smartMessage}
               </div>
               <p>
                 큰 셀프 화면은 띄우지 않고, 관리자는 작업장 모니터에서 캠을
