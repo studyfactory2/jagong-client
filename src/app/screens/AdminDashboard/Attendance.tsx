@@ -34,6 +34,14 @@ const STATUS_OPTIONS: Array<{
   { value: "EXCUSED", label: "인정" },
 ];
 
+const DEFAULT_STATUS_OPTION: {
+  value: AttendanceStatusName;
+  label: string;
+} = {
+  value: "PRESENT",
+  label: "출석",
+};
+
 function todayKey() {
   const date = new Date();
   const year = date.getFullYear();
@@ -58,6 +66,8 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
     userId: string;
     slot: number;
   } | null>(null);
+  const [paintStatus, setPaintStatus] =
+    useState<AttendanceStatusName>("PRESENT");
   const [savingKey, setSavingKey] = useState("");
   const [error, setError] = useState("");
 
@@ -112,17 +122,17 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
     return () => window.clearTimeout(timer);
   }, [load]);
 
-  async function updateStatus(status: AttendanceStatusName) {
-    if (!selected) return;
-    const key = recordKey(selected.userId, selected.slot);
+  async function paintCell(userId: string, slot: number) {
+    const key = recordKey(userId, slot);
+    setSelected({ userId, slot });
     setSavingKey(key);
     setError("");
     try {
       const updated = await markAttendance({
-        userId: selected.userId,
+        userId,
         date: selectedDate,
-        slot: selected.slot,
-        status,
+        slot,
+        status: paintStatus,
       });
       setRecords((current) => {
         const exists = current.some((record) => record.id === updated.id);
@@ -144,6 +154,9 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
 
   const selectedUser = users.find((user) => user.id === selected?.userId);
   const selectedSlot = workSlots.find((slot) => slot.slot === selected?.slot);
+  const selectedPaint =
+    STATUS_OPTIONS.find((option) => option.value === paintStatus) ??
+    DEFAULT_STATUS_OPTION;
   const gridStyle = {
     gridTemplateColumns: `180px repeat(${workSlots.length}, minmax(84px, 1fr))`,
   };
@@ -183,27 +196,39 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
       {error && <p className="admin-error">{error}</p>}
 
       <div className="admin-att-editor">
-        <div>
-          <span>선택한 칸</span>
-          <strong>
-            {selectedUser && selectedSlot
-              ? `${selectedUser.name} · ${selectedSlot.label}`
-              : "수정할 교시를 선택하세요"}
-          </strong>
+        <div className="admin-att-brush-copy">
+          <span>선택한 출석 상태</span>
+          <strong>{selectedPaint.label}</strong>
+          <p>상태를 먼저 선택한 뒤 학생의 교시 칸을 누르면 바로 저장됩니다.</p>
         </div>
 
         <div className="admin-att-actions">
           {STATUS_OPTIONS.map((option) => (
             <button
-              className={`admin-att-status ${statusClass(option.value)}`}
-              disabled={!selected || Boolean(savingKey)}
+              aria-pressed={paintStatus === option.value}
+              className={[
+                "admin-att-status",
+                statusClass(option.value),
+                paintStatus === option.value ? "is-active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               key={option.value}
-              onClick={() => void updateStatus(option.value)}
+              onClick={() => setPaintStatus(option.value)}
               type="button"
             >
               {option.label}
             </button>
           ))}
+        </div>
+
+        <div className="admin-att-last">
+          <span>최근 수정</span>
+          <strong>
+            {selectedUser && selectedSlot
+              ? `${selectedUser.name} · ${selectedSlot.label}`
+              : "아직 선택한 칸이 없습니다"}
+          </strong>
         </div>
       </div>
 
@@ -238,8 +263,15 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
                     .filter(Boolean)
                     .join(" ")}
                   disabled={savingKey === key}
+                  data-slot={slot.label}
                   key={slot.slot}
-                  onClick={() => setSelected({ userId: user.id, slot: slot.slot })}
+                  onClick={() => void paintCell(user.id, slot.slot)}
+                  title={`${user.name} ${slot.label} ${
+                    record
+                      ? STATUS_LABEL[record.status as AttendanceStatusName] ??
+                        "확인"
+                      : "미기록"
+                  }`}
                   type="button"
                 >
                   {record

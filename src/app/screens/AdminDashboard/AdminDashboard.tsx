@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
+import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import BeachAccessOutlinedIcon from "@mui/icons-material/BeachAccessOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import AppShell from "../../components/ui/AppShell";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -60,6 +69,30 @@ import {
   type AdminTabKey,
 } from "./admin.types";
 import "./admin-dashboard.css";
+
+function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
+  if (tab === "profile") return <AccountCircleOutlinedIcon />;
+  if (tab === "overview") return <DashboardOutlinedIcon />;
+  if (tab === "members") return <GroupsOutlinedIcon />;
+  if (tab === "consultations") return <SupportAgentOutlinedIcon />;
+  if (tab === "payments") return <PaymentsOutlinedIcon />;
+  if (tab === "leaves") return <BeachAccessOutlinedIcon />;
+  if (tab === "attendance") return <FactCheckOutlinedIcon />;
+  if (tab === "chat") return <ChatBubbleOutlineOutlinedIcon />;
+  return <VideocamOutlinedIcon />;
+}
+
+const adminPageDescriptions: Record<AdminTabKey, string> = {
+  profile: "관리자 프로필 및 계정 설정",
+  overview: "오늘의 운영 현황을 한눈에 확인합니다.",
+  members: "사전등록, 직원 등록, 회원 정보를 관리합니다.",
+  consultations: "상담 예약, 결제 링크, 사전등록 준비를 처리합니다.",
+  payments: "카드 결제와 수동 결제 내역을 확인합니다.",
+  leaves: "회원 휴가 신청을 승인하거나 반려합니다.",
+  attendance: "교시별 출석 상태를 확인하고 조정합니다.",
+  chat: "회원과의 1:1 문의를 확인하고 답변합니다.",
+  camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
+};
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -136,6 +169,8 @@ export default function AdminDashboard() {
   const activeTab: AdminTabKey = visibleTabs.some((item) => item.key === tab)
     ? tab
     : (visibleTabs[0]?.key ?? "camera");
+  const activeTabLabel =
+    visibleTabs.find((item) => item.key === activeTab)?.label ?? "관리";
 
   /** DATA LOADERS **/
   const load = useCallback(async () => {
@@ -592,15 +627,32 @@ export default function AdminDashboard() {
       subtitle="회원 · 상담 · 결제 · 휴가 · 캠 상태 관리"
       backTo="/admin"
       wide
+      className="admin-shell"
       actions={actions}
     >
       <div className="admin">
         <div className="admin-layout">
           <aside className="admin-menu-shell">
             <div className="admin-menu-head">
-              <span>{isAdmin ? "ADMIN" : "STAFF"}</span>
-              <strong>{profileUser?.name ?? session?.user.name ?? "관리자"}</strong>
+              <div className="admin-menu-brand">
+                <img src="/pwa-icon-192.png" alt="" />
+                <div>
+                  <strong>자격증공장</strong>
+                  <span>Admin Console</span>
+                </div>
+              </div>
+              <div className="admin-menu-user">
+                <i aria-hidden="true">
+                  <AccountCircleOutlinedIcon />
+                </i>
+                <span>{isAdmin ? "ADMIN" : "STAFF"}</span>
+                <strong>
+                  {profileUser?.name ?? session?.user.name ?? "관리자"}
+                </strong>
+                <small>{profileUser?.branch?.name ?? "관리자 계정"}</small>
+              </div>
             </div>
+            <span className="admin-menu-label">메뉴</span>
             <nav className="admin-tabs" aria-label="관리자 메뉴">
               {visibleTabs.map((item) => (
                 <button
@@ -609,6 +661,7 @@ export default function AdminDashboard() {
                   onClick={() => setTab(item.key)}
                   type="button"
                 >
+                  <AdminTabIcon tab={item.key} />
                   {item.label}
                 </button>
               ))}
@@ -617,11 +670,15 @@ export default function AdminDashboard() {
 
           <main className="admin-workspace">
             <div className="admin-workspace-head">
-              <span>현재 메뉴</span>
-              <strong>
-                {visibleTabs.find((item) => item.key === activeTab)?.label ??
-                  "관리"}
-              </strong>
+              <div className="admin-breadcrumb">
+                <span>관리자 작업실</span>
+                <i aria-hidden="true">›</i>
+                <b>{activeTabLabel}</b>
+              </div>
+              <div>
+                <strong>{activeTabLabel}</strong>
+                <p>{adminPageDescriptions[activeTab]}</p>
+              </div>
             </div>
 
             {error && <p className="admin-error">{error}</p>}
