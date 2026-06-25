@@ -9,6 +9,7 @@ type ProfileForm = {
   examType: string;
   prepDuration: string;
   password: string;
+  passwordConfirm: string;
 };
 
 type ProfileProps = {
@@ -29,6 +30,7 @@ function profileForm(user: AdminUser | null): ProfileForm {
     examType: user?.examType ?? "",
     prepDuration: user?.prepDuration ?? "",
     password: "",
+    passwordConfirm: "",
   };
 }
 
@@ -39,15 +41,22 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
 
   /** DERIVED **/
   const passwordInvalid = form.password.length > 0 && form.password.length !== 4;
-
+  const passwordMismatch =
+    form.password.length > 0 && form.password !== form.passwordConfirm;
+  const cannotSave =
+    saving || !form.name.trim() || passwordInvalid || passwordMismatch;
 
   /** HANDLERS **/
   function update(field: keyof ProfileForm, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    const nextValue =
+      field === "password" || field === "passwordConfirm"
+        ? value.replace(/\D/g, "").slice(0, 4)
+        : value;
+    setForm((current) => ({ ...current, [field]: nextValue }));
   }
 
   async function save() {
-    if (!user || saving || !form.name.trim() || passwordInvalid) return;
+    if (!user || cannotSave) return;
     setSaving(true);
     try {
       await onSave({
@@ -58,7 +67,11 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
         prepDuration: form.prepDuration.trim() || undefined,
         password: form.password.length === 4 ? form.password : undefined,
       });
-      setForm((current) => ({ ...current, password: "" }));
+      setForm((current) => ({
+        ...current,
+        password: "",
+        passwordConfirm: "",
+      }));
     } finally {
       setSaving(false);
     }
@@ -120,6 +133,7 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
           <input
             inputMode="numeric"
             maxLength={4}
+            type="password"
             value={form.password}
             onChange={(event) => update("password", event.target.value)}
             placeholder="변경할 때만 입력"
@@ -130,11 +144,29 @@ export default function Profile({ user, branches, onSave }: ProfileProps) {
             </small>
           )}
         </label>
+        <label>
+          새 비밀번호 확인
+          <input
+            inputMode="numeric"
+            maxLength={4}
+            type="password"
+            value={form.passwordConfirm}
+            onChange={(event) =>
+              update("passwordConfirm", event.target.value)
+            }
+            placeholder="한 번 더 입력"
+          />
+          {passwordMismatch && (
+            <small className="admin-profile-hint is-error">
+              비밀번호 확인이 일치하지 않습니다.
+            </small>
+          )}
+        </label>
       </div>
 
       <button
         className="admin-profile-save"
-        disabled={saving || !form.name.trim() || passwordInvalid}
+        disabled={cannotSave}
         onClick={save}
         type="button"
       >

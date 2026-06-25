@@ -1,0 +1,39 @@
+{
+  "name": "자격증공장 재택근무반",
+  "short_name": "자격증공장",
+  "description": "전문자격 온라인 성인관리형독서실",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffefa",
+  "theme_color": "#143f56",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "대기장",
+      "short_name": "대기장",
+      "url": "/waiting-room",
+      "icons": [{ "src": "/pwa-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "단체작업장",
+      "short_name": "작업장",
+      "url": "/study-room",
+      "icons": [{ "src": "/pwa-icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

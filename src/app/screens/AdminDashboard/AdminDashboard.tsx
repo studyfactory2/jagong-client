@@ -595,146 +595,164 @@ export default function AdminDashboard() {
       actions={actions}
     >
       <div className="admin">
-        <nav className="admin-tabs" aria-label="관리자 메뉴">
-          {visibleTabs.map((item) => (
-            <button
-              className={activeTab === item.key ? "is-active" : ""}
-              key={item.key}
-              onClick={() => setTab(item.key)}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        <div className="admin-layout">
+          <aside className="admin-menu-shell">
+            <div className="admin-menu-head">
+              <span>{isAdmin ? "ADMIN" : "STAFF"}</span>
+              <strong>{profileUser?.name ?? session?.user.name ?? "관리자"}</strong>
+            </div>
+            <nav className="admin-tabs" aria-label="관리자 메뉴">
+              {visibleTabs.map((item) => (
+                <button
+                  className={activeTab === item.key ? "is-active" : ""}
+                  key={item.key}
+                  onClick={() => setTab(item.key)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+          </aside>
 
-        {error && <p className="admin-error">{error}</p>}
-        {loading && (
-          <p className="admin-loading">관리자 데이터를 불러오는 중입니다.</p>
-        )}
+          <main className="admin-workspace">
+            <div className="admin-workspace-head">
+              <span>현재 메뉴</span>
+              <strong>
+                {visibleTabs.find((item) => item.key === activeTab)?.label ??
+                  "관리"}
+              </strong>
+            </div>
 
-        {activeTab === "profile" && (
-          <Profile
-            key={[
-              profileUser?.id,
-              profileUser?.userId,
-              profileUser?.name,
-              profileUser?.phone,
-              profileUser?.residenceArea,
-              profileUser?.examType,
-              profileUser?.prepDuration,
-            ].join(":")}
-            user={profileUser}
-            branches={branches}
-            onSave={saveMyProfile}
-          />
-        )}
+            {error && <p className="admin-error">{error}</p>}
+            {loading && (
+              <p className="admin-loading">관리자 데이터를 불러오는 중입니다.</p>
+            )}
 
-        {isAdmin && activeTab === "overview" && (
-          <Overview
-            stats={stats}
-            users={data.allMembers}
-            noticeTitle={noticeTitle}
-            noticeContent={noticeContent}
-            manualUserId={manualUserId}
-            manualMonths={manualMonths}
-            manualName={manualName}
-            manualReceiptFile={manualReceiptFile}
-            savingManualPayment={savingManualPayment}
-            onNoticeTitleChange={setNoticeTitle}
-            onNoticeContentChange={setNoticeContent}
-            onManualUserChange={setManualUserId}
-            onManualMonthsChange={setManualMonths}
-            onManualNameChange={setManualName}
-            onManualReceiptChange={setManualReceiptFile}
-            onSaveNotice={saveNotice}
-            onSaveManualPayment={saveManualPayment}
-          />
-        )}
+            {activeTab === "profile" && (
+              <Profile
+                key={[
+                  profileUser?.id,
+                  profileUser?.userId,
+                  profileUser?.name,
+                  profileUser?.phone,
+                  profileUser?.residenceArea,
+                  profileUser?.examType,
+                  profileUser?.prepDuration,
+                ].join(":")}
+                user={profileUser}
+                branches={branches}
+                onSave={saveMyProfile}
+              />
+            )}
 
-        {isAdmin && activeTab === "members" && (
-          <Members
-            users={data.users}
-            branches={branches}
-            searchText={search.users}
-            onSearchChange={(value) => changeSearch("users", value)}
-            preRegister={preRegister}
-            onPreRegisterChange={updatePreRegister}
-            onPreRegisterSubmit={savePreRegister}
-            staffForm={staffForm}
-            onStaffChange={updateStaffForm}
-            onStaffSubmit={saveStaff}
-            onUserUpdate={saveUserProfile}
-            pageMeta={pageMeta.users}
-            onPageChange={(page) => changePage("users", page)}
-          />
-        )}
+            {isAdmin && activeTab === "overview" && (
+              <Overview
+                stats={stats}
+                users={data.allMembers}
+                noticeTitle={noticeTitle}
+                noticeContent={noticeContent}
+                manualUserId={manualUserId}
+                manualMonths={manualMonths}
+                manualName={manualName}
+                manualReceiptFile={manualReceiptFile}
+                savingManualPayment={savingManualPayment}
+                onNoticeTitleChange={setNoticeTitle}
+                onNoticeContentChange={setNoticeContent}
+                onManualUserChange={setManualUserId}
+                onManualMonthsChange={setManualMonths}
+                onManualNameChange={setManualName}
+                onManualReceiptChange={setManualReceiptFile}
+                onSaveNotice={saveNotice}
+                onSaveManualPayment={saveManualPayment}
+              />
+            )}
 
-        {isAdmin && activeTab === "consultations" && (
-          <Consultations
-            consultations={data.consultations}
-            searchText={search.consultations}
-            onSearchChange={(value) => changeSearch("consultations", value)}
-            onConfirm={confirmConsultation}
-            onComplete={completeConsultation}
-            onCreateCheckout={createConsultationPaymentLink}
-            onPreparePreRegister={preparePreRegisterFromConsultation}
-            pageMeta={pageMeta.consultations}
-            onPageChange={(page) => changePage("consultations", page)}
-          />
-        )}
+            {isAdmin && activeTab === "members" && (
+              <Members
+                users={data.users}
+                branches={branches}
+                searchText={search.users}
+                onSearchChange={(value) => changeSearch("users", value)}
+                preRegister={preRegister}
+                onPreRegisterChange={updatePreRegister}
+                onPreRegisterSubmit={savePreRegister}
+                staffForm={staffForm}
+                onStaffChange={updateStaffForm}
+                onStaffSubmit={saveStaff}
+                onUserUpdate={saveUserProfile}
+                pageMeta={pageMeta.users}
+                onPageChange={(page) => changePage("users", page)}
+              />
+            )}
 
-        {isAdmin && activeTab === "payments" && (
-          <Payments
-            payments={data.payments}
-            users={data.allMembers}
-            searchText={search.payments}
-            onSearchChange={(value) => changeSearch("payments", value)}
-            pageMeta={pageMeta.payments}
-            onPageChange={(page) => changePage("payments", page)}
-          />
-        )}
+            {isAdmin && activeTab === "consultations" && (
+              <Consultations
+                consultations={data.consultations}
+                searchText={search.consultations}
+                onSearchChange={(value) => changeSearch("consultations", value)}
+                onConfirm={confirmConsultation}
+                onComplete={completeConsultation}
+                onCreateCheckout={createConsultationPaymentLink}
+                onPreparePreRegister={preparePreRegisterFromConsultation}
+                pageMeta={pageMeta.consultations}
+                onPageChange={(page) => changePage("consultations", page)}
+              />
+            )}
 
-        {isAdmin && activeTab === "leaves" && (
-          <Leaves
-            leaves={data.leaves}
-            users={data.allMembers}
-            searchText={search.leaves}
-            onSearchChange={(value) => changeSearch("leaves", value)}
-            onAction={handleLeave}
-            pageMeta={pageMeta.leaves}
-            onPageChange={(page) => changePage("leaves", page)}
-          />
-        )}
+            {isAdmin && activeTab === "payments" && (
+              <Payments
+                payments={data.payments}
+                users={data.allMembers}
+                searchText={search.payments}
+                onSearchChange={(value) => changeSearch("payments", value)}
+                pageMeta={pageMeta.payments}
+                onPageChange={(page) => changePage("payments", page)}
+              />
+            )}
 
-        {activeTab === "attendance" && (
-          <Attendance users={data.allMembers} timetable={timetable} />
-        )}
+            {isAdmin && activeTab === "leaves" && (
+              <Leaves
+                leaves={data.leaves}
+                users={data.allMembers}
+                searchText={search.leaves}
+                onSearchChange={(value) => changeSearch("leaves", value)}
+                onAction={handleLeave}
+                pageMeta={pageMeta.leaves}
+                onPageChange={(page) => changePage("leaves", page)}
+              />
+            )}
 
-        {activeTab === "chat" && (
-          <Chat
-            rooms={data.chats}
-            searchText={search.chats}
-            onSearchChange={(value) => changeSearch("chats", value)}
-            onRoomRead={markChatRoomRead}
-            onRefresh={refreshLiveData}
-            pageMeta={pageMeta.chats}
-            onPageChange={(page) => changePage("chats", page)}
-          />
-        )}
+            {activeTab === "attendance" && (
+              <Attendance users={data.allMembers} timetable={timetable} />
+            )}
 
-        {activeTab === "camera" && (
-          <Camera
-            camSessions={data.camSessions}
-            activeAlerts={data.camAlerts}
-            timetable={timetable}
-            users={data.allMembers}
-            searchText={search.camera}
-            onSearchChange={(value) => changeSearch("camera", value)}
-            onWarn={sendCamWarning}
-            onAcknowledgeAlert={acknowledgeSmartAlert}
-          />
-        )}
+            {activeTab === "chat" && (
+              <Chat
+                rooms={data.chats}
+                searchText={search.chats}
+                onSearchChange={(value) => changeSearch("chats", value)}
+                onRoomRead={markChatRoomRead}
+                onRefresh={refreshLiveData}
+                pageMeta={pageMeta.chats}
+                onPageChange={(page) => changePage("chats", page)}
+              />
+            )}
+
+            {activeTab === "camera" && (
+              <Camera
+                camSessions={data.camSessions}
+                activeAlerts={data.camAlerts}
+                timetable={timetable}
+                users={data.allMembers}
+                searchText={search.camera}
+                onSearchChange={(value) => changeSearch("camera", value)}
+                onWarn={sendCamWarning}
+                onAcknowledgeAlert={acknowledgeSmartAlert}
+              />
+            )}
+          </main>
+        </div>
       </div>
     </AppShell>
   );
