@@ -1,0 +1,381 @@
+/* Attendance paint mode: selected status + click-to-fill grid */
+.admin-att-editor {
+  position: sticky;
+  top: 10px;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) auto minmax(180px, 0.72fr);
+  align-items: center;
+  gap: 14px;
+  border-color: rgba(159, 206, 180, 0.55);
+  background:
+    linear-gradient(135deg, rgba(237, 248, 243, 0.94), rgba(255, 254, 250, 0.98)),
+    var(--mint-soft);
+  box-shadow: 0 14px 32px rgba(20, 63, 86, 0.06);
+}
+
+.admin-att-brush-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-att-brush-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.admin-att-last {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  border-left: 1px solid rgba(20, 63, 86, 0.1);
+  padding-left: 14px;
+}
+
+.admin-att-last strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-att-status,
+.admin-att-cell {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-att-status.is-active {
+  border-color: var(--ink);
+  box-shadow:
+    0 0 0 2px rgba(20, 63, 86, 0.12),
+    0 8px 18px rgba(20, 63, 86, 0.08);
+  transform: translateY(-1px);
+}
+
+.admin-att-cell:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.07);
+}
+
+.admin-att-cell.is-selected {
+  outline: 0;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px rgba(20, 63, 86, 0.15);
+}
+
+.admin-att-grid {
+  max-height: min(650px, calc(100vh - 330px));
+  overflow: auto;
+  padding: 2px 2px 8px;
+}
+
+.admin-att-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  border-radius: 14px;
+  background: rgba(246, 248, 248, 0.96);
+  padding: 8px 9px;
+  backdrop-filter: blur(10px);
+}
+
+.admin-att-row {
+  box-shadow: 0 8px 22px rgba(20, 63, 86, 0.04);
+}
+
+/* Tablet admin console: keep navigation compact until there is room for sidebar. */
+@media (min-width: 761px) and (max-width: 1179px) {
+  .app-shell.admin-shell {
+    display: block;
+    max-width: min(100%, 1120px);
+    min-height: 100vh;
+    margin: 0 auto;
+    overflow: visible;
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 70px;
+    padding: 12px 22px;
+    background: rgba(255, 254, 250, 0.96);
+    border-bottom: 1px solid rgba(20, 63, 86, 0.08);
+  }
+
+  .app-shell.admin-shell .app-shell-back {
+    display: inline-flex;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap {
+    display: block;
+    text-align: center;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: 24px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p {
+    display: block;
+  }
+
+  .app-shell.admin-shell .app-shell-body {
+    min-height: 0;
+    padding: 0 22px 34px;
+  }
+
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+    min-height: 0;
+    background: transparent;
+  }
+
+  .admin-menu-shell {
+    position: sticky;
+    top: 70px;
+    z-index: 18;
+    width: auto !important;
+    min-height: 0;
+    height: auto;
+    border: 1px solid rgba(20, 63, 86, 0.1);
+    border-radius: 18px;
+    background: rgba(255, 254, 250, 0.96);
+    box-shadow: 0 12px 28px rgba(20, 63, 86, 0.06);
+    padding: 8px;
+    overflow: visible;
+  }
+
+  .admin-menu-head,
+  .admin-menu-label {
+    display: none;
+  }
+
+  .admin-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .admin-tabs button {
+    flex: 0 1 auto;
+    width: auto;
+    min-height: 40px;
+    border-radius: 12px;
+    padding: 0 12px;
+    justify-content: center;
+    box-shadow: none;
+  }
+
+  .admin-tabs button.is-active {
+    box-shadow: 0 10px 22px rgba(20, 63, 86, 0.14);
+  }
+
+  .admin-workspace {
+    padding: 12px 0 36px;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-att-editor {
+    top: 8px;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+    border-radius: 18px;
+    padding: 12px;
+  }
+
+  .admin-att-brush-copy p {
+    font-size: 11px;
+  }
+
+  .admin-att-last {
+    border-left: 0;
+    border-top: 1px solid rgba(20, 63, 86, 0.1);
+    padding: 9px 0 0;
+  }
+
+  .admin-att-grid {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .admin-att-status.is-active {
+    transform: none;
+  }
+}
+
+/* Attendance final polish: paint-bucket grid stays readable on tablet/mobile. */
+.admin-attendance .admin-att-grid,
+.admin-attendance .admin-att-head,
+.admin-attendance .admin-att-row,
+.admin-attendance .admin-att-cell {
+  box-sizing: border-box;
+}
+
+.admin-attendance .admin-att-cell::before {
+  display: none;
+}
+
+@media (min-width: 761px) {
+  .admin-attendance .admin-att-grid {
+    max-height: min(620px, calc(100vh - 340px));
+    overflow: auto;
+    padding: 4px 4px 10px;
+    border-radius: 18px;
+  }
+
+  .admin-attendance .admin-att-head,
+  .admin-attendance .admin-att-row {
+    min-width: 920px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1179px) {
+  .app-shell.admin-shell .admin-menu-shell {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .app-shell.admin-shell .admin-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: max-content;
+    overflow: visible;
+  }
+
+  .app-shell.admin-shell .admin-tabs button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 76px;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-attendance .admin-att-grid {
+    display: grid;
+    gap: 12px;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .admin-attendance .admin-att-head {
+    display: none;
+  }
+
+  .admin-attendance .admin-att-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    min-width: 0 !important;
+    gap: 8px;
+    align-items: stretch;
+    margin: 0;
+    padding: 12px;
+    border: 1px solid rgba(214, 222, 219, 0.9);
+    border-radius: 18px;
+    background: rgba(255, 254, 250, 0.98);
+    box-shadow: 0 12px 28px rgba(20, 63, 86, 0.055);
+  }
+
+  .admin-attendance .admin-att-user {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    min-height: 46px;
+    padding: 10px 12px;
+    border-radius: 15px;
+    background: linear-gradient(
+      135deg,
+      rgba(237, 248, 243, 0.95),
+      rgba(255, 254, 250, 0.98)
+    );
+  }
+
+  .admin-attendance .admin-att-user strong,
+  .admin-attendance .admin-att-user span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-attendance .admin-att-user strong {
+    max-width: 55%;
+    font-size: 14px;
+  }
+
+  .admin-attendance .admin-att-user span {
+    max-width: 45%;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .admin-attendance .admin-att-cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .admin-attendance .admin-att-cell::before {
+    content: attr(data-slot);
+    display: inline;
+    position: static;
+    inset: auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 58%;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-attendance .admin-att-cell.is-selected {
+    outline: 0;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 2px rgba(20, 63, 86, 0.12);
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-attendance .admin-att-row {
+    grid-template-columns: 1fr !important;
+  }
+}

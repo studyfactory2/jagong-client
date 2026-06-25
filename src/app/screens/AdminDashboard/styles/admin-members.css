@@ -1,0 +1,185 @@
+/* Members page: broad search, soft forms, real management cards */
+@media (min-width: 980px) {
+  .admin-members-card {
+    display: grid;
+    gap: 18px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .admin-members-card > .admin-section-head {
+    margin: -8px 0 0;
+  }
+
+  .admin-members-card > .admin-search {
+    margin: 0;
+  }
+
+  .admin-pre-register,
+  .admin-staff-register {
+    border: 1px solid var(--mint-line);
+    border-radius: 17px;
+    background: linear-gradient(180deg, rgba(237, 248, 243, 0.92), rgba(245, 250, 248, 0.92));
+    box-shadow: var(--admin-soft-shadow);
+    padding: 20px;
+  }
+
+  .admin-staff-register {
+    border-color: var(--accent-line);
+    background: linear-gradient(180deg, rgba(255, 247, 244, 0.94), rgba(255, 251, 249, 0.94));
+  }
+
+  .admin-pre-register > div:first-child,
+  .admin-staff-register > div:first-child {
+    margin-bottom: 14px;
+  }
+
+  .admin-pre-register strong,
+  .admin-staff-register strong {
+    color: var(--ink);
+    font-size: 17px;
+    font-weight: 950;
+  }
+
+  .admin-pre-register p,
+  .admin-staff-register p {
+    margin: 6px 0 0;
+    color: #74878c;
+    font-size: 12px;
+  }
+
+  .admin-pre-grid {
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    gap: 12px 14px;
+  }
+
+  .admin-pre-wide {
+    grid-column: span 2;
+  }
+
+  .admin-pre-grid label {
+    color: #647980;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .admin-pre-grid input,
+  .admin-pre-grid select {
+    min-height: 42px;
+    border: 1px solid rgba(20, 63, 86, 0.12);
+    border-radius: 10px;
+    background: #fffefa;
+    color: var(--ink);
+  }
+
+  .admin-pre-register > button,
+  .admin-staff-register > button {
+    min-width: 132px;
+    min-height: 42px;
+    margin-top: 16px;
+    border-radius: 12px;
+    background: var(--ink);
+    color: #ffffff;
+    font-size: 13px;
+  }
+
+  .admin-member-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .admin-member-card {
+    min-height: 205px;
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    border: 1px solid rgba(20, 63, 86, 0.1);
+    border-radius: 16px;
+    background: var(--admin-panel);
+    box-shadow: var(--admin-soft-shadow);
+    padding: 18px;
+  }
+
+  .admin-member-main {
+    align-items: start;
+    gap: 8px;
+  }
+
+  .admin-member-main strong {
+    color: var(--ink);
+    font-size: 17px;
+    font-weight: 950;
+  }
+
+  .admin-member-main span {
+    margin-left: auto;
+    color: #90a0a4;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .admin-member-main em {
+    border-radius: 999px;
+    background: var(--mint-soft);
+    color: var(--mint-deep);
+    padding: 3px 9px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 950;
+  }
+
+  .admin-member-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+  }
+
+  .admin-member-fields span {
+    color: #829196;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .admin-member-fields strong {
+    margin-top: 3px;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 950;
+  }
+
+  .admin-member-actions {
+    margin-top: 4px;
+    border-top: 1px solid rgba(20, 63, 86, 0.1);
+    padding-top: 14px;
+  }
+
+  .admin-member-actions span {
+    color: #61787f;
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .admin-member-edit-button {
+    min-width: 76px;
+    min-height: 38px;
+    border-radius: 10px;
+    border-color: var(--line);
+    background: var(--admin-panel);
+    color: var(--ink);
+    font-weight: 950;
+  }
+}
+
+@media (min-width: 980px) and (max-width: 1280px) {
+  .admin-pre-grid {
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+  }
+
+  .admin-member-list {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+}
+
+/* Consultation and payment rows: console table rhythm */

@@ -1,0 +1,411 @@
+/* Admin mobile comfort pass: attendance + 1:1 inquiry */
+@media (min-width: 761px) and (max-width: 1179px) {
+  .admin-att-grid {
+    overflow-x: auto;
+    padding: 2px 0 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .admin-att-head,
+  .admin-att-row {
+    min-width: 920px;
+    scroll-snap-align: start;
+  }
+
+  .admin-chat-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .admin-chat-rooms {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 30%);
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px;
+  }
+
+  .admin-chat-rooms button {
+    min-height: 92px;
+  }
+
+  .admin-chat-thread {
+    min-height: 430px;
+  }
+
+  .admin-chat-messages {
+    min-height: 260px;
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-attendance {
+    gap: 12px;
+  }
+
+  .admin-att-toolbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-att-toolbar label {
+    font-size: 11px;
+  }
+
+  .admin-att-toolbar input,
+  .admin-att-search span {
+    min-height: 44px;
+    border-radius: 14px;
+  }
+
+  .admin-att-editor {
+    align-items: stretch;
+    border-radius: 18px;
+    padding: 12px;
+  }
+
+  .admin-att-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .admin-att-status {
+    min-height: 36px;
+    padding: 0 8px;
+  }
+
+  .admin-att-grid {
+    overflow: visible;
+    gap: 10px;
+    padding: 0;
+  }
+
+  .admin-att-head {
+    display: none;
+  }
+
+  .admin-att-row {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px;
+    align-items: stretch;
+    border-color: rgba(20, 63, 86, 0.1);
+    border-radius: 18px;
+    background: #fffefa;
+    padding: 12px;
+    box-shadow: 0 12px 28px rgba(20, 63, 86, 0.045);
+  }
+
+  .admin-att-user {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+    border-radius: 14px;
+    background: #f5faf7;
+    padding: 8px 10px;
+  }
+
+  .admin-att-user strong {
+    max-width: 60%;
+    font-size: 14px;
+  }
+
+  .admin-att-user span {
+    max-width: 40%;
+    text-align: right;
+  }
+
+  .admin-att-cell {
+    position: relative;
+    min-height: 50px;
+    border-radius: 14px;
+    padding: 19px 7px 7px;
+    background: #fffefa;
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .admin-att-cell::before {
+    position: absolute;
+    top: 7px;
+    left: 8px;
+    right: 8px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .admin-att-cell:nth-of-type(1)::before {
+    content: "출근";
+  }
+
+  .admin-att-cell:nth-of-type(2)::before {
+    content: "1교시";
+  }
+
+  .admin-att-cell:nth-of-type(3)::before {
+    content: "2교시";
+  }
+
+  .admin-att-cell:nth-of-type(4)::before {
+    content: "3교시";
+  }
+
+  .admin-att-cell:nth-of-type(5)::before {
+    content: "4교시";
+  }
+
+  .admin-att-cell:nth-of-type(6)::before {
+    content: "5교시";
+  }
+
+  .admin-att-cell:nth-of-type(7)::before {
+    content: "6교시";
+  }
+
+  .admin-att-cell:nth-of-type(8)::before {
+    content: "7교시";
+  }
+
+  .admin-att-cell.is-selected {
+    outline: 0;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 2px rgba(20, 63, 86, 0.13);
+  }
+
+  .admin-chat-card {
+    gap: 12px;
+  }
+
+  .admin-chat-card .admin-section-head {
+    align-items: flex-start;
+  }
+
+  .admin-chat-card .admin-section-head h2 {
+    font-size: 19px;
+  }
+
+  .admin-chat-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    height: auto;
+    min-height: 0;
+  }
+
+  .admin-chat-rooms {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(190px, 74vw);
+    gap: 8px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 18px;
+    padding: 9px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .admin-chat-rooms button {
+    min-height: 84px;
+    border-radius: 14px;
+    padding: 11px 34px 11px 12px;
+    scroll-snap-align: start;
+  }
+
+  .admin-chat-rooms button strong {
+    font-size: 13px;
+  }
+
+  .admin-chat-rooms button span {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
+  .admin-chat-thread {
+    min-height: 0;
+    height: auto;
+    border-radius: 18px;
+    grid-template-rows: auto minmax(260px, 42vh) auto;
+  }
+
+  .admin-chat-thread-head {
+    min-height: 62px;
+    padding: 12px;
+  }
+
+  .admin-chat-messages {
+    min-height: 260px;
+    max-height: 42vh;
+    padding: 12px;
+  }
+
+  .admin-chat-placeholder {
+    min-height: 150px;
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .admin-chat-compose {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .admin-chat-compose input,
+  .admin-chat-compose button {
+    min-height: 44px;
+    border-radius: 13px;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-att-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-att-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .admin-att-cell {
+    min-height: 48px;
+  }
+
+  .admin-chat-rooms {
+    grid-auto-columns: minmax(178px, 82vw);
+  }
+}
+
+/* Admin phone refinement: readable attendance rows + chat-list flow */
+@media (max-width: 760px) {
+  .admin-att-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .admin-att-user {
+    min-height: 42px;
+    background: linear-gradient(135deg, #f3faf7 0%, #fffefa 100%);
+  }
+
+  .admin-att-cell {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 13px;
+    padding: 0 11px;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .admin-att-cell::before {
+    position: static;
+    inset: auto;
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1;
+    text-align: left;
+  }
+
+  .admin-chat-card {
+    padding: 14px;
+  }
+
+  .admin-chat-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-chat-rooms {
+    display: grid;
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+    grid-template-columns: 1fr;
+    max-height: 236px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid rgba(20, 63, 86, 0.08);
+    background: #fffefa;
+    padding: 8px;
+    scroll-snap-type: none;
+  }
+
+  .admin-chat-rooms button {
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name time"
+      "latest badge";
+    align-items: center;
+    border-radius: 14px;
+    padding: 10px 12px;
+    scroll-snap-align: unset;
+  }
+
+  .admin-chat-rooms button strong {
+    grid-area: name;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .admin-chat-rooms button span {
+    grid-area: latest;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    white-space: nowrap;
+  }
+
+  .admin-chat-rooms button em {
+    grid-area: time;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .admin-chat-rooms b {
+    grid-area: badge;
+    position: static;
+    justify-self: end;
+  }
+
+  .admin-chat-thread {
+    border-radius: 18px;
+    grid-template-rows: auto minmax(250px, 45vh) auto;
+  }
+
+  .admin-chat-thread-head {
+    background: linear-gradient(135deg, #f3faf7 0%, #fffefa 100%);
+  }
+
+  .admin-chat-messages {
+    max-height: 45vh;
+  }
+}
+
+@media (max-width: 380px) {
+  .admin-att-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-chat-thread {
+    grid-template-rows: auto minmax(230px, 42vh) auto;
+  }
+}

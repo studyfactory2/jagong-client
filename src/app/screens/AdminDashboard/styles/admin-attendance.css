@@ -1,0 +1,240 @@
+/* attendance management */
+.admin-attendance {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-att-toolbar {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.admin-att-toolbar label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-att-toolbar input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.admin-att-search span {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  padding-left: 9px;
+}
+
+.admin-att-search svg {
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.admin-att-search input {
+  border: 0;
+  background: transparent;
+  padding-left: 0;
+}
+
+.admin-att-editor {
+  border: 1px solid var(--mint-line);
+  border-radius: 16px;
+  background: var(--mint-soft);
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-att-editor div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-att-editor span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-att-editor strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.admin-att-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.admin-att-status,
+.admin-att-cell {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-att-status {
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 12px;
+}
+
+.admin-att-status:disabled,
+.admin-att-cell:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.admin-att-grid {
+  overflow-x: auto;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.admin-att-head,
+.admin-att-row {
+  min-width: 980px;
+  display: grid;
+  grid-template-columns: 180px repeat(8, minmax(84px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-att-head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-att-head span {
+  text-align: center;
+}
+
+.admin-att-row {
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: rgba(255, 254, 250, 0.9);
+  padding: 9px;
+}
+
+.admin-att-user {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-att-user strong {
+  color: var(--ink);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-att-user span {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-att-cell {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.admin-att-cell.is-selected {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.admin-att-status.is-present,
+.admin-att-cell.is-present {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.admin-att-status.is-late,
+.admin-att-cell.is-late {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: #9b711e;
+}
+
+.admin-att-status.is-absent,
+.admin-att-cell.is-absent {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.admin-att-status.is-excused,
+.admin-att-cell.is-excused {
+  border-color: var(--line);
+  background: var(--card-2);
+  color: var(--ink);
+}
+
+.admin-att-cell.is-empty {
+  color: var(--muted);
+}
+
+.admin-att-empty {
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .admin-att-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-att-editor {
+    display: grid;
+  }
+
+  .admin-att-actions {
+    justify-content: stretch;
+  }
+
+  .admin-att-status {
+    flex: 1 1 72px;
+  }
+
+  .admin-att-head,
+  .admin-att-row {
+    min-width: 860px;
+    grid-template-columns: 150px repeat(8, minmax(76px, 1fr));
+  }
+}
