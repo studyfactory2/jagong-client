@@ -441,7 +441,9 @@ export default function AdminDashboard() {
   }
 
   function preparePreRegisterFromConsultation(id: string) {
-    const item = data.consultations.find((consultation) => consultation.id === id);
+    const item = data.consultations.find(
+      (consultation) => consultation.id === id,
+    );
     if (!item) return;
     setPreRegister((current) => ({
       ...current,
@@ -683,7 +685,9 @@ export default function AdminDashboard() {
 
             {error && <p className="admin-error">{error}</p>}
             {loading && (
-              <p className="admin-loading">관리자 데이터를 불러오는 중입니다.</p>
+              <p className="admin-loading">
+                관리자 데이터를 불러오는 중입니다.
+              </p>
             )}
 
             {activeTab === "profile" && (
