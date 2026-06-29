@@ -1,6 +1,6 @@
 import { http } from "./http";
 import type { AuthUser } from "../../lib/types";
-import { POLICY_VERSION } from "../../lib/config";
+import { getCurrentPolicyVersion } from "./policy.service";
 
 /** AUTH API **/
 
@@ -22,13 +22,14 @@ export async function register(
   password: string,
   policyAgreed: boolean,
 ): Promise<{ token?: string; user: AuthUser }> {
+  const policyVersion = await getCurrentPolicyVersion();
   const { data } = await http.post<{ token?: string; user: AuthUser }>(
     "/users/register",
     {
       name,
       branchId,
       password,
-      policyVersion: POLICY_VERSION,
+      policyVersion,
       termsAgreed: policyAgreed,
       privacyAgreed: policyAgreed,
       refundAgreed: policyAgreed,

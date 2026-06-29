@@ -19,7 +19,7 @@ import {
   createConsultation,
   getConsultationAvailability,
 } from "../../services/consultation.service";
-import { POLICY_VERSION } from "../../../lib/config";
+import { getCurrentPolicyVersion } from "../../services/policy.service";
 import "./booking.css";
 
 const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_ZRvnX/chat";
@@ -173,6 +173,7 @@ export default function ConsultationBooking() {
     setErr("");
     setBooking(true);
     try {
+      const policyVersion = await getCurrentPolicyVersion();
       await createConsultation({
         name: name.trim(),
         age: Number(age),
@@ -186,7 +187,7 @@ export default function ConsultationBooking() {
         date,
         timeSlot: slot === "other" ? customTime : slot,
         type,
-        policyVersion: POLICY_VERSION,
+        policyVersion,
         privacyAgreed,
       });
       setDone(type);

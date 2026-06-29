@@ -5,6 +5,54 @@ export interface Branch {
   name: string;
 }
 
+export type PolicyKey =
+  | "terms"
+  | "privacy"
+  | "refund"
+  | "camera"
+  | "operation"
+  | "marketing";
+
+export interface PolicyMeta {
+  key: PolicyKey;
+  title: string;
+  summary: string;
+  required: boolean;
+}
+
+export interface CurrentPolicy {
+  version: string;
+  pdfUrl: string;
+  registration: PolicyMeta[];
+  consultation: PolicyMeta[];
+  optional: PolicyMeta[];
+}
+
+export interface PolicyDocument {
+  key: PolicyKey;
+  title: string;
+  summary: string;
+  version: string;
+  pdfUrl: string;
+  required: {
+    registration: boolean;
+    consultation: boolean;
+  };
+  sections: PolicySection[];
+}
+
+export interface PolicySection {
+  heading: string;
+  body: string;
+  table?: PolicyTable;
+  footer?: string;
+}
+
+export interface PolicyTable {
+  headers: string[];
+  rows: string[][];
+}
+
 export interface AuthUser {
   userId?: string;
   id?: string;

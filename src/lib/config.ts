@@ -6,6 +6,3 @@ export const PORTONE_STORE_ID: string =
 
 export const PORTONE_CHANNEL_KEY: string =
   import.meta.env.VITE_PORTONE_CHANNEL_KEY ?? "";
-
-export const POLICY_VERSION: string =
-  import.meta.env.VITE_POLICY_VERSION ?? "2026-06-29";
