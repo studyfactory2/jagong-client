@@ -1,6 +1,12 @@
 import type { AdminUser, PageMeta, PaymentRecord } from "../../../lib/types";
 import AdminPager from "./AdminPager";
-import { dateText, money, userName } from "./admin.utils";
+import {
+  dateOnlyText,
+  dateText,
+  membershipEndText,
+  money,
+  userName,
+} from "./admin.utils";
 
 type PaymentsProps = {
   payments: PaymentRecord[];
@@ -47,34 +53,62 @@ export default function Payments(props: PaymentsProps) {
         {payments.length === 0 && (
           <div className="admin-list-empty">결제 내역이 없습니다.</div>
         )}
-        {payments.map((payment) => (
-          <div className="admin-row is-payment" key={payment.id}>
-            <strong>{payment.userId ? userName(users, payment.userId) : (payment.consultation?.name ?? "상담 결제")}</strong>
-            <span>{payment.planMonths}개월 · {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}</span>
-            <span>{PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}</span>
-            <span>
-              {money(payment.amount)}
-              {payment.status === "REFUNDED" && payment.refundAmount != null && (
-                <small>환불 {money(payment.refundAmount)}</small>
-              )}
-            </span>
-            <em>{dateText(payment.createdAt)}</em>
+        {payments.map((payment) => {
+          const owner = payment.userId
+            ? userName(users, payment.userId)
+            : (payment.consultation?.name ?? "상담 결제");
+          const paidDate = payment.paidAt ?? payment.createdAt;
+          const period =
+            payment.periodStart && payment.periodEnd
+              ? `${dateOnlyText(payment.periodStart)} ~ ${membershipEndText(
+                  payment.periodEnd,
+                )}`
+              : "이용기간 미정";
 
-            <div className="admin-receipt-actions">
-              {payment.receiptSignedUrl ? (
-                <a
-                  href={payment.receiptSignedUrl}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  영수증 보기
-                </a>
-              ) : (
-                <span>영수증 없음</span>
-              )}
+          return (
+            <div className="admin-row is-payment" key={payment.id}>
+              <strong>
+                {owner}
+                {payment.depositorName && (
+                  <small>입금자 {payment.depositorName}</small>
+                )}
+                {payment.adminMemo && <small>메모 {payment.adminMemo}</small>}
+              </strong>
+              <span>
+                {payment.planMonths}개월 ·{" "}
+                {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}
+                <small>확인일 {dateOnlyText(paidDate)}</small>
+              </span>
+              <span>{PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}</span>
+              <span>
+                {money(payment.amount)}
+                {payment.status === "REFUNDED" && payment.refundAmount != null && (
+                  <small>환불 {money(payment.refundAmount)}</small>
+                )}
+              </span>
+              <em>
+                이용 {period}
+                {payment.refundedAt && (
+                  <small>환불일 {dateText(payment.refundedAt)}</small>
+                )}
+              </em>
+
+              <div className="admin-receipt-actions">
+                {payment.receiptSignedUrl ? (
+                  <a
+                    href={payment.receiptSignedUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    영수증 보기
+                  </a>
+                ) : (
+                  <span>영수증 없음</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <AdminPager meta={pageMeta} onPageChange={onPageChange} />
     </section>

@@ -195,6 +195,41 @@
   padding: 11px 13px;
 }
 
+.bk-agree {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px 13px;
+}
+
+.bk-agree input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.bk-agree span {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.bk-agree a {
+  display: inline-flex;
+  margin-left: 8px;
+  color: var(--accent-deep);
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .bk-grid2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

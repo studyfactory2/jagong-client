@@ -36,11 +36,23 @@ function dateText(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
+  return dateObjectText(date);
+}
+
+function dateObjectText(date: Date): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+}
+
+function membershipEndText(value?: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  date.setDate(date.getDate() - 1);
+  return dateObjectText(date);
 }
 
 function paymentPhaseText(phase: PaymentPhase): string {
@@ -86,7 +98,7 @@ function paymentNotice(
   if (viewState === "future") {
     return {
       title: "이용 시작 전입니다",
-      body: `결제는 완료되어 있어요. ${dateText(
+              body: `결제는 완료되어 있어요. ${dateText(
         membership?.startDate,
       )}부터 대기장과 공부방 전체 기능을 이용할 수 있습니다.`,
     };
@@ -287,7 +299,7 @@ export default function PaymentHistory() {
             </div>
             <div>
               <dt>만료일</dt>
-              <dd>{dateText(membership?.membershipEnd)}</dd>
+              <dd>{membershipEndText(membership?.membershipEnd)}</dd>
             </div>
           </dl>
           <small>남은 기간 뒤로 누적 적용돼요</small>
@@ -314,7 +326,7 @@ export default function PaymentHistory() {
                 <span>
                   <strong>{plan.months}달</strong>
                   <small>
-                    {plan.days}일 · 총 {money(plan.total)}
+                    총 {money(plan.total)}
                   </small>
                 </span>
                 <b>
@@ -331,7 +343,7 @@ export default function PaymentHistory() {
           <div>
             <span>선택한 이용권</span>
             <strong>
-              {selectedPlan?.months ?? "-"}달 · {selectedPlan?.days ?? "-"}일
+              {selectedPlan?.months ?? "-"}개월권
             </strong>
           </div>
           <div>

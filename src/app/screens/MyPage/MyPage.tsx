@@ -23,6 +23,18 @@ type ProfileForm = {
   passwordConfirm: string;
 };
 
+function membershipEndText(value?: string | null) {
+  if (!value) return "이용권 없음";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "이용권 없음";
+  date.setDate(date.getDate() - 1);
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 function fromUser(user?: AuthUser | null): ProfileForm {
   return {
     name: user?.name ?? "",
@@ -67,13 +79,7 @@ export default function MyPage() {
     !passwordInvalid &&
     !passwordMismatch &&
     (form.password.length === 0 || form.passwordConfirm.length === 4);
-  const membershipText = session?.user.membershipEnd
-    ? new Intl.DateTimeFormat("ko-KR", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date(session.user.membershipEnd))
-    : "이용권 없음";
+  const membershipText = membershipEndText(session?.user.membershipEnd);
 
   /** HANDLERS **/
   function update(field: keyof ProfileForm, value: string) {

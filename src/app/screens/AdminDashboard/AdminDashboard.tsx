@@ -94,6 +94,13 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
 };
 
+function dateInputValue(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -138,6 +145,11 @@ export default function AdminDashboard() {
   const [manualUserId, setManualUserId] = useState("");
   const [manualMonths, setManualMonths] = useState(1);
   const [manualName, setManualName] = useState("");
+  const [manualPaidAt, setManualPaidAt] = useState(() => dateInputValue());
+  const [manualStartDate, setManualStartDate] = useState(() =>
+    dateInputValue(),
+  );
+  const [manualMemo, setManualMemo] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [manualReceiptFile, setManualReceiptFile] = useState<File | null>(null);
@@ -402,7 +414,14 @@ export default function AdminDashboard() {
   }
 
   async function saveManualPayment() {
-    if (!isAdmin || !manualUserId || !manualName.trim() || savingManualPayment)
+    if (
+      !isAdmin ||
+      !manualUserId ||
+      !manualName.trim() ||
+      !manualPaidAt ||
+      !manualStartDate ||
+      savingManualPayment
+    )
       return;
     setSavingManualPayment(true);
     try {
@@ -411,12 +430,17 @@ export default function AdminDashboard() {
           userId: manualUserId,
           planMonths: manualMonths,
           depositorName: manualName,
-          paidAt: new Date().toISOString(),
+          paidAt: manualPaidAt,
+          startDate: manualStartDate,
+          adminMemo: manualMemo.trim() || undefined,
         });
         if (manualReceiptFile) {
           await attachPaymentReceipt(payment.id, manualReceiptFile);
         }
         setManualName("");
+        setManualMemo("");
+        setManualPaidAt(dateInputValue());
+        setManualStartDate(dateInputValue());
         setManualReceiptFile(null);
         await load();
       }, "수동 결제를 등록하지 못했습니다.");
@@ -637,7 +661,7 @@ export default function AdminDashboard() {
           <aside className="admin-menu-shell">
             <div className="admin-menu-head">
               <div className="admin-menu-brand">
-                <img src="/pwa-icon-192.png" alt="" />
+                <DashboardOutlinedIcon />
                 <div>
                   <strong>자격증공장</strong>
                   <span>Admin Console</span>
@@ -716,6 +740,9 @@ export default function AdminDashboard() {
                 manualUserId={manualUserId}
                 manualMonths={manualMonths}
                 manualName={manualName}
+                manualPaidAt={manualPaidAt}
+                manualStartDate={manualStartDate}
+                manualMemo={manualMemo}
                 manualReceiptFile={manualReceiptFile}
                 savingManualPayment={savingManualPayment}
                 onNoticeTitleChange={setNoticeTitle}
@@ -723,6 +750,9 @@ export default function AdminDashboard() {
                 onManualUserChange={setManualUserId}
                 onManualMonthsChange={setManualMonths}
                 onManualNameChange={setManualName}
+                onManualPaidAtChange={setManualPaidAt}
+                onManualStartDateChange={setManualStartDate}
+                onManualMemoChange={setManualMemo}
                 onManualReceiptChange={setManualReceiptFile}
                 onSaveNotice={saveNotice}
                 onSaveManualPayment={saveManualPayment}

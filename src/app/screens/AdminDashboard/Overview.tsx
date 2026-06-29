@@ -8,6 +8,7 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import type { AdminUser } from "../../../lib/types";
 import type { AdminStats } from "./admin.types";
+import { membershipEndText } from "./admin.utils";
 
 type OverviewProps = {
   stats: AdminStats;
@@ -17,6 +18,9 @@ type OverviewProps = {
   manualUserId: string;
   manualMonths: number;
   manualName: string;
+  manualPaidAt: string;
+  manualStartDate: string;
+  manualMemo: string;
   manualReceiptFile: File | null;
   savingManualPayment: boolean;
   onNoticeTitleChange: (value: string) => void;
@@ -24,6 +28,9 @@ type OverviewProps = {
   onManualUserChange: (value: string) => void;
   onManualMonthsChange: (value: number) => void;
   onManualNameChange: (value: string) => void;
+  onManualPaidAtChange: (value: string) => void;
+  onManualStartDateChange: (value: string) => void;
+  onManualMemoChange: (value: string) => void;
   onManualReceiptChange: (file: File | null) => void;
   onSaveNotice: () => void;
   onSaveManualPayment: () => void;
@@ -38,6 +45,9 @@ export default function Overview(props: OverviewProps) {
     manualUserId,
     manualMonths,
     manualName,
+    manualPaidAt,
+    manualStartDate,
+    manualMemo,
     manualReceiptFile,
     savingManualPayment,
     onNoticeTitleChange,
@@ -45,6 +55,9 @@ export default function Overview(props: OverviewProps) {
     onManualUserChange,
     onManualMonthsChange,
     onManualNameChange,
+    onManualPaidAtChange,
+    onManualStartDateChange,
+    onManualMemoChange,
     onManualReceiptChange,
     onSaveNotice,
     onSaveManualPayment,
@@ -62,6 +75,10 @@ export default function Overview(props: OverviewProps) {
           .some((value) => String(value).toLowerCase().includes(query));
       });
   }, [manualUserSearch, users]);
+  const selectedManualUser = users.find((user) => user.id === manualUserId);
+  const currentMembershipEnd = selectedManualUser?.membershipEnd
+    ? membershipEndText(selectedManualUser.membershipEnd)
+    : null;
 
   return (
     <section className="admin-grid">
@@ -132,10 +149,10 @@ export default function Overview(props: OverviewProps) {
           onChange={(event) => onManualUserChange(event.target.value)}
         >
           {manualUsers.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
+            <option key={user.id} value={user.id}>
+              {user.name}
+            </option>
+          ))}
         </select>
         <select
           value={manualMonths}
@@ -149,6 +166,35 @@ export default function Overview(props: OverviewProps) {
           value={manualName}
           onChange={(event) => onManualNameChange(event.target.value)}
           placeholder="입금자명"
+        />
+        <div className="admin-payment-date-grid">
+          <label>
+            <span>입금 확인일</span>
+            <input
+              type="date"
+              value={manualPaidAt}
+              onChange={(event) => onManualPaidAtChange(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>이용 시작일</span>
+            <input
+              type="date"
+              value={manualStartDate}
+              onChange={(event) => onManualStartDateChange(event.target.value)}
+            />
+          </label>
+        </div>
+        {currentMembershipEnd && (
+          <p className="admin-payment-hint">
+            기존 이용권 종료 기준: {currentMembershipEnd}. 남은 기간이 있으면 새
+            이용권은 기존 종료일 다음 날부터 자동으로 이어집니다.
+          </p>
+        )}
+        <textarea
+          value={manualMemo}
+          onChange={(event) => onManualMemoChange(event.target.value)}
+          placeholder="관리자 메모 (선택)"
         />
         <label className="admin-payment-upload">
           <span>입금 확인 사진</span>

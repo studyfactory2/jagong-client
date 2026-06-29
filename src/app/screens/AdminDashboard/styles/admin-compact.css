@@ -458,6 +458,36 @@
   display: none;
 }
 
+.admin-payment-date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-payment-date-grid label {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-payment-date-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-payment-hint {
+  margin: 0;
+  border: 1px solid var(--mint-line);
+  border-radius: 10px;
+  background: var(--mint-soft);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 9px 10px;
+  word-break: keep-all;
+}
+
 @media (max-width: 900px) {
   .admin-pre-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -471,6 +501,7 @@
 
 @media (max-width: 520px) {
   .admin-pre-grid,
+  .admin-payment-date-grid,
   .admin-row.is-member,
   .admin-row.is-payment {
     grid-template-columns: 1fr;

@@ -19,6 +19,7 @@ import {
   createConsultation,
   getConsultationAvailability,
 } from "../../services/consultation.service";
+import { POLICY_VERSION } from "../../../lib/config";
 import "./booking.css";
 
 const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_ZRvnX/chat";
@@ -79,6 +80,7 @@ export default function ConsultationBooking() {
   const [takenSlots, setTakenSlots] = useState<string[]>([]);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityFailed, setAvailabilityFailed] = useState(false);
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
 
   const dates = useMemo(() => {
     const days = ["일", "월", "화", "수", "목", "금", "토"];
@@ -156,6 +158,7 @@ export default function ConsultationBooking() {
     if (takenSlots.includes(slot)) return "이미 예약된 시간입니다.";
     if (slot === "other" && !customTime.trim())
       return "원하는 시간을 적어 주세요.";
+    if (!privacyAgreed) return "개인정보 수집 및 이용에 동의해 주세요.";
     return "";
   }
 
@@ -183,6 +186,8 @@ export default function ConsultationBooking() {
         date,
         timeSlot: slot === "other" ? customTime : slot,
         type,
+        policyVersion: POLICY_VERSION,
+        privacyAgreed,
       });
       setDone(type);
     } catch (error) {
@@ -488,6 +493,20 @@ export default function ConsultationBooking() {
             onChange={(e) => setCustomTime(e.target.value)}
           />
         )}
+
+        <label className="bk-agree">
+          <input
+            type="checkbox"
+            checked={privacyAgreed}
+            onChange={(event) => setPrivacyAgreed(event.target.checked)}
+          />
+          <span>
+            [필수] 상담 예약을 위한 개인정보 수집 및 이용에 동의합니다.
+            <a href="/policies#privacy" target="_blank" rel="noreferrer">
+              전문보기
+            </a>
+          </span>
+        </label>
 
         {err && <div className="bk-error">{err}</div>}
 

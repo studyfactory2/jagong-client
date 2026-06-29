@@ -99,6 +99,7 @@ export async function recordManualPayment(input: {
   planMonths: number;
   depositorName: string;
   paidAt: string;
+  startDate: string;
   adminMemo?: string;
 }): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>("/memberships/manual", input);

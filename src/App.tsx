@@ -6,6 +6,7 @@ import Login from "./app/screens/Login";
 import Register from "./app/screens/Register";
 import ConsultationBooking from "./app/screens/ConsultationBooking";
 import ConsultationCheckout from "./app/screens/ConsultationCheckout";
+import Policies from "./app/screens/Policies";
 import PaymentHistory from "./app/screens/PaymentHistory";
 import PaymentSuccess from "./app/screens/PaymentSuccess";
 import PaymentFail from "./app/screens/PaymentFail";
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/booking" element={<ConsultationBooking />} />
         <Route path="/checkout/:paymentId" element={<ConsultationCheckout />} />
+        <Route path="/policies" element={<Policies />} />
 
         {/* behind login */}
         <Route element={<ProtectedRoute />}>

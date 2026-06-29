@@ -62,6 +62,8 @@ export type ConsultationInput = {
   date: string;
   timeSlot: string;
   type: ConsultationInputType;
+  policyVersion: string;
+  privacyAgreed: boolean;
 };
 
 export interface MembershipPlan {
@@ -91,6 +93,9 @@ export interface PaymentRecord {
   periodStart: string | null;
   periodEnd: string | null;
   pgTxId: string | null;
+  depositorName?: string | null;
+  paidAt?: string | null;
+  adminMemo?: string | null;
   refundAmount?: number | null;
   refundCharge?: number | null;
   refundUsedDays?: number | null;

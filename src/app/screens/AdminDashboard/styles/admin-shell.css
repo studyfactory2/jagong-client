@@ -165,12 +165,13 @@
     min-height: 48px;
   }
 
-  .admin-menu-brand img {
+  .admin-menu-brand > svg {
     width: 42px;
     height: 42px;
     border-radius: 13px;
     background: var(--ink);
-    object-fit: cover;
+    color: #ffffff;
+    padding: 9px;
     box-shadow: 0 12px 24px rgba(20, 63, 86, 0.14);
   }
 
@@ -466,7 +467,7 @@
     padding: 0 2px;
   }
 
-  .admin-menu-brand img {
+  .admin-menu-brand > svg {
     width: 42px;
     height: 42px;
     border-radius: 12px;

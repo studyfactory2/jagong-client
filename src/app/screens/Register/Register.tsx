@@ -30,6 +30,7 @@ export default function Register() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [noInfo, setNoInfo] = useState(false);
+  const [policyAgreed, setPolicyAgreed] = useState(false);
 
   useEffect(() => {
     getBranches()
@@ -47,6 +48,7 @@ export default function Register() {
     setPin2("");
     setShowPin(false);
     setShowPin2(false);
+    setPolicyAgreed(false);
     setErr("");
   }
 
@@ -62,11 +64,12 @@ export default function Register() {
     if (!branchId) return setErr("지역을 선택해주세요.");
     if (!/^\d{4}$/.test(pin)) return setErr("비밀번호는 숫자 4자리예요.");
     if (pin !== pin2) return setErr("비밀번호가 일치하지 않습니다.");
+    if (!policyAgreed) return setErr("필수 약관 및 정책에 동의해주세요.");
 
     setBusy(true);
 
     try {
-      const res = await registerApi(name.trim(), branchId, pin);
+      const res = await registerApi(name.trim(), branchId, pin, policyAgreed);
 
       if (res.token) {
         login({ token: res.token, user: res.user }, false);
@@ -214,6 +217,21 @@ export default function Register() {
         </div>
 
         <p className="reg-help">본인만 아는 비밀번호 4자리를 입력해주세요</p>
+
+        <label className="reg-agree">
+          <input
+            type="checkbox"
+            checked={policyAgreed}
+            onChange={(event) => setPolicyAgreed(event.target.checked)}
+          />
+          <span>
+            [필수] 서비스 이용약관, 개인정보 처리방침, 결제 및 환불정책,
+            카메라 이용 동의, 운영수칙을 확인하고 동의합니다.
+            <a href="/policies" target="_blank" rel="noreferrer">
+              전문보기
+            </a>
+          </span>
+        </label>
 
         {err && <div className="reg-error">{err}</div>}
 

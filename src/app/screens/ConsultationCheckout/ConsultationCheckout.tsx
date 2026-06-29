@@ -19,11 +19,23 @@ function dateText(value?: string | null): string {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
+  return dateObjectText(date);
+}
+
+function dateObjectText(date: Date): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(date);
+}
+
+function membershipEndText(value?: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  date.setDate(date.getDate() - 1);
+  return dateObjectText(date);
 }
 
 export default function ConsultationCheckout() {
@@ -51,7 +63,7 @@ export default function ConsultationCheckout() {
     ? (returnedMessage ?? "결제가 완료되지 않았습니다.")
     : hasPaymentMismatch
       ? "결제 승인 정보가 현재 결제 링크와 일치하지 않습니다."
-    : "";
+      : "";
   const displayError = urlError || error;
   const isPaid = checkout?.status === "PAID";
   const canPay = checkout?.status === "PENDING";
@@ -202,8 +214,8 @@ export default function ConsultationCheckout() {
                 <dd>{dateText(checkout.periodStart)}</dd>
               </div>
               <div>
-                <dt>이용 만료일</dt>
-                <dd>{dateText(checkout.periodEnd)}</dd>
+                <dt>이용 종료일</dt>
+                <dd>{membershipEndText(checkout.periodEnd)}</dd>
               </div>
               <div>
                 <dt>상담 일정</dt>

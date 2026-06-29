@@ -12,6 +12,25 @@ export function dateText(value?: string | null) {
   }).format(date);
 }
 
+export function dateOnlyText(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function membershipEndText(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  date.setDate(date.getDate() - 1);
+  return dateOnlyText(date.toISOString());
+}
+
 export function money(value: number) {
   return value.toLocaleString("ko-KR") + "원";
 }
