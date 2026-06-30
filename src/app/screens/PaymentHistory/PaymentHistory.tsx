@@ -61,6 +61,11 @@ function paymentPhaseText(phase: PaymentPhase): string {
   return "카드로 연장하기";
 }
 
+function isAlreadyPaidPaymentError(message?: string | null): boolean {
+  const value = (message ?? "").toLowerCase();
+  return value.includes("이미 결제") || value.includes("already paid");
+}
+
 function membershipViewState(
   membership: MembershipStatus | null,
   loading: boolean,
@@ -98,7 +103,7 @@ function paymentNotice(
   if (viewState === "future") {
     return {
       title: "이용 시작 전입니다",
-              body: `결제는 완료되어 있어요. ${dateText(
+      body: `결제는 완료되어 있어요. ${dateText(
         membership?.startDate,
       )}부터 대기장과 공부방 전체 기능을 이용할 수 있습니다.`,
     };
@@ -226,6 +231,13 @@ export default function PaymentHistory() {
       }
 
       if (response.code) {
+        if (isAlreadyPaidPaymentError(response.message)) {
+          navigate(
+            "/payments/success?" +
+              new URLSearchParams({ paymentId: checkout.paymentId }).toString(),
+          );
+          return;
+        }
         setError(response.message ?? "결제에 실패했습니다.");
         setPaymentPhase("idle");
         return;
@@ -246,7 +258,9 @@ export default function PaymentHistory() {
   }
 
   const paidPayments = payments.filter((p) => p.status === "PAID");
-  const visiblePayments = showAllPayments ? paidPayments : paidPayments.slice(0, 3);
+  const visiblePayments = showAllPayments
+    ? paidPayments
+    : paidPayments.slice(0, 3);
   const backPath = canEnterWaitingRoom ? "/waiting-room" : "/my-page";
   const backLabel = canEnterWaitingRoom ? "대기장" : "내 정보";
   const selectedMonthly = selectedPlan
@@ -325,13 +339,13 @@ export default function PaymentHistory() {
                 <i aria-hidden="true" />
                 <span>
                   <strong>{plan.months}달</strong>
-                  <small>
-                    총 {money(plan.total)}
-                  </small>
+                  <small>총 {money(plan.total)}</small>
                 </span>
                 <b>
                   {money(plan.total)}
-                  <small>월 {money(Math.round(plan.total / plan.months))}</small>
+                  <small>
+                    월 {money(Math.round(plan.total / plan.months))}
+                  </small>
                 </b>
               </button>
             ))}
@@ -342,9 +356,7 @@ export default function PaymentHistory() {
         <section className="pay-summary">
           <div>
             <span>선택한 이용권</span>
-            <strong>
-              {selectedPlan?.months ?? "-"}개월권
-            </strong>
+            <strong>{selectedPlan?.months ?? "-"}개월권</strong>
           </div>
           <div>
             <span>결제 금액</span>
@@ -390,7 +402,11 @@ export default function PaymentHistory() {
               </button>
             )}
           </div>
-          <div className={showAllPayments ? "pay-history-list is-open" : "pay-history-list"}>
+          <div
+            className={
+              showAllPayments ? "pay-history-list is-open" : "pay-history-list"
+            }
+          >
             {paidPayments.length === 0 && (
               <p className="pay-empty">아직 완료된 결제내역이 없습니다.</p>
             )}
@@ -402,7 +418,9 @@ export default function PaymentHistory() {
                     {payment.planMonths}개월 · {money(payment.amount)}
                   </span>
                 </div>
-                <em>{payment.status === "PAID" ? "결제완료" : payment.status}</em>
+                <em>
+                  {payment.status === "PAID" ? "결제완료" : payment.status}
+                </em>
                 <ReceiptLongOutlinedIcon />
                 {payment.receiptSignedUrl ? (
                   <a

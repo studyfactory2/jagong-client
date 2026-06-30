@@ -38,6 +38,11 @@ function membershipEndText(value?: string | null): string {
   return dateObjectText(date);
 }
 
+function isAlreadyPaidPaymentError(message?: string | null): boolean {
+  const value = (message ?? "").toLowerCase();
+  return value.includes("이미 결제") || value.includes("already paid");
+}
+
 export default function ConsultationCheckout() {
   const navigate = useNavigate();
   const { paymentId = "" } = useParams();
@@ -156,6 +161,10 @@ export default function ConsultationCheckout() {
         return;
       }
       if (response.code) {
+        if (isAlreadyPaidPaymentError(response.message)) {
+          await confirm(checkout.id);
+          return;
+        }
         setError(response.message ?? "결제에 실패했습니다.");
         return;
       }
