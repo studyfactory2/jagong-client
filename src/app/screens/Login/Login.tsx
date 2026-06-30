@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { animate, stagger } from "animejs";
 import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -18,18 +17,41 @@ import "./login.css";
 
 const AUTH_REMEMBER_KEY = "jagong_remember_login";
 const STUDY_TILES = [
-  { label: "기출", tone: "is-coral" },
-  { label: "필기", tone: "is-mint" },
-  { label: "암기", tone: "is-navy" },
-  { label: "오답", tone: "is-gold" },
-  { label: "정리", tone: "is-sage" },
-  { label: "복습", tone: "is-blush" },
+  {
+    label: "변호사",
+    tone: "is-coral",
+    src: "https://assets.jagongonline.com/login/video1.mp4",
+  },
+  {
+    label: "회계사",
+    tone: "is-mint",
+    src: "https://assets.jagongonline.com/login/video2.mp4",
+  },
+  {
+    label: "감정평가사",
+    tone: "is-navy",
+    src: "https://assets.jagongonline.com/login/video3.mp4",
+  },
+  {
+    label: "임용고시",
+    tone: "is-gold",
+    src: "https://assets.jagongonline.com/login/video4.mp4",
+  },
+  {
+    label: "공무원",
+    tone: "is-sage",
+    src: "https://assets.jagongonline.com/login/video5.mp4",
+  },
+  {
+    label: "공기업",
+    tone: "is-blush",
+    src: "https://assets.jagongonline.com/login/video6.mp4",
+  },
 ];
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, session } = useAuth();
-  const motionRef = useRef<HTMLElement | null>(null);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -44,76 +66,6 @@ export default function Login() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-
-  useEffect(() => {
-    const root = motionRef.current;
-    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-
-    const heads = animate(root.querySelectorAll(".login-student-head"), {
-      y: [
-        { to: 0, duration: 0 },
-        { to: -2, duration: 1400 },
-      ],
-      rotate: [
-        { to: -0.6, duration: 0 },
-        { to: 0.8, duration: 1400 },
-      ],
-      delay: stagger(120),
-      ease: "inOutQuad",
-      alternate: true,
-      loop: true,
-    });
-
-    const hands = animate(root.querySelectorAll(".login-student-hand"), {
-      x: [
-        { to: 0, duration: 0 },
-        { to: 2, duration: 680 },
-      ],
-      rotate: [
-        { to: -2, duration: 0 },
-        { to: 2.5, duration: 680 },
-      ],
-      delay: stagger(70, { from: "center" }),
-      ease: "inOutSine",
-      alternate: true,
-      loop: true,
-    });
-
-    const screens = animate(root.querySelectorAll(".login-student-screen"), {
-      opacity: [
-        { to: 0.74, duration: 0 },
-        { to: 1, duration: 1400 },
-      ],
-      boxShadow: [
-        "0 0 0 rgba(88,164,104,0)",
-        "0 0 16px rgba(159,206,180,0.22)",
-      ],
-      delay: stagger(140),
-      ease: "inOutSine",
-      alternate: true,
-      loop: true,
-    });
-
-    const notes = animate(root.querySelectorAll(".login-student-note-line"), {
-      scaleX: [
-        { to: 0, duration: 0 },
-        { to: 1, duration: 900 },
-      ],
-      delay: stagger(90),
-      ease: "outCubic",
-      alternate: true,
-      loop: true,
-    });
-
-    return () => {
-      heads.pause();
-      hands.pause();
-      screens.pause();
-      notes.pause();
-    };
-  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -296,41 +248,29 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="login-preview" ref={motionRef}>
+      <section className="login-preview">
         <span className="login-preview-badge">
           자격증공장 재택근무반 온라인 작업장
         </span>
 
         <div className="login-student-grid" aria-hidden="true">
           {STUDY_TILES.map((tile) => (
-            <article className={`login-student ${tile.tone}`} key={tile.label}>
-              <span className="login-student-light" />
-              <span className="login-student-screen" />
-              <span className="login-student-lamp" />
-              <span className="login-student-person">
-                <span className="login-student-body" />
-                <span className="login-student-neck" />
-                <span className="login-student-head">
-                  <span className="login-student-hair" />
-                  <span className="login-student-eye is-left" />
-                  <span className="login-student-eye is-right" />
-                  <span className="login-student-nose" />
-                  <span className="login-student-mouth" />
-                  <span className="login-student-cheek is-left" />
-                  <span className="login-student-cheek is-right" />
-                </span>
-                <span className="login-student-hand is-left" />
-                <span className="login-student-hand is-right" />
-              </span>
-              <span className="login-student-desk">
-                <span className="login-student-book">
-                  <span className="login-student-book-page is-left" />
-                  <span className="login-student-book-page is-right" />
-                  <span className="login-student-note-line" />
-                  <span className="login-student-note-line" />
-                </span>
-                <span className="login-student-pencil" />
-              </span>
+            <article
+              className={`login-video-tile ${tile.tone}`}
+              key={tile.label}
+            >
+              <span className="login-video-glow" />
+              <video
+                className="login-video-media"
+                src={tile.src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                disablePictureInPicture
+              />
+              <span className="login-video-shade" />
               <span className="login-student-label">{tile.label}</span>
             </article>
           ))}
@@ -342,6 +282,10 @@ export default function Login() {
 
         <p className="login-note">
           입장 후에는 오늘의 출석, 학습장, 캠 작업실을 바로 확인할 수 있습니다.
+        </p>
+
+        <p className="login-ai-note">
+          AI 연출 영상이며 실제 회원 화면이 아닙니다.
         </p>
       </section>
 

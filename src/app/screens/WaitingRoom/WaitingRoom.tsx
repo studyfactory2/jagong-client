@@ -639,7 +639,7 @@ export default function WaitingRoom() {
           </div>
 
           <p className="wr-preview-note">
-            *실시간 미리보기는 영상만 표시되며 음성은 사용하지 않습니다.
+            *현재 접속 중인 사원 중 일부가 무작위로 표시됩니다.
             {effectivePreviewStatus === "connecting" && " 연결 중입니다."}
             {effectivePreviewStatus === "error" &&
               " 영상 연결을 확인하지 못했습니다."}

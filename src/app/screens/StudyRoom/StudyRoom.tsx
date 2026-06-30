@@ -871,8 +871,8 @@ export default function StudyRoom() {
                 {smartMessage}
               </div>
               <p>
-                큰 셀프 화면은 띄우지 않고, 관리자는 작업장 모니터에서 캠을
-                확인합니다.
+                카메라 영상은 녹화·저장하지 않으며, 작업장 내 자리 확인을
+                위해서만 사용됩니다.
               </p>
             </div>
           )}
