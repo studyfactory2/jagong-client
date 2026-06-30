@@ -22,6 +22,7 @@ export async function getCamSessions(input?: {
 
 export async function issueCamToken(input?: {
   branchId?: string;
+  preview?: boolean;
 }): Promise<CamTokenDto> {
   const { data } = await http.post<CamTokenDto>("/cam/token", input ?? {});
   return data;

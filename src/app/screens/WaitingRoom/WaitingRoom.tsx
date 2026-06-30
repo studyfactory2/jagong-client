@@ -16,10 +16,11 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import type { Room } from "livekit-client";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { getMyAttendance } from "../../services/attendance.service";
-import { getCamRoomMembers } from "../../services/cam.service";
+import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
 import { getOnlineCount } from "../../services/status.service";
 import { getTimetable } from "../../services/timetable.service";
 import type {
@@ -167,6 +168,52 @@ function workerGradient(index: number) {
         : "linear-gradient(135deg,#b08a4f,#8a6a2f)";
 }
 
+function randomRank(value: string, seed: string) {
+  let hash = 0;
+  const input = `${seed}:${value}`;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) % 1000003;
+  }
+  return hash;
+}
+
+type RemoteVideoTrack = {
+  attach: (element?: HTMLMediaElement) => HTMLMediaElement;
+  detach: (element?: HTMLMediaElement) => HTMLMediaElement[];
+};
+
+type RemoteVideo = {
+  trackSid: string;
+  userId: string;
+  track: RemoteVideoTrack;
+};
+
+function WorkerPreviewVideo({ track }: { track: RemoteVideoTrack }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return undefined;
+
+    track.attach(element);
+    element.play().catch(() => undefined);
+
+    return () => {
+      track.detach(element);
+    };
+  }, [track]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      className="wr-worker-video"
+    />
+  );
+}
+
 export default function WaitingRoom() {
   const navigate = useNavigate();
   const { session, logout } = useAuth();
@@ -178,7 +225,13 @@ export default function WaitingRoom() {
   const [bellMsg, setBellMsg] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [previewVideos, setPreviewVideos] = useState<RemoteVideo[]>([]);
+  const [previewStatus, setPreviewStatus] = useState<
+    "idle" | "connecting" | "connected" | "stub" | "error"
+  >("idle");
   const bellTimerRef = useRef<number | null>(null);
+  const previewRoomRef = useRef<Room | null>(null);
+  const previewIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
@@ -313,7 +366,6 @@ export default function WaitingRoom() {
     100,
     Math.round((elapsedWorkSeconds / totalWorkSeconds) * 100),
   );
-  const connectedCount = online ?? onlineFallback ?? 13;
   const countdownTarget = current
     ? toSec(current.endTime) - nowSec
     : nextSlot
@@ -335,14 +387,168 @@ export default function WaitingRoom() {
   const attendanceCount = attendance.filter(
     (record) => record.status === "PRESENT" || record.status === "EXCUSED",
   ).length;
-  const sortedMembers = useMemo(
-    () =>
-      [...roomMembers].sort((a, b) => {
-        if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
-        return a.name.localeCompare(b.name, "ko");
-      }),
-    [roomMembers],
+  const workingMemberCount = roomMembers.filter(
+    (member) => member.isWorking,
+  ).length;
+  const waitingMemberCount = Math.max(
+    0,
+    roomMembers.length - workingMemberCount,
   );
+  const connectedCount =
+    workingMemberCount > 0
+      ? workingMemberCount
+      : (online ?? onlineFallback ?? 0);
+  const previewSeed = isoDate(now);
+  const previewMembers = useMemo(() => {
+    const byRank = (a: CamRoomMember, b: CamRoomMember) =>
+      randomRank(a.id, previewSeed) - randomRank(b.id, previewSeed);
+    const working = roomMembers
+      .filter((member) => member.isWorking)
+      .sort(byRank);
+    const waiting = roomMembers
+      .filter((member) => !member.isWorking)
+      .sort(byRank);
+    const remainingSlots = Math.max(0, 8 - Math.min(working.length, 8));
+
+    return [...working.slice(0, 8), ...waiting.slice(0, remainingSlots)];
+  }, [previewSeed, roomMembers]);
+  const livePreviewIds = useMemo(
+    () =>
+      previewMembers
+        .filter((member) => member.isWorking)
+        .map((member) => member.id),
+    [previewMembers],
+  );
+  const effectivePreviewStatus =
+    livePreviewIds.length === 0 ? "idle" : previewStatus;
+  const previewVideoByUser = useMemo(() => {
+    const map = new Map<string, RemoteVideo>();
+    previewVideos.forEach((video) => {
+      map.set(video.userId, video);
+    });
+    return map;
+  }, [previewVideos]);
+  const syncPreviewSubscriptions = useCallback(
+    (room = previewRoomRef.current) => {
+      if (!room) return;
+      const visible = new Set(previewIdsRef.current);
+
+      room.remoteParticipants.forEach((participant) => {
+        const shouldSubscribe = visible.has(participant.identity);
+
+        participant.trackPublications.forEach((publication) => {
+          const isVideo =
+            String(publication.kind) === "video" ||
+            String(publication.source) === "camera";
+          if (!isVideo) return;
+          publication.setSubscribed(shouldSubscribe);
+        });
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    previewIdsRef.current = livePreviewIds;
+    syncPreviewSubscriptions();
+  }, [livePreviewIds, syncPreviewSubscriptions]);
+
+  useEffect(() => {
+    if (livePreviewIds.length === 0) {
+      return undefined;
+    }
+
+    let mounted = true;
+    let localRoom: Room | null = null;
+
+    async function connectPreviewViewer() {
+      try {
+        setPreviewStatus("connecting");
+        const token = await issueCamToken({ preview: true });
+
+        if (!mounted) return;
+
+        if (!token.url || token.token.startsWith("stub.")) {
+          setPreviewStatus("stub");
+          return;
+        }
+
+        const { Room, RoomEvent } = await import("livekit-client");
+        const room = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+
+        localRoom = room;
+        previewRoomRef.current = room;
+
+        room.on(
+          RoomEvent.TrackSubscribed,
+          (track, publication, participant) => {
+            if (String(track.kind) !== "video") return;
+            setPreviewVideos((current) => {
+              const next = current.filter(
+                (video) => video.trackSid !== publication.trackSid,
+              );
+              return [
+                ...next,
+                {
+                  trackSid: publication.trackSid,
+                  userId: participant.identity,
+                  track: track as RemoteVideoTrack,
+                },
+              ];
+            });
+          },
+        );
+
+        room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
+          setPreviewVideos((current) =>
+            current.filter((video) => video.trackSid !== publication.trackSid),
+          );
+        });
+
+        room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+          setPreviewVideos((current) =>
+            current.filter((video) => video.userId !== participant.identity),
+          );
+        });
+
+        room.on(RoomEvent.TrackPublished, () => {
+          syncPreviewSubscriptions(room);
+        });
+
+        await room.connect(token.url, token.token, {
+          autoSubscribe: false,
+        });
+
+        if (!mounted) {
+          room.disconnect();
+          return;
+        }
+
+        setPreviewStatus("connected");
+        syncPreviewSubscriptions(room);
+      } catch (err) {
+        console.error("Waiting room LiveKit preview failed", err);
+        if (!mounted) return;
+        setPreviewStatus("error");
+      }
+    }
+
+    void connectPreviewViewer();
+
+    return () => {
+      mounted = false;
+      setPreviewVideos([]);
+      if (localRoom) {
+        localRoom.disconnect();
+      }
+      if (previewRoomRef.current === localRoom) {
+        previewRoomRef.current = null;
+      }
+    };
+  }, [livePreviewIds.length, syncPreviewSubscriptions]);
 
   return (
     <div className="wr">
@@ -395,35 +601,48 @@ export default function WaitingRoom() {
               </span>
               <span className="wr-badge is-wait">
                 <i />
-                15명 출근 대기중
+                {roomMembers.length
+                  ? `${waitingMemberCount}명 대기중`
+                  : "출근 대기중"}
               </span>
             </div>
           </div>
 
           <div className="wr-worker-grid">
-            {sortedMembers.slice(0, 8).map((worker, index) => (
-              <div
-                className="wr-worker"
-                key={worker.id}
-                style={{ background: workerGradient(index) }}
-              >
-                <span className="wr-worker-name">{worker.name}</span>
-                <span
-                  className={`wr-worker-state${
+            {previewMembers.map((worker, index) => {
+              const video = previewVideoByUser.get(worker.id);
+              return (
+                <div
+                  className={`wr-worker${video ? " has-video" : ""}${
                     worker.isWorking ? "" : " is-off"
                   }`}
+                  key={worker.id}
+                  style={
+                    video ? undefined : { background: workerGradient(index) }
+                  }
                 >
-                  {worker.isWorking ? "입장" : "대기"}
-                </span>
-              </div>
-            ))}
-            {sortedMembers.length === 0 && (
+                  {video && <WorkerPreviewVideo track={video.track} />}
+                  <span className="wr-worker-name">{worker.name}</span>
+                  <span
+                    className={`wr-worker-state${
+                      worker.isWorking ? "" : " is-off"
+                    }`}
+                  >
+                    {worker.isWorking ? "입장" : "대기"}
+                  </span>
+                </div>
+              );
+            })}
+            {previewMembers.length === 0 && (
               <p className="wr-worker-empty">표시할 작업장 회원이 없습니다.</p>
             )}
           </div>
 
           <p className="wr-preview-note">
-            *미리보기는 같은 지점의 실제 회원 입장 상태를 요약해서 보여줍니다.
+            *실시간 미리보기는 영상만 표시되며 음성은 사용하지 않습니다.
+            {effectivePreviewStatus === "connecting" && " 연결 중입니다."}
+            {effectivePreviewStatus === "error" &&
+              " 영상 연결을 확인하지 못했습니다."}
           </p>
         </section>
 
