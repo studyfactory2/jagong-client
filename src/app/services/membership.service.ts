@@ -9,6 +9,7 @@ import type {
   PaymentRecord,
   PaymentStatus,
   PublicPaymentResult,
+  RefundPreview,
 } from "../../lib/types";
 
 /** MEMBER MEMBERSHIP API **/
@@ -106,26 +107,21 @@ export async function recordManualPayment(input: {
   return data;
 }
 
-export async function previewRefund(paymentId: string): Promise<{
-  refundAmount: number;
-  refundCharge: number;
-  refundUsedDays: number;
-}> {
-  const { data } = await http.get<{
-    refundAmount: number;
-    refundCharge: number;
-    refundUsedDays: number;
-  }>("/memberships/" + paymentId + "/refund-preview");
+export async function previewRefund(paymentId: string): Promise<RefundPreview> {
+  const { data } = await http.get<RefundPreview>(
+    "/memberships/" + paymentId + "/refund-preview",
+  );
   return data;
 }
 
-export async function refundPayment(paymentId: string): Promise<PaymentRecord> {
+export async function recordManualRefund(
+  paymentId: string,
+): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>(
     "/memberships/" + paymentId + "/refund",
   );
   return data;
 }
-
 
 export async function attachPaymentReceipt(
   paymentId: string,

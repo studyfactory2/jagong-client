@@ -799,6 +799,7 @@ export default function AdminDashboard() {
                 onSearchChange={(value) => changeSearch("payments", value)}
                 pageMeta={pageMeta.payments}
                 onPageChange={(page) => changePage("payments", page)}
+                onRefundRecorded={load}
               />
             )}
 

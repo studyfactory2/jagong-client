@@ -154,6 +154,13 @@ export interface PaymentRecord {
   consultation?: Pick<ConsultationRecord, "id" | "name" | "phone"> | null;
 }
 
+export interface RefundPreview {
+  amount: number;
+  refundAmount: number;
+  refundCharge: number;
+  refundUsedDays: number;
+}
+
 export interface CheckoutResult {
   paymentId: string;
   amount: number;
