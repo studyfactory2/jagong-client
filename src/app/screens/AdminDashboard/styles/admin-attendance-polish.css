@@ -194,8 +194,21 @@
 }
 
 @media (max-width: 760px) {
+  .app-shell.admin-shell .admin-menu-shell {
+    position: sticky;
+    top: 62px;
+    z-index: 18;
+  }
+
+  .app-shell.admin-shell .admin-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
   .admin-att-editor {
-    top: 8px;
+    position: sticky;
+    top: 122px;
+    z-index: 12;
     grid-template-columns: 1fr;
     align-items: stretch;
     gap: 10px;

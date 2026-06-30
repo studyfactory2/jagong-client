@@ -232,9 +232,63 @@
     flex: 1 1 72px;
   }
 
-  .admin-att-head,
+  .admin-att-grid {
+    overflow-x: visible;
+    gap: 10px;
+  }
+
+  .admin-att-head {
+    display: none;
+  }
+
   .admin-att-row {
-    min-width: 860px;
-    grid-template-columns: 150px repeat(8, minmax(76px, 1fr));
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .admin-att-user {
+    grid-column: 1 / -1;
+    min-height: 48px;
+    border-radius: 12px;
+    background: var(--mint-soft);
+    padding: 9px 12px;
+    box-sizing: border-box;
+  }
+
+  .admin-att-user strong {
+    font-size: 14px;
+  }
+
+  .admin-att-cell {
+    min-height: 46px;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    text-align: right;
+    font-size: 12px;
+  }
+
+  .admin-att-cell::before {
+    content: attr(data-slot);
+    min-width: 0;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-att-row {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { animate, stagger } from "animejs";
 import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -7,8 +8,6 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getBranches } from "../../services/branch.service";
 import { getMe, login as loginApi } from "../../services/auth.service";
@@ -18,37 +17,19 @@ import type { Branch } from "../../../lib/types";
 import "./login.css";
 
 const AUTH_REMEMBER_KEY = "jagong_remember_login";
-
-const PREVIEW = [
-  {
-    g: "linear-gradient(135deg,#3f5b6e,#273d4d)",
-  },
-  {
-    g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
-  },
-  {
-    g: "linear-gradient(135deg,#7d7aa8,#5d5a88)",
-  },
-  {
-    g: "linear-gradient(135deg,#b08a4f,#8a6a2f)",
-  },
-  {
-    g: "linear-gradient(135deg,#5f8aa8,#3f6a88)",
-  },
-  {
-    g: "linear-gradient(135deg,#a85f7a,#88405a)",
-  },
-  {
-    g: "linear-gradient(135deg,#6a8f6f,#4f7a5a)",
-  },
-  {
-    g: "linear-gradient(135deg,#7d6a55,#5a4a38)",
-  },
+const STUDY_TILES = [
+  { label: "기출", tone: "is-coral" },
+  { label: "필기", tone: "is-mint" },
+  { label: "암기", tone: "is-navy" },
+  { label: "오답", tone: "is-gold" },
+  { label: "정리", tone: "is-sage" },
+  { label: "복습", tone: "is-blush" },
 ];
 
 export default function Login() {
   const navigate = useNavigate();
   const { login, session } = useAuth();
+  const motionRef = useRef<HTMLElement | null>(null);
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState("");
@@ -60,10 +41,79 @@ export default function Login() {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [studyCount] = useState(() => Math.floor(Math.random() * 6) + 18);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const root = motionRef.current;
+    if (!root || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const heads = animate(root.querySelectorAll(".login-student-head"), {
+      y: [
+        { to: 0, duration: 0 },
+        { to: -2, duration: 1400 },
+      ],
+      rotate: [
+        { to: -0.6, duration: 0 },
+        { to: 0.8, duration: 1400 },
+      ],
+      delay: stagger(120),
+      ease: "inOutQuad",
+      alternate: true,
+      loop: true,
+    });
+
+    const hands = animate(root.querySelectorAll(".login-student-hand"), {
+      x: [
+        { to: 0, duration: 0 },
+        { to: 2, duration: 680 },
+      ],
+      rotate: [
+        { to: -2, duration: 0 },
+        { to: 2.5, duration: 680 },
+      ],
+      delay: stagger(70, { from: "center" }),
+      ease: "inOutSine",
+      alternate: true,
+      loop: true,
+    });
+
+    const screens = animate(root.querySelectorAll(".login-student-screen"), {
+      opacity: [
+        { to: 0.74, duration: 0 },
+        { to: 1, duration: 1400 },
+      ],
+      boxShadow: [
+        "0 0 0 rgba(88,164,104,0)",
+        "0 0 16px rgba(159,206,180,0.22)",
+      ],
+      delay: stagger(140),
+      ease: "inOutSine",
+      alternate: true,
+      loop: true,
+    });
+
+    const notes = animate(root.querySelectorAll(".login-student-note-line"), {
+      scaleX: [
+        { to: 0, duration: 0 },
+        { to: 1, duration: 900 },
+      ],
+      delay: stagger(90),
+      ease: "outCubic",
+      alternate: true,
+      loop: true,
+    });
+
+    return () => {
+      heads.pause();
+      hands.pause();
+      screens.pause();
+      notes.pause();
+    };
+  }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -246,42 +296,52 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="login-preview">
+      <section className="login-preview" ref={motionRef}>
         <span className="login-preview-badge">
-          자격증공장 재택근무반 작업장 미리보기
+          자격증공장 재택근무반 온라인 작업장
         </span>
 
-        <div className="login-grid">
-          {PREVIEW.map((p, i) => (
-            <div key={i} className="login-cam" style={{ background: p.g }}>
-              <span className="login-cam-ph">
-                <PersonRoundedIcon />
+        <div className="login-student-grid" aria-hidden="true">
+          {STUDY_TILES.map((tile) => (
+            <article className={`login-student ${tile.tone}`} key={tile.label}>
+              <span className="login-student-light" />
+              <span className="login-student-screen" />
+              <span className="login-student-lamp" />
+              <span className="login-student-person">
+                <span className="login-student-body" />
+                <span className="login-student-neck" />
+                <span className="login-student-head">
+                  <span className="login-student-hair" />
+                  <span className="login-student-eye is-left" />
+                  <span className="login-student-eye is-right" />
+                  <span className="login-student-nose" />
+                  <span className="login-student-mouth" />
+                  <span className="login-student-cheek is-left" />
+                  <span className="login-student-cheek is-right" />
+                </span>
+                <span className="login-student-hand is-left" />
+                <span className="login-student-hand is-right" />
               </span>
-
-              <img
-                className="login-cam-img"
-                src={`/preview/${i + 1}.jpg`}
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-
-              <span className="login-cam-name">학습중</span>
-
-              <span className="login-cam-state">입장</span>
-            </div>
+              <span className="login-student-desk">
+                <span className="login-student-book">
+                  <span className="login-student-book-page is-left" />
+                  <span className="login-student-book-page is-right" />
+                  <span className="login-student-note-line" />
+                  <span className="login-student-note-line" />
+                </span>
+                <span className="login-student-pencil" />
+              </span>
+              <span className="login-student-label">{tile.label}</span>
+            </article>
           ))}
         </div>
 
         <p className="login-count">
-          <GroupsOutlinedIcon className="login-count-icon" />
-          현재 {studyCount}명이 함께 공부 중이예요!
+          로그인 후 실제 입장 현황을 확인하세요.
         </p>
 
         <p className="login-note">
-          *개인정보 보호를 위해 미리보기 화면은 흐림 처리되며, 등록 후 실제
-          작업장을 보실 수 있습니다.
+          입장 후에는 오늘의 출석, 학습장, 캠 작업실을 바로 확인할 수 있습니다.
         </p>
       </section>
 

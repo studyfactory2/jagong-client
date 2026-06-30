@@ -58,6 +58,10 @@ function statusClass(status?: string) {
   return status ? `is-${status.toLowerCase()}` : "is-empty";
 }
 
+function isAttendanceStatus(value: string): value is AttendanceStatusName {
+  return STATUS_OPTIONS.some((option) => option.value === value);
+}
+
 export default function Attendance({ users, timetable }: AttendanceProps) {
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -123,6 +127,16 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
   }, [load]);
 
   async function paintCell(userId: string, slot: number) {
+    if (
+      !userId ||
+      !selectedDate ||
+      !Number.isInteger(slot) ||
+      !isAttendanceStatus(paintStatus)
+    ) {
+      setError("출석 저장값을 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.");
+      return;
+    }
+
     const key = recordKey(userId, slot);
     setSelected({ userId, slot });
     setSavingKey(key);
