@@ -7,10 +7,12 @@ type AppShellProps = {
   title: string;
   subtitle?: string;
   backTo?: string;
+  showBack?: boolean;
   actions?: ReactNode;
   children: ReactNode;
   footer?: boolean;
   wide?: boolean;
+  startTitle?: boolean;
   className?: string;
 };
 
@@ -18,29 +20,48 @@ export default function AppShell({
   title,
   subtitle,
   backTo = "/waiting-room",
+  showBack = true,
   actions,
   children,
   footer = true,
   wide = false,
+  startTitle = false,
   className = "",
 }: AppShellProps) {
   const navigate = useNavigate();
   const classes = ["app-shell", wide ? "is-wide" : "", className]
     .filter(Boolean)
     .join(" ");
+  const titleBlock = (
+    <div className={`app-shell-title-wrap ${startTitle ? "is-start" : ""}`}>
+      <h1>{title}</h1>
+      {subtitle && <p>{subtitle}</p>}
+    </div>
+  );
 
   return (
     <div className={classes}>
       <header className="app-shell-head">
-        <button className="app-shell-back" onClick={() => navigate(backTo)} type="button">
-          <ArrowBackIcon />
-          <span>뒤로가기</span>
-        </button>
+        {startTitle ? (
+          titleBlock
+        ) : showBack ? (
+          <button
+            className="app-shell-back"
+            onClick={() => navigate(backTo)}
+            type="button"
+          >
+            <ArrowBackIcon />
+            <span>뒤로가기</span>
+          </button>
+        ) : (
+          <span aria-hidden="true" className="app-shell-back-spacer" />
+        )}
 
-        <div className="app-shell-title-wrap">
-          <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
+        {startTitle ? (
+          <span aria-hidden="true" className="app-shell-center-spacer" />
+        ) : (
+          titleBlock
+        )}
 
         <div className="app-shell-actions">{actions}</div>
       </header>

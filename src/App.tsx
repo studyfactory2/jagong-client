@@ -21,7 +21,6 @@ const WeeklyPlan = lazy(() => import("./app/screens/WeeklyPlan"));
 const LeaveRequest = lazy(() => import("./app/screens/LeaveRequest"));
 const Attendance = lazy(() => import("./app/screens/Attendance"));
 const Inquiry = lazy(() => import("./app/screens/Inquiry"));
-const VideoConsult = lazy(() => import("./app/screens/VideoConsult"));
 const AdminDashboard = lazy(() => import("./app/screens/AdminDashboard"));
 
 function RootRedirect() {
@@ -79,7 +78,6 @@ export default function App() {
             <Route path="/leaves" element={<LeaveRequest />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/inquiry" element={<Inquiry />} />
-            <Route path="/video-consult" element={<VideoConsult />} />
           </Route>
         </Route>
 

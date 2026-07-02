@@ -215,9 +215,7 @@ export default function Inquiry() {
           <ArrowBackIcon /> 대기장
         </button>
         <h1>게시판</h1>
-        <button onClick={() => navigate("/video-consult")} type="button">
-          상담실 →
-        </button>
+        <span />
       </header>
 
       <main className="iq-body">

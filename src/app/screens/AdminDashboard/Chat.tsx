@@ -50,7 +50,7 @@ export default function Chat(props: ChatProps) {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<HTMLDivElement | null>(null);
   const onRoomReadRef = useRef(onRoomRead);
 
   useEffect(() => {
@@ -99,7 +99,14 @@ export default function Chat(props: ChatProps) {
   }, [selectedUserId, loadRoom]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
+    const messagesElement = messagesRef.current;
+    if (!messagesElement) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      messagesElement.scrollTop = messagesElement.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [activeRoom?.id, messages.length]);
 
   async function sendReply() {
@@ -180,7 +187,7 @@ export default function Chat(props: ChatProps) {
               </em>
             </div>
 
-            <div className="admin-chat-messages">
+            <div className="admin-chat-messages" ref={messagesRef}>
               {messages.map((message) => (
                 <div
                   className={isManagerMessage(message) ? "is-manager" : ""}
@@ -197,7 +204,6 @@ export default function Chat(props: ChatProps) {
                   선택한 회원과의 대화가 아직 없습니다.
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             <div className="admin-chat-compose">

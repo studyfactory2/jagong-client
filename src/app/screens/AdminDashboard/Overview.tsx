@@ -8,7 +8,7 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import type { AdminUser } from "../../../lib/types";
 import type { AdminStats } from "./admin.types";
-import { membershipEndText } from "./admin.utils";
+import { membershipEndText, money } from "./admin.utils";
 
 type OverviewProps = {
   stats: AdminStats;
@@ -35,6 +35,12 @@ type OverviewProps = {
   onSaveNotice: () => void;
   onSaveManualPayment: () => void;
 };
+
+const MANUAL_PAYMENT_PLANS = [
+  { months: 1, amount: 370000 },
+  { months: 2, amount: 700000 },
+  { months: 3, amount: 990000 },
+] as const;
 
 export default function Overview(props: OverviewProps) {
   const {
@@ -79,6 +85,9 @@ export default function Overview(props: OverviewProps) {
   const currentMembershipEnd = selectedManualUser?.membershipEnd
     ? membershipEndText(selectedManualUser.membershipEnd)
     : null;
+  const selectedManualPlan =
+    MANUAL_PAYMENT_PLANS.find((plan) => plan.months === manualMonths) ??
+    MANUAL_PAYMENT_PLANS[0];
 
   return (
     <section className="admin-grid">
@@ -113,26 +122,28 @@ export default function Overview(props: OverviewProps) {
         <strong>{stats.working}</strong>
       </article>
 
-      <section className="admin-card admin-notice-card">
+      <section className="admin-card admin-notice-card admin-compact-notice">
         <h2>
           <AdminPanelSettingsOutlinedIcon /> 공지 작성
         </h2>
-        <input
-          value={noticeTitle}
-          onChange={(event) => onNoticeTitleChange(event.target.value)}
-          placeholder="공지 제목"
-        />
-        <textarea
-          value={noticeContent}
-          onChange={(event) => onNoticeContentChange(event.target.value)}
-          placeholder="공지 내용을 입력하세요"
-        />
-        <button onClick={onSaveNotice} type="button">
-          공지 등록
-        </button>
+        <div className="admin-notice-fields">
+          <input
+            value={noticeTitle}
+            onChange={(event) => onNoticeTitleChange(event.target.value)}
+            placeholder="공지 제목"
+          />
+          <textarea
+            value={noticeContent}
+            onChange={(event) => onNoticeContentChange(event.target.value)}
+            placeholder="공지 내용을 입력하세요"
+          />
+          <button onClick={onSaveNotice} type="button">
+            공지 등록
+          </button>
+        </div>
       </section>
 
-      <section className="admin-card admin-notice-card">
+      <section className="admin-card admin-notice-card admin-manual-payment-card">
         <h2>
           <CreditCardOutlinedIcon /> 수동 결제 등록
         </h2>
@@ -154,19 +165,42 @@ export default function Overview(props: OverviewProps) {
             </option>
           ))}
         </select>
-        <select
-          value={manualMonths}
-          onChange={(event) => onManualMonthsChange(Number(event.target.value))}
-        >
-          <option value={1}>1개월</option>
-          <option value={2}>2개월</option>
-          <option value={3}>3개월</option>
-        </select>
-        <input
-          value={manualName}
-          onChange={(event) => onManualNameChange(event.target.value)}
-          placeholder="입금자명"
-        />
+        <label className="admin-payment-field">
+          <span>이용권</span>
+          <select
+            value={manualMonths}
+            onChange={(event) =>
+              onManualMonthsChange(Number(event.target.value))
+            }
+          >
+            {MANUAL_PAYMENT_PLANS.map((plan) => (
+              <option key={plan.months} value={plan.months}>
+                {plan.months}개월
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="admin-payment-field">
+          <span>결제 금액</span>
+          <select disabled value={selectedManualPlan.amount}>
+            {MANUAL_PAYMENT_PLANS.map((plan) => (
+              <option key={plan.amount} value={plan.amount}>
+                {money(plan.amount)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="admin-payment-field">
+          <span>입금자명</span>
+          <input
+            value={manualName}
+            onChange={(event) => onManualNameChange(event.target.value)}
+            placeholder="예: 홍길동"
+          />
+          <small>
+            통장에 표시된 입금자명입니다. 결제 회원과 다를 수 있습니다.
+          </small>
+        </label>
         <div className="admin-payment-date-grid">
           <label>
             <span>입금 확인일</span>

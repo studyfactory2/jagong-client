@@ -35,12 +35,25 @@
   justify-self: start;
 }
 
+.app-shell-back-spacer {
+  min-width: 96px;
+}
+
 .app-shell-back svg {
   font-size: 28px;
 }
 
 .app-shell-title-wrap {
   text-align: center;
+  min-width: 0;
+}
+
+.app-shell-title-wrap.is-start {
+  justify-self: start;
+  text-align: left;
+}
+
+.app-shell-center-spacer {
   min-width: 0;
 }
 

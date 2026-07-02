@@ -521,6 +521,30 @@
   display: none;
 }
 
+.admin-payment-field {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-payment-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-payment-field small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.admin-payment-field select:disabled {
+  background: var(--mint-soft);
+  color: var(--ink);
+  cursor: default;
+  opacity: 1;
+}
+
 .admin-payment-date-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

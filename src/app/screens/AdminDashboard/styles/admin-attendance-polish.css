@@ -392,3 +392,69 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+@media (max-width: 1179px) {
+  .app-shell.admin-shell .app-shell-head {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 10px;
+  }
+
+  .app-shell.admin-shell .app-shell-center-spacer {
+    display: none;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap.is-start {
+    display: block;
+    justify-self: start;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap.is-start h1 {
+    overflow: hidden;
+    font-size: 18px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap.is-start p {
+    display: block;
+    margin-top: 4px;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.admin-shell .app-shell-actions {
+    justify-self: end;
+    flex: 0 0 auto;
+  }
+
+  .app-shell.admin-shell .app-shell-actions .admin-refresh {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell.admin-shell .app-shell-head {
+    padding-inline: 12px;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button {
+    display: inline-flex;
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button span {
+    display: none;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button svg {
+    margin: 0;
+  }
+}

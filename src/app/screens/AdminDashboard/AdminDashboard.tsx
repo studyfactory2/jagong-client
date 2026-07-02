@@ -623,10 +623,10 @@ export default function AdminDashboard() {
   const actions = (
     <>
       <button className="admin-refresh" onClick={load} type="button">
-        <RefreshOutlinedIcon /> 새로고침
+        <RefreshOutlinedIcon /> <span>새로고침</span>
       </button>
       <button className="admin-logout" onClick={handleLogout} type="button">
-        <LogoutOutlinedIcon /> 로그아웃
+        <LogoutOutlinedIcon /> <span>로그아웃</span>
       </button>
     </>
   );
@@ -637,6 +637,8 @@ export default function AdminDashboard() {
         title="관리자"
         subtitle="접근 권한이 필요합니다"
         backTo="/admin"
+        showBack={false}
+        startTitle
         wide
         actions={actions}
       >
@@ -652,6 +654,8 @@ export default function AdminDashboard() {
       title="관리자 작업실"
       subtitle="회원 · 상담 · 결제 · 휴가 · 캠 상태 관리"
       backTo="/admin"
+      showBack={false}
+      startTitle
       wide
       className="admin-shell"
       actions={actions}
