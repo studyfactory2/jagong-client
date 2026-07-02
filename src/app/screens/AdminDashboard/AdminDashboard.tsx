@@ -87,7 +87,7 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   overview: "오늘의 운영 현황을 한눈에 확인합니다.",
   members: "사전등록, 직원 등록, 회원 정보를 관리합니다.",
   consultations: "상담 예약, 결제 링크, 사전등록 준비를 처리합니다.",
-  payments: "카드 결제와 수동 결제 내역을 확인합니다.",
+  payments: "온라인 결제와 수동 결제 내역을 확인합니다.",
   leaves: "회원 휴가 신청을 승인하거나 반려합니다.",
   attendance: "교시별 출석 상태를 확인하고 조정합니다.",
   chat: "회원과의 1:1 문의를 확인하고 답변합니다.",

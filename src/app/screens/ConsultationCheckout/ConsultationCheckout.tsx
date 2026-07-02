@@ -140,7 +140,7 @@ export default function ConsultationCheckout() {
 
     try {
       setPaying(true);
-      setMessage("카드 결제창을 여는 중입니다.");
+      setMessage("결제창을 여는 중입니다.");
       const PortOne = await import("@portone/browser-sdk/v2");
       const response = await PortOne.requestPayment({
         storeId: PORTONE_STORE_ID,
@@ -250,7 +250,7 @@ export default function ConsultationCheckout() {
                 : paying
                   ? "처리 중..."
                   : canPay
-                    ? "카드로 결제하기"
+                    ? "결제수단으로 결제하기"
                     : "결제할 수 없는 링크"}
             </button>
 

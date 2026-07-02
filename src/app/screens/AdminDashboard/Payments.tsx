@@ -40,6 +40,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   CARD: "카드",
+  EASY_PAY: "간편결제",
   TRANSFER: "계좌이체",
 };
 
@@ -163,12 +164,15 @@ export default function Payments(props: PaymentsProps) {
                 {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}
                 <small>확인일 {dateOnlyText(paidDate)}</small>
               </span>
-              <span>{PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}</span>
+              <span>
+                {PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}
+              </span>
               <span>
                 {money(payment.amount)}
-                {payment.status === "REFUNDED" && payment.refundAmount != null && (
-                  <small>환불 {money(payment.refundAmount)}</small>
-                )}
+                {payment.status === "REFUNDED" &&
+                  payment.refundAmount != null && (
+                    <small>환불 {money(payment.refundAmount)}</small>
+                  )}
               </span>
               <em>
                 이용 {period}

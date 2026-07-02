@@ -57,8 +57,8 @@ function membershipEndText(value?: string | null): string {
 
 function paymentPhaseText(phase: PaymentPhase): string {
   if (phase === "checkout") return "결제 정보를 준비하는 중...";
-  if (phase === "portone") return "카드 결제창에서 결제를 진행해주세요.";
-  return "카드로 연장하기";
+  if (phase === "portone") return "결제창에서 결제를 진행해주세요.";
+  return "결제하기";
 }
 
 function isAlreadyPaidPaymentError(message?: string | null): boolean {
@@ -372,8 +372,8 @@ export default function PaymentHistory() {
             {paying
               ? paymentPhaseText(paymentPhase)
               : hasValidMembership
-                ? "카드로 연장하기"
-                : "카드로 결제하기"}
+                ? "결제수단으로 연장하기"
+                : "결제수단으로 결제하기"}
           </button>
           <p>결제는 포트원(PG)을 통해 안전하게 처리돼요</p>
         </section>
