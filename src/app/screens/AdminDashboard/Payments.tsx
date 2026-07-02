@@ -1,4 +1,6 @@
 import { useState } from "react";
+import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import KeyboardArrowUpOutlinedIcon from "@mui/icons-material/KeyboardArrowUpOutlined";
 import type { AdminUser, PageMeta, PaymentRecord } from "../../../lib/types";
 import {
   previewRefund,
@@ -57,6 +59,9 @@ export default function Payments(props: PaymentsProps) {
   const [refundPreview, setRefundPreview] = useState<
     Record<string, RefundPreviewState>
   >({});
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(
+    null,
+  );
   const [refundBusyId, setRefundBusyId] = useState<string | null>(null);
   const [refundError, setRefundError] = useState("");
 
@@ -149,82 +154,144 @@ export default function Payments(props: PaymentsProps) {
           const preview = refundPreview[payment.id];
           const canRecordRefund = payment.status === "PAID";
           const isRefundBusy = refundBusyId === payment.id;
+          const isExpanded = expandedPaymentId === payment.id;
+          const method =
+            PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타 결제";
+          const hasRefundRecord =
+            payment.status === "REFUNDED" &&
+            (payment.refundAmount != null || payment.refundedAt);
 
           return (
-            <div className="admin-row is-payment" key={payment.id}>
-              <strong>
-                {owner}
-                {payment.depositorName && (
-                  <small>입금자 {payment.depositorName}</small>
-                )}
-                {payment.adminMemo && <small>메모 {payment.adminMemo}</small>}
-              </strong>
-              <span>
-                {payment.planMonths}개월 ·{" "}
-                {PAYMENT_METHOD_LABEL[payment.method ?? ""] ?? "기타"}
-                <small>확인일 {dateOnlyText(paidDate)}</small>
-              </span>
-              <span>
-                {PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}
-              </span>
-              <span>
+            <div
+              className={`admin-row is-payment admin-payment-row${
+                isExpanded ? " is-expanded" : ""
+              }`}
+              key={payment.id}
+            >
+              <strong className="admin-payment-owner">{owner}</strong>
+              <span className="admin-payment-amount">
                 {money(payment.amount)}
-                {payment.status === "REFUNDED" &&
-                  payment.refundAmount != null && (
-                    <small>환불 {money(payment.refundAmount)}</small>
-                  )}
               </span>
-              <em>
-                이용 {period}
-                {payment.refundedAt && (
-                  <small>환불일 {dateText(payment.refundedAt)}</small>
-                )}
-              </em>
-
-              <div className="admin-receipt-actions">
-                {payment.receiptSignedUrl ? (
-                  <a
-                    href={payment.receiptSignedUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    영수증 보기
-                  </a>
+              <span className="admin-payment-status">
+                <span className="admin-payment-status-chip">
+                  {PAYMENT_STATUS_LABEL[payment.status] ?? payment.status}
+                </span>
+              </span>
+              <button
+                aria-expanded={isExpanded}
+                className="admin-payment-toggle"
+                onClick={() =>
+                  setExpandedPaymentId((current) =>
+                    current === payment.id ? null : payment.id,
+                  )
+                }
+                type="button"
+              >
+                {isExpanded ? "닫기" : "상세"}
+                {isExpanded ? (
+                  <KeyboardArrowUpOutlinedIcon />
                 ) : (
-                  <span>영수증 없음</span>
+                  <KeyboardArrowDownOutlinedIcon />
                 )}
-              </div>
+              </button>
 
-              {(preview || canRecordRefund) && (
-                <div className="admin-refund-actions">
-                  {preview && (
-                    <div className="admin-refund-preview">
-                      <span>이용 {preview.refundUsedDays}일</span>
-                      <span>차감 {money(preview.refundCharge)}</span>
-                      <strong>환불 {money(preview.refundAmount)}</strong>
+              {isExpanded && (
+                <div className="admin-payment-details">
+                  <dl className="admin-payment-detail-meta">
+                    <div>
+                      <dt>이용권</dt>
+                      <dd>
+                        {payment.planMonths}개월 · {method}
+                      </dd>
                     </div>
-                  )}
-                  {canRecordRefund && (
-                    <>
-                      <button
-                        disabled={isRefundBusy}
-                        onClick={() => void showRefundPreview(payment.id)}
-                        type="button"
-                      >
-                        {isRefundBusy ? "계산 중..." : "환불 계산"}
-                      </button>
-                      <button
-                        disabled={isRefundBusy || !preview}
-                        onClick={() => void recordRefund(payment)}
-                        type="button"
-                      >
-                        환불 완료 기록
-                      </button>
-                      <small>
-                        실제 환불은 포트원/은행에서 완료 후 기록하세요.
-                      </small>
-                    </>
-                  )}
+                    <div>
+                      <dt>확인일</dt>
+                      <dd>{dateOnlyText(paidDate)}</dd>
+                    </div>
+                    <div>
+                      <dt>이용기간</dt>
+                      <dd>{period}</dd>
+                    </div>
+                    {payment.depositorName && (
+                      <div>
+                        <dt>입금자명</dt>
+                        <dd>{payment.depositorName}</dd>
+                      </div>
+                    )}
+                    {payment.adminMemo && (
+                      <div>
+                        <dt>메모</dt>
+                        <dd>{payment.adminMemo}</dd>
+                      </div>
+                    )}
+                    {payment.consultationId && (
+                      <div>
+                        <dt>상담 결제</dt>
+                        <dd>예</dd>
+                      </div>
+                    )}
+                    {hasRefundRecord && (
+                      <div>
+                        <dt>환불 기록</dt>
+                        <dd>
+                          {payment.refundAmount != null
+                            ? money(payment.refundAmount)
+                            : "환불완료"}
+                          {payment.refundedAt && (
+                            <small>{dateText(payment.refundedAt)}</small>
+                          )}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+
+                  <div className="admin-payment-detail-actions">
+                    <div className="admin-receipt-actions">
+                      {payment.receiptSignedUrl ? (
+                        <a
+                          href={payment.receiptSignedUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          영수증 보기
+                        </a>
+                      ) : (
+                        <span>영수증 없음</span>
+                      )}
+                    </div>
+
+                    {canRecordRefund && (
+                      <div className="admin-refund-actions">
+                        <strong className="admin-refund-title">
+                          환불 관리
+                        </strong>
+                        {preview && (
+                          <div className="admin-refund-preview">
+                            <span>이용 {preview.refundUsedDays}일</span>
+                            <span>차감 {money(preview.refundCharge)}</span>
+                            <strong>환불 {money(preview.refundAmount)}</strong>
+                          </div>
+                        )}
+                        <button
+                          disabled={isRefundBusy}
+                          onClick={() => void showRefundPreview(payment.id)}
+                          type="button"
+                        >
+                          {isRefundBusy ? "계산 중..." : "환불 계산"}
+                        </button>
+                        <button
+                          disabled={isRefundBusy || !preview}
+                          onClick={() => void recordRefund(payment)}
+                          type="button"
+                        >
+                          환불 완료 기록
+                        </button>
+                        <small>
+                          실제 환불은 포트원/은행에서 완료 후 기록하세요.
+                        </small>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
