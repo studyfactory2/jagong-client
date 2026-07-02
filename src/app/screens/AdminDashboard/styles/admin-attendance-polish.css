@@ -459,6 +459,98 @@
   }
 }
 
+/* Final overview pass: keep forms focused instead of full-width. */
+.admin-compact-notice,
+.admin-manual-payment-card {
+  width: 100%;
+  justify-self: center;
+}
+
+.admin-compact-notice {
+  max-width: 1080px;
+  padding: 14px 16px;
+}
+
+.admin-compact-notice .admin-notice-fields {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(280px, 1.7fr) 118px;
+  gap: 8px;
+}
+
+.admin-compact-notice .admin-notice-fields textarea {
+  min-height: 42px;
+}
+
+.admin-compact-notice .admin-notice-fields button {
+  width: 118px;
+}
+
+.admin-manual-payment-card {
+  max-width: 900px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+  padding: 18px;
+}
+
+.admin-manual-payment-card h2,
+.admin-manual-payment-card .admin-search,
+.admin-manual-payment-card > select,
+.admin-manual-payment-card .admin-payment-date-grid,
+.admin-manual-payment-card .admin-payment-hint,
+.admin-manual-payment-card > textarea,
+.admin-manual-payment-card .admin-payment-upload {
+  grid-column: 1 / -1;
+}
+
+.admin-manual-payment-card .admin-search {
+  padding: 12px;
+}
+
+.admin-manual-payment-card > select,
+.admin-manual-payment-card .admin-payment-field select,
+.admin-manual-payment-card .admin-payment-field input,
+.admin-manual-payment-card .admin-payment-date-grid input {
+  min-height: 40px;
+}
+
+.admin-manual-payment-card .admin-payment-date-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-manual-payment-card > textarea {
+  min-height: 74px;
+}
+
+.admin-manual-payment-card .admin-payment-upload {
+  min-height: 54px;
+}
+
+.admin-manual-payment-card > button {
+  grid-column: 3;
+  justify-self: end;
+  width: 160px;
+  min-height: 42px;
+}
+
+@media (max-width: 760px) {
+  .admin-compact-notice,
+  .admin-manual-payment-card {
+    max-width: none;
+  }
+
+  .admin-compact-notice .admin-notice-fields,
+  .admin-manual-payment-card,
+  .admin-manual-payment-card .admin-payment-date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-compact-notice .admin-notice-fields button,
+  .admin-manual-payment-card > button {
+    grid-column: 1;
+    width: 100%;
+  }
+}
+
 /* Final payments pass: compact scan rows with details on demand. */
 .admin-row.is-payment.admin-payment-row {
   display: grid;
