@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#143f56" />
+    <meta name="theme-color" content="#fffefa" />
     <meta
       name="description"
       content="자격증공장 재택근무반 온라인 관리형 독서실"
@@ -12,12 +12,101 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="자격증공장" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" href="/pwa-icon-192.png" />
+    <link rel="icon" type="image/webp" href="/logo/logo-blush.webp" />
     <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
+    <style>
+      body {
+        margin: 0;
+        background: #fffefa;
+      }
+
+      .initial-loading {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(180deg, rgba(255, 254, 250, 0.96), rgba(255, 247, 244, 0.92)),
+          #fffefa;
+        color: #143f56;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .initial-loading-inner {
+        width: min(280px, 84vw);
+        display: grid;
+        justify-items: center;
+        gap: 14px;
+        text-align: center;
+      }
+
+      .initial-loading img {
+        width: 156px;
+        height: auto;
+        object-fit: contain;
+        animation: initial-mark 0.76s ease-out both;
+      }
+
+      .initial-loading-line {
+        position: relative;
+        width: 178px;
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(20, 63, 86, 0.09);
+      }
+
+      .initial-loading-line::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 50%;
+        width: 52%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, transparent, #f48678, #9fceb4, transparent);
+        animation: initial-line 1.25s ease-in-out infinite alternate;
+      }
+
+      .initial-loading strong {
+        font-size: 20px;
+        font-weight: 900;
+        line-height: 1.2;
+      }
+
+      @keyframes initial-mark {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.92);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes initial-line {
+        from {
+          opacity: 0.48;
+          transform: translateX(-64%);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateX(64%);
+        }
+      }
+    </style>
     <title>자격증공장 재택근무반</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="initial-loading" aria-live="polite" aria-busy="true">
+        <div class="initial-loading-inner">
+          <img src="/logo/logo-blush.webp" alt="자격증공장" />
+          <div class="initial-loading-line" aria-hidden="true"></div>
+          <strong>자격증공장</strong>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -13,6 +13,7 @@ import PaymentFail from "./app/screens/PaymentFail";
 import MyPage from "./app/screens/MyPage";
 import { useAuth } from "./app/context/AuthContext";
 import { memberHomePath } from "./app/utils/access";
+import AppLoading from "./app/components/ui/AppLoading";
 
 const WaitingRoom = lazy(() => import("./app/screens/WaitingRoom"));
 const StudyLine = lazy(() => import("./app/screens/StudyLine"));
@@ -30,28 +31,9 @@ function RootRedirect() {
   );
 }
 
-function RouteLoading() {
-  return (
-    <main
-      aria-live="polite"
-      style={{
-        alignItems: "center",
-        color: "var(--ink)",
-        display: "flex",
-        fontFamily: "var(--sans)",
-        fontWeight: 800,
-        justifyContent: "center",
-        minHeight: "100vh",
-      }}
-    >
-      화면을 불러오는 중입니다.
-    </main>
-  );
-}
-
 export default function App() {
   return (
-    <Suspense fallback={<RouteLoading />}>
+    <Suspense fallback={<AppLoading message="화면을 불러오는 중입니다." />}>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
 

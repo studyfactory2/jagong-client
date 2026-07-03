@@ -128,7 +128,7 @@ export default function Login() {
             <picture>
               <source
                 media="(prefers-reduced-motion: reduce)"
-                srcSet="/logo/logo-2.png"
+                srcSet="/logo/logo-oneline-3.webp"
               />
               <img
                 className="login-logo"

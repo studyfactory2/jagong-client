@@ -3,6 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { getMe } from "../services/auth.service";
 import { useAuth } from "../context/AuthContext";
 import { hasActiveMembership, isManager } from "../utils/access";
+import AppLoading from "./ui/AppLoading";
 
 export default function MembershipRoute() {
   const { session, refreshUser } = useAuth();
@@ -43,7 +44,9 @@ export default function MembershipRoute() {
   if (!session) return <Navigate to="/login" replace />;
   if (isCurrentManager) return <Navigate to="/admin" replace />;
   if (hasLocalMembership) return <Outlet />;
-  if (remoteCheck.token !== session.token) return null;
+  if (remoteCheck.token !== session.token) {
+    return <AppLoading message="이용권 상태를 확인하고 있습니다." />;
+  }
   if (!remoteCheck.allowed) return <Navigate to="/payments" replace />;
 
   return <Outlet />;

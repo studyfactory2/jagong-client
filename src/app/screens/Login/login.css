@@ -4,8 +4,16 @@
   box-sizing: border-box;
   padding: 24px;
   background:
-    radial-gradient(circle at 16% 10%, rgba(159, 206, 180, 0.16), transparent 34%),
-    radial-gradient(circle at 88% 18%, rgba(248, 127, 116, 0.1), transparent 30%),
+    radial-gradient(
+      circle at 16% 10%,
+      rgba(159, 206, 180, 0.16),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 88% 18%,
+      rgba(248, 127, 116, 0.1),
+      transparent 30%
+    ),
     #fffefa;
   color: var(--ink);
   font-family: var(--sans);
@@ -30,7 +38,7 @@
 }
 
 .login-logo-wrap {
-  width: clamp(150px, 15vw, 200px);
+  width: clamp(176px, 17vw, 230px);
 }
 
 .login-logo {
@@ -474,7 +482,7 @@
   }
 
   .login-logo-wrap {
-    width: clamp(130px, 32vw, 170px);
+    width: clamp(160px, 36vw, 200px);
   }
 
   .login-content {
@@ -521,7 +529,7 @@
   }
 
   .login-logo-wrap {
-    width: 150px;
+    width: 174px;
   }
 
   .login-preview {
