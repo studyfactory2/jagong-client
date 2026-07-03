@@ -195,6 +195,19 @@ export interface PublicPaymentResult {
   periodEnd: string | null;
 }
 
+export interface MembershipGrant {
+  id: string;
+  userId: string;
+  days: number;
+  periodStart: string;
+  periodEnd: string;
+  adminMemo?: string | null;
+  grantedById?: string | null;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 export type RoleName = "ADMIN" | "STAFF" | "MEMBER" | string;
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";

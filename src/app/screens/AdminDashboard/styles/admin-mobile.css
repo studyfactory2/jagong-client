@@ -349,41 +349,46 @@
   }
 
   .admin-chat-rooms button {
-    min-height: 64px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "name time"
-      "latest badge";
+    display: flex;
     align-items: center;
+    gap: 8px;
+    min-height: 64px;
     border-radius: 14px;
-    padding: 10px 12px;
+    padding: 10px 34px 10px 12px;
     scroll-snap-align: unset;
   }
 
+  .admin-chat-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .admin-chat-room-body {
+    min-width: 0;
+    flex: 1;
+  }
+
   .admin-chat-rooms button strong {
-    grid-area: name;
     min-width: 0;
     font-size: 13px;
   }
 
   .admin-chat-rooms button span {
-    grid-area: latest;
     -webkit-line-clamp: 1;
     line-clamp: 1;
     white-space: nowrap;
   }
 
   .admin-chat-rooms button em {
-    grid-area: time;
-    justify-self: end;
     white-space: nowrap;
   }
 
   .admin-chat-rooms b {
-    grid-area: badge;
-    position: static;
-    justify-self: end;
+    position: absolute;
+    top: 50%;
+    right: 9px;
+    transform: translateY(-50%);
   }
 
   .admin-chat-thread {

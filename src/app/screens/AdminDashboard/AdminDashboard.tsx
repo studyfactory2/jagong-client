@@ -31,6 +31,7 @@ import {
   attachPaymentReceipt,
   createConsultationCheckout,
   getAdminPayments,
+  grantFreeTrial,
   recordManualPayment,
 } from "../../services/membership.service";
 import {
@@ -45,7 +46,7 @@ import {
   getCamSessions,
   warnStudent,
 } from "../../services/cam.service";
-import { createNotice } from "../../services/notice.service";
+import { createNotice, getNotices } from "../../services/notice.service";
 import { getBranches } from "../../services/branch.service";
 import { getTimetable } from "../../services/timetable.service";
 import Camera from "./Camera";
@@ -150,10 +151,16 @@ export default function AdminDashboard() {
     dateInputValue(),
   );
   const [manualMemo, setManualMemo] = useState("");
+  const [freeTrialDays, setFreeTrialDays] = useState(7);
+  const [freeTrialStartDate, setFreeTrialStartDate] = useState(() =>
+    dateInputValue(),
+  );
+  const [freeTrialMemo, setFreeTrialMemo] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [manualReceiptFile, setManualReceiptFile] = useState<File | null>(null);
   const [savingManualPayment, setSavingManualPayment] = useState(false);
+  const [savingFreeTrial, setSavingFreeTrial] = useState(false);
   const [preRegister, setPreRegister] = useState({
     consultationId: "",
     name: "",
@@ -200,6 +207,7 @@ export default function AdminDashboard() {
         me,
         allMembers,
         statsResult,
+        notices,
       ] = await Promise.all([
         getAdminUsers({
           page: pages.users,
@@ -218,6 +226,7 @@ export default function AdminDashboard() {
         getMe(),
         getAllAdminMembers(),
         getAdminStats(),
+        getNotices(),
       ]);
 
       const [consultations, payments, leaves] = isAdmin
@@ -257,6 +266,7 @@ export default function AdminDashboard() {
         chats: chatsResult.list,
         camSessions,
         camAlerts,
+        notices,
       });
       setPageMeta({
         users: usersResult,
@@ -377,6 +387,8 @@ export default function AdminDashboard() {
       await createNotice({ title: noticeTitle, body: noticeContent });
       setNoticeTitle("");
       setNoticeContent("");
+      const notices = await getNotices();
+      setData((current) => ({ ...current, notices }));
     }, "공지를 등록하지 못했습니다.");
   }
 
@@ -446,6 +458,32 @@ export default function AdminDashboard() {
       }, "수동 결제를 등록하지 못했습니다.");
     } finally {
       setSavingManualPayment(false);
+    }
+  }
+
+  async function saveFreeTrial() {
+    if (
+      !isAdmin ||
+      !manualUserId ||
+      !freeTrialStartDate ||
+      savingFreeTrial
+    )
+      return;
+    setSavingFreeTrial(true);
+    try {
+      await runAdminAction(async () => {
+        await grantFreeTrial({
+          userId: manualUserId,
+          days: freeTrialDays,
+          startDate: freeTrialStartDate,
+          adminMemo: freeTrialMemo.trim() || undefined,
+        });
+        setFreeTrialMemo("");
+        setFreeTrialStartDate(dateInputValue());
+        await load();
+      }, "무료 기간을 추가하지 못했습니다.");
+    } finally {
+      setSavingFreeTrial(false);
     }
   }
 
@@ -739,6 +777,7 @@ export default function AdminDashboard() {
               <Overview
                 stats={stats}
                 users={data.allMembers}
+                notices={data.notices}
                 noticeTitle={noticeTitle}
                 noticeContent={noticeContent}
                 manualUserId={manualUserId}
@@ -749,6 +788,10 @@ export default function AdminDashboard() {
                 manualMemo={manualMemo}
                 manualReceiptFile={manualReceiptFile}
                 savingManualPayment={savingManualPayment}
+                freeTrialDays={freeTrialDays}
+                freeTrialStartDate={freeTrialStartDate}
+                freeTrialMemo={freeTrialMemo}
+                savingFreeTrial={savingFreeTrial}
                 onNoticeTitleChange={setNoticeTitle}
                 onNoticeContentChange={setNoticeContent}
                 onManualUserChange={setManualUserId}
@@ -758,8 +801,12 @@ export default function AdminDashboard() {
                 onManualStartDateChange={setManualStartDate}
                 onManualMemoChange={setManualMemo}
                 onManualReceiptChange={setManualReceiptFile}
+                onFreeTrialDaysChange={setFreeTrialDays}
+                onFreeTrialStartDateChange={setFreeTrialStartDate}
+                onFreeTrialMemoChange={setFreeTrialMemo}
                 onSaveNotice={saveNotice}
                 onSaveManualPayment={saveManualPayment}
+                onSaveFreeTrial={saveFreeTrial}
               />
             )}
 
@@ -826,6 +873,7 @@ export default function AdminDashboard() {
             {activeTab === "chat" && (
               <Chat
                 rooms={data.chats}
+                users={data.allMembers}
                 searchText={search.chats}
                 onSearchChange={(value) => changeSearch("chats", value)}
                 onRoomRead={markChatRoomRead}

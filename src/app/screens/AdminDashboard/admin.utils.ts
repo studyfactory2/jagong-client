@@ -59,3 +59,19 @@ export function userDetail(value?: string | number | null, fallback = "-") {
   if (value === null || value === undefined || value === "") return fallback;
   return String(value);
 }
+
+export function initial(name?: string | null) {
+  const trimmed = name?.trim();
+  return trimmed ? trimmed[0].toUpperCase() : "?";
+}
+
+const AVATAR_TONES = ["mint", "gold", "coral", "navy"] as const;
+
+export function avatarTone(seed?: string | null) {
+  const text = seed?.trim() || "?";
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash + text.charCodeAt(i)) % AVATAR_TONES.length;
+  }
+  return AVATAR_TONES[hash];
+}

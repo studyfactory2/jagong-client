@@ -6,12 +6,24 @@ import {
   markAdminChatRoomRead,
   sendAdminChatMessage,
 } from "../../services/chat.service";
-import type { ChatRoom, ChatRoomMessage, PageMeta } from "../../../lib/types";
+import type {
+  AdminUser,
+  ChatRoom,
+  ChatRoomMessage,
+  PageMeta,
+} from "../../../lib/types";
 import AdminPager from "./AdminPager";
-import { dateText } from "./admin.utils";
+import {
+  avatarTone,
+  dateText,
+  initial,
+  membershipEndText,
+  userDetail,
+} from "./admin.utils";
 
 type ChatProps = {
   rooms: ChatRoom[];
+  users: AdminUser[];
   searchText: string;
   onSearchChange: (value: string) => void;
   onRoomRead: (userId: string) => void;
@@ -37,6 +49,7 @@ export default function Chat(props: ChatProps) {
   /** STATE **/
   const {
     rooms,
+    users,
     searchText,
     onSearchChange,
     onRoomRead,
@@ -70,6 +83,20 @@ export default function Chat(props: ChatProps) {
     [rooms, selectedUserId],
   );
   const messages = activeRoom?.messages ?? [];
+  const selectedMember = useMemo(() => {
+    const roomUser = selectedSummary?.user;
+    return (
+      users.find(
+        (user) =>
+          user.id === selectedUserId ||
+          user.userId === selectedUserId ||
+          user.id === roomUser?.id ||
+          user.userId === roomUser?.id,
+      ) ??
+      roomUser ??
+      null
+    );
+  }, [selectedSummary?.user, selectedUserId, users]);
 
   /** HANDLERS **/
   const loadRoom = useCallback(async (userId: string) => {
@@ -168,9 +195,16 @@ export default function Chat(props: ChatProps) {
                 onClick={() => setPreferredUserId(room.userId)}
                 type="button"
               >
-                <strong>{room.user?.name ?? "회원"}</strong>
-                <span>{latestText(room)}</span>
-                <em>{roomTime(room)}</em>
+                <span
+                  className={`admin-chat-avatar is-${avatarTone(room.user?.name)}`}
+                >
+                  {initial(room.user?.name)}
+                </span>
+                <span className="admin-chat-room-body">
+                  <strong>{room.user?.name ?? "회원"}</strong>
+                  <span>{latestText(room)}</span>
+                  <em>{roomTime(room)}</em>
+                </span>
                 {!!room.unreadCount && <b>{room.unreadCount}</b>}
               </button>
             ))}
@@ -188,16 +222,39 @@ export default function Chat(props: ChatProps) {
             </div>
 
             <div className="admin-chat-messages" ref={messagesRef}>
-              {messages.map((message) => (
-                <div
-                  className={isManagerMessage(message) ? "is-manager" : ""}
-                  key={message.id}
-                >
-                  <span>{message.sender?.name ?? "회원"}</span>
-                  <p>{message.content}</p>
-                  <time>{dateText(message.createdAt)}</time>
-                </div>
-              ))}
+              {messages.map((message) => {
+                const fromManager = isManagerMessage(message);
+                return (
+                  <div
+                    className={fromManager ? "is-manager" : ""}
+                    key={message.id}
+                  >
+                    <span
+                      className={`admin-chat-avatar is-message is-${avatarTone(message.sender?.name)}`}
+                    >
+                      {initial(message.sender?.name)}
+                    </span>
+                    <div className="admin-chat-message-body">
+                      <span>{message.sender?.name ?? "회원"}</span>
+                      <p>{message.content}</p>
+                      <time>
+                        {dateText(message.createdAt)}
+                        {fromManager && (
+                          <i
+                            className={
+                              message.isRead
+                                ? "admin-chat-read is-read"
+                                : "admin-chat-read"
+                            }
+                          >
+                            {message.isRead ? " · 읽음" : " · 전송됨"}
+                          </i>
+                        )}
+                      </time>
+                    </div>
+                  </div>
+                );
+              })}
 
               {!messages.length && (
                 <div className="admin-chat-placeholder">
@@ -227,6 +284,49 @@ export default function Chat(props: ChatProps) {
               </button>
             </div>
           </div>
+
+          <aside className="admin-chat-context" aria-label="선택 회원 정보">
+            <section>
+              <div className="admin-chat-context-head">
+                <span
+                  className={`admin-chat-avatar is-context is-${avatarTone(selectedMember?.name)}`}
+                >
+                  {initial(selectedMember?.name)}
+                </span>
+                <div>
+                  <span>회원 정보</span>
+                  <strong>{selectedMember?.name ?? "회원"}</strong>
+                  <em>{selectedMember?.phone ?? "연락처 없음"}</em>
+                </div>
+              </div>
+              <dl>
+                <div>
+                  <dt>자격증</dt>
+                  <dd>{userDetail(selectedMember?.examType)}</dd>
+                </div>
+                <div>
+                  <dt>지역</dt>
+                  <dd>{userDetail(selectedMember?.residenceArea)}</dd>
+                </div>
+                <div>
+                  <dt>이용권</dt>
+                  <dd>{membershipEndText(selectedMember?.membershipEnd)}</dd>
+                </div>
+                <div>
+                  <dt>미확인</dt>
+                  <dd>{selectedSummary?.unreadCount ?? 0}개</dd>
+                </div>
+              </dl>
+            </section>
+
+            <button
+              className="admin-chat-context-refresh"
+              onClick={onRefresh}
+              type="button"
+            >
+              문의 목록 새로고침
+            </button>
+          </aside>
         </div>
       )}
 

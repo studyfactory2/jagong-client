@@ -8,10 +8,11 @@ export async function login(
   name: string,
   branchId: string,
   password: string,
+  autoLogin?: boolean,
 ): Promise<{ token: string; user: AuthUser }> {
   const { data } = await http.post<{ token: string; user: AuthUser }>(
     "/users/login",
-    { name, branchId, password },
+    { name, branchId, password, autoLogin },
   );
   return data;
 }

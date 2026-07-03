@@ -5,6 +5,7 @@ import type {
   ConsultationCheckoutResult,
   MembershipPlan,
   MembershipStatus,
+  MembershipGrant,
   PaginatedResult,
   PaymentRecord,
   PaymentStatus,
@@ -104,6 +105,19 @@ export async function recordManualPayment(input: {
   adminMemo?: string;
 }): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>("/memberships/manual", input);
+  return data;
+}
+
+export async function grantFreeTrial(input: {
+  userId: string;
+  days: number;
+  startDate?: string;
+  adminMemo?: string;
+}): Promise<MembershipGrant> {
+  const { data } = await http.post<MembershipGrant>(
+    "/memberships/free-trials",
+    input,
+  );
   return data;
 }
 
