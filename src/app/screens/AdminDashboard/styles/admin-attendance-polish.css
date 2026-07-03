@@ -768,7 +768,7 @@
 
 .admin-dashboard-main {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(340px, 0.84fr) minmax(540px, 1.16fr);
   gap: 16px;
   align-items: stretch;
 }
@@ -780,6 +780,8 @@
 
 .admin-dashboard-home .admin-compact-notice,
 .admin-dashboard-home .admin-manual-payment-card {
+  grid-column: auto;
+  min-width: 0;
   width: 100%;
   max-width: none;
   justify-self: stretch;

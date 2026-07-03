@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -171,10 +171,6 @@ export default function Overview(props: OverviewProps) {
     return notices.slice(start, start + NOTICES_PER_PAGE);
   }, [notices, currentNoticePage]);
 
-  useEffect(() => {
-    if (noticePage > totalNoticePages) setNoticePage(totalNoticePages);
-  }, [noticePage, totalNoticePages]);
-
   const manualUsers = useMemo(() => {
     const query = manualUserSearch.trim().toLowerCase();
     return users
@@ -252,13 +248,14 @@ export default function Overview(props: OverviewProps) {
     }
   }
 
-  useEffect(() => {
+  function selectManualUser(userId: string) {
+    onManualUserChange(userId);
     setExtendMode("new");
     setFreeExtendMode("new");
     const today = todayDateInputValue();
     onManualStartDateChange(today);
     onFreeTrialStartDateChange(today);
-  }, [manualUserId, onManualStartDateChange, onFreeTrialStartDateChange]);
+  }
 
   const manualActionDisabled =
     savingManualPayment ||
@@ -463,7 +460,7 @@ export default function Overview(props: OverviewProps) {
               <span>선택 회원</span>
               <select
                 value={manualUserId}
-                onChange={(event) => onManualUserChange(event.target.value)}
+                onChange={(event) => selectManualUser(event.target.value)}
               >
                 <option value="">회원을 선택하세요</option>
                 {manualSelectUsers.map((user) => (
