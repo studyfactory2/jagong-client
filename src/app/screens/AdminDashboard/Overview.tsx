@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -11,7 +11,16 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import type { AdminUser, NoticeRecord } from "../../../lib/types";
 import type { AdminStats } from "./admin.types";
-import { membershipEndText, money } from "./admin.utils";
+import {
+  addCalendarMonthsDateOnly,
+  addDaysDateOnly,
+  formatDateInputForDisplay,
+  membershipEndText,
+  money,
+  resolveEffectiveStartDateOnly,
+  todayDateInputValue,
+  toDateInputValue,
+} from "./admin.utils";
 
 type OverviewProps = {
   stats: AdminStats;
@@ -104,26 +113,6 @@ const STAT_ITEMS: Array<{
 
 const NOTICES_PER_PAGE = 5;
 
-function shortDateText(value?: string | null) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`;
-}
-
-function toDateInputValue(value?: string | null): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function todayInputValue(): string {
-  return toDateInputValue(new Date().toISOString());
-}
-
 export default function Overview(props: OverviewProps) {
   const {
     stats,
@@ -168,6 +157,9 @@ export default function Overview(props: OverviewProps) {
   const [freeExtendMode, setFreeExtendMode] = useState<
     "new" | "extend" | "custom"
   >("new");
+  const [pendingConfirm, setPendingConfirm] = useState<
+    "payment" | "free" | null
+  >(null);
   const [noticePage, setNoticePage] = useState(1);
   const totalNoticePages = Math.max(
     1,
@@ -178,6 +170,11 @@ export default function Overview(props: OverviewProps) {
     const start = (currentNoticePage - 1) * NOTICES_PER_PAGE;
     return notices.slice(start, start + NOTICES_PER_PAGE);
   }, [notices, currentNoticePage]);
+
+  useEffect(() => {
+    if (noticePage > totalNoticePages) setNoticePage(totalNoticePages);
+  }, [noticePage, totalNoticePages]);
+
   const manualUsers = useMemo(() => {
     const query = manualUserSearch.trim().toLowerCase();
     return users
@@ -190,6 +187,13 @@ export default function Overview(props: OverviewProps) {
       });
   }, [manualUserSearch, users]);
   const selectedManualUser = users.find((user) => user.id === manualUserId);
+  const manualSelectUsers = useMemo(() => {
+    if (!selectedManualUser) return manualUsers;
+    if (manualUsers.some((user) => user.id === selectedManualUser.id)) {
+      return manualUsers;
+    }
+    return [selectedManualUser, ...manualUsers];
+  }, [manualUsers, selectedManualUser]);
   const currentMembershipEnd = selectedManualUser?.membershipEnd
     ? membershipEndText(selectedManualUser.membershipEnd)
     : null;
@@ -204,47 +208,113 @@ export default function Overview(props: OverviewProps) {
   const existingStartValue = toDateInputValue(
     selectedManualUser?.membershipEnd,
   );
+  const effectiveManualStart = resolveEffectiveStartDateOnly(
+    manualStartDate,
+    selectedManualUser?.membershipEnd,
+  );
+  const manualStartWillAutoAdjust =
+    Boolean(manualStartDate) && effectiveManualStart !== manualStartDate;
+  const effectiveFreeTrialStart = resolveEffectiveStartDateOnly(
+    freeTrialStartDate,
+    selectedManualUser?.membershipEnd,
+  );
+  const freeStartWillAutoAdjust =
+    Boolean(freeTrialStartDate) &&
+    effectiveFreeTrialStart !== freeTrialStartDate;
   const projectedMembershipEnd = useMemo(() => {
-    if (!manualStartDate) return null;
-    const start = new Date(manualStartDate);
-    if (Number.isNaN(start.getTime())) return null;
-    const end = new Date(start);
-    end.setMonth(end.getMonth() + manualMonths);
-    return shortDateText(end.toISOString());
-  }, [manualStartDate, manualMonths]);
+    const periodEnd = addCalendarMonthsDateOnly(
+      effectiveManualStart,
+      manualMonths,
+    );
+    const visibleEnd = periodEnd ? addDaysDateOnly(periodEnd, -1) : null;
+    return visibleEnd ? formatDateInputForDisplay(visibleEnd) : null;
+  }, [effectiveManualStart, manualMonths]);
 
   function selectExtendMode(mode: "new" | "extend" | "custom") {
     setExtendMode(mode);
-    if (mode === "new") onManualStartDateChange(todayInputValue());
+    if (mode === "new") onManualStartDateChange(todayDateInputValue());
     if (mode === "extend" && existingStartValue) {
       onManualStartDateChange(existingStartValue);
     }
   }
 
   const projectedFreeTrialEnd = useMemo(() => {
-    if (!freeTrialStartDate) return null;
-    const start = new Date(freeTrialStartDate);
-    if (Number.isNaN(start.getTime())) return null;
-    const end = new Date(start);
-    end.setDate(end.getDate() + freeTrialDays);
-    return shortDateText(end.toISOString());
-  }, [freeTrialStartDate, freeTrialDays]);
+    const periodEnd = addDaysDateOnly(effectiveFreeTrialStart, freeTrialDays);
+    const visibleEnd = periodEnd ? addDaysDateOnly(periodEnd, -1) : null;
+    return visibleEnd ? formatDateInputForDisplay(visibleEnd) : null;
+  }, [effectiveFreeTrialStart, freeTrialDays]);
 
   function selectFreeExtendMode(mode: "new" | "extend" | "custom") {
     setFreeExtendMode(mode);
-    if (mode === "new") onFreeTrialStartDateChange(todayInputValue());
+    if (mode === "new") onFreeTrialStartDateChange(todayDateInputValue());
     if (mode === "extend" && existingStartValue) {
       onFreeTrialStartDateChange(existingStartValue);
     }
   }
 
-  // Reset the extend-mode selection whenever a different member is chosen,
-  // so a stale "기존 멤버십 연장" choice from a previous member never lingers.
-  const [lastManualUserId, setLastManualUserId] = useState(manualUserId);
-  if (manualUserId !== lastManualUserId) {
-    setLastManualUserId(manualUserId);
+  useEffect(() => {
     setExtendMode("new");
     setFreeExtendMode("new");
+    const today = todayDateInputValue();
+    onManualStartDateChange(today);
+    onFreeTrialStartDateChange(today);
+  }, [manualUserId, onManualStartDateChange, onFreeTrialStartDateChange]);
+
+  const manualActionDisabled =
+    savingManualPayment ||
+    !selectedManualUser ||
+    !manualName.trim() ||
+    !manualPaidAt ||
+    !manualStartDate;
+  const freeActionDisabled =
+    savingFreeTrial || !selectedManualUser || !freeTrialStartDate;
+  const manualStartHelp =
+    extendMode === "extend"
+      ? "기존 종료일 다음날부터 이어서 계산됩니다."
+      : currentMembershipEnd
+        ? "남은 기간이 있으면 기존 종료일 다음날부터 자동으로 이어집니다."
+        : "선택한 날짜부터 이용권 기간을 계산합니다.";
+  const freeStartHelp =
+    freeExtendMode === "extend"
+      ? "기존 종료일 다음날부터 무료 기간이 이어집니다."
+      : currentMembershipEnd
+        ? "남은 기간이 있으면 기존 종료일 다음날부터 자동으로 이어집니다."
+        : "선택한 날짜부터 무료 기간을 계산합니다.";
+  const confirmRows: Array<[string, string | null]> =
+    pendingConfirm === "payment"
+      ? [
+          ["회원", selectedManualUser?.name ?? "-"],
+          [
+            "이용권",
+            `${selectedManualPlan.months}개월 · ${money(selectedManualPlan.amount)}`,
+          ],
+          ["입금자명", manualName.trim() || "-"],
+          ["입금일", formatDateInputForDisplay(manualPaidAt)],
+          [
+            manualStartWillAutoAdjust
+              ? "적용 기준일 (자동 조정됨)"
+              : "적용 기준일",
+            formatDateInputForDisplay(effectiveManualStart),
+          ],
+          ["만료 예정일", projectedMembershipEnd],
+        ]
+      : [
+          ["회원", selectedManualUser?.name ?? "-"],
+          ["무료 기간", `${freeTrialDays}일`],
+          [
+            freeStartWillAutoAdjust
+              ? "적용 기준일 (자동 조정됨)"
+              : "적용 기준일",
+            formatDateInputForDisplay(effectiveFreeTrialStart),
+          ],
+          ["만료 예정일", projectedFreeTrialEnd],
+        ];
+
+  function confirmPendingAction() {
+    const action = pendingConfirm;
+    setPendingConfirm(null);
+    if (action === "payment") onSaveManualPayment();
+    if (action === "free") onSaveFreeTrial();
   }
 
   return (
@@ -322,7 +392,7 @@ export default function Overview(props: OverviewProps) {
                     </span>
                     <div>
                       <strong>{notice.title}</strong>
-                      <em>{shortDateText(notice.createdAt)}</em>
+                      <em>{formatDateInputForDisplay(notice.createdAt)}</em>
                     </div>
                   </li>
                 ))}
@@ -395,12 +465,21 @@ export default function Overview(props: OverviewProps) {
                 value={manualUserId}
                 onChange={(event) => onManualUserChange(event.target.value)}
               >
-                {manualUsers.map((user) => (
+                <option value="">회원을 선택하세요</option>
+                {manualSelectUsers.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.name}
+                    {user.id === selectedManualUser?.id &&
+                    !manualUsers.some((item) => item.id === user.id)
+                      ? `현재 선택 · ${user.name}`
+                      : user.name}
                   </option>
                 ))}
               </select>
+              {manualSelectUsers.length === 0 && (
+                <small className="admin-char-count">
+                  검색 결과와 일치하는 회원이 없습니다.
+                </small>
+              )}
             </label>
           </div>
 
@@ -472,7 +551,11 @@ export default function Overview(props: OverviewProps) {
                     />
                   </label>
                   <label className="admin-payment-field">
-                    <span>멤버십 시작일</span>
+                    <span>
+                      {extendMode === "custom"
+                        ? "멤버십 시작일"
+                        : "적용 기준일"}
+                    </span>
                     <input
                       type="date"
                       value={manualStartDate}
@@ -481,6 +564,7 @@ export default function Overview(props: OverviewProps) {
                         onManualStartDateChange(event.target.value)
                       }
                     />
+                    <small>{manualStartHelp}</small>
                   </label>
                 </div>
               </div>
@@ -517,6 +601,16 @@ export default function Overview(props: OverviewProps) {
                     <span>직접 선택</span>
                   </label>
                 </div>
+                {manualStartWillAutoAdjust && (
+                  <p className="admin-extend-auto-note">
+                    선택한 날짜({formatDateInputForDisplay(manualStartDate)})
+                    보다 기존 이용권이 이후까지 남아있어 실제 적용 시작일은{" "}
+                    <strong>
+                      {formatDateInputForDisplay(effectiveManualStart)}
+                    </strong>
+                    로 자동 조정됩니다.
+                  </p>
+                )}
                 {projectedMembershipEnd && (
                   <p className="admin-extend-preview">
                     멤버십 만료 예정일 <strong>{projectedMembershipEnd}</strong>
@@ -548,8 +642,8 @@ export default function Overview(props: OverviewProps) {
 
               <div className="admin-form-actions">
                 <button
-                  disabled={savingManualPayment}
-                  onClick={onSaveManualPayment}
+                  disabled={manualActionDisabled}
+                  onClick={() => setPendingConfirm("payment")}
                   type="button"
                 >
                   {savingManualPayment ? "등록중" : "수동 결제 등록"}
@@ -577,7 +671,11 @@ export default function Overview(props: OverviewProps) {
                     </select>
                   </label>
                   <label className="admin-payment-field">
-                    <span>적용 시작일</span>
+                    <span>
+                      {freeExtendMode === "custom"
+                        ? "무료 시작일"
+                        : "적용 기준일"}
+                    </span>
                     <input
                       type="date"
                       value={freeTrialStartDate}
@@ -586,6 +684,7 @@ export default function Overview(props: OverviewProps) {
                         onFreeTrialStartDateChange(event.target.value)
                       }
                     />
+                    <small>{freeStartHelp}</small>
                   </label>
                 </div>
               </div>
@@ -628,6 +727,16 @@ export default function Overview(props: OverviewProps) {
                     <span>직접 선택</span>
                   </label>
                 </div>
+                {freeStartWillAutoAdjust && (
+                  <p className="admin-extend-auto-note">
+                    선택한 날짜({formatDateInputForDisplay(freeTrialStartDate)})
+                    보다 기존 이용권이 이후까지 남아있어 실제 적용 시작일은{" "}
+                    <strong>
+                      {formatDateInputForDisplay(effectiveFreeTrialStart)}
+                    </strong>
+                    로 자동 조정됩니다.
+                  </p>
+                )}
                 {projectedFreeTrialEnd && (
                   <p className="admin-extend-preview">
                     멤버십 만료 예정일 <strong>{projectedFreeTrialEnd}</strong>
@@ -648,8 +757,8 @@ export default function Overview(props: OverviewProps) {
 
               <div className="admin-form-actions">
                 <button
-                  disabled={savingFreeTrial}
-                  onClick={onSaveFreeTrial}
+                  disabled={freeActionDisabled}
+                  onClick={() => setPendingConfirm("free")}
                   type="button"
                 >
                   {savingFreeTrial ? "추가중" : "무료 기간 추가"}
@@ -659,6 +768,48 @@ export default function Overview(props: OverviewProps) {
           )}
         </section>
       </div>
+
+      {pendingConfirm && (
+        <div
+          className="admin-confirm-backdrop"
+          onClick={() => setPendingConfirm(null)}
+          role="presentation"
+        >
+          <div
+            aria-labelledby="admin-confirm-title"
+            aria-modal="true"
+            className="admin-confirm-dialog"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <strong id="admin-confirm-title">
+              {pendingConfirm === "payment"
+                ? "수동 결제를 등록할까요?"
+                : "무료 기간을 추가할까요?"}
+            </strong>
+            <p>
+              등록 후 회원 이용권 기간이 바로 변경됩니다. 아래 내용을 한 번 더
+              확인해 주세요.
+            </p>
+            <dl>
+              {confirmRows.map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value || "-"}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="admin-confirm-actions">
+              <button onClick={() => setPendingConfirm(null)} type="button">
+                취소
+              </button>
+              <button onClick={confirmPendingAction} type="button">
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

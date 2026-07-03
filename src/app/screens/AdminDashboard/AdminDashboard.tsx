@@ -69,6 +69,7 @@ import {
   type AdminStats,
   type AdminTabKey,
 } from "./admin.types";
+import { todayDateInputValue } from "./admin.utils";
 import "./admin-dashboard.css";
 
 function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
@@ -94,13 +95,6 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   chat: "회원과의 1:1 문의를 확인하고 답변합니다.",
   camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
 };
-
-function dateInputValue(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -146,14 +140,16 @@ export default function AdminDashboard() {
   const [manualUserId, setManualUserId] = useState("");
   const [manualMonths, setManualMonths] = useState(1);
   const [manualName, setManualName] = useState("");
-  const [manualPaidAt, setManualPaidAt] = useState(() => dateInputValue());
+  const [manualPaidAt, setManualPaidAt] = useState(() =>
+    todayDateInputValue(),
+  );
   const [manualStartDate, setManualStartDate] = useState(() =>
-    dateInputValue(),
+    todayDateInputValue(),
   );
   const [manualMemo, setManualMemo] = useState("");
   const [freeTrialDays, setFreeTrialDays] = useState(7);
   const [freeTrialStartDate, setFreeTrialStartDate] = useState(() =>
-    dateInputValue(),
+    todayDateInputValue(),
   );
   const [freeTrialMemo, setFreeTrialMemo] = useState("");
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -446,15 +442,25 @@ export default function AdminDashboard() {
           startDate: manualStartDate,
           adminMemo: manualMemo.trim() || undefined,
         });
+        let receiptUploadFailed = false;
         if (manualReceiptFile) {
-          await attachPaymentReceipt(payment.id, manualReceiptFile);
+          try {
+            await attachPaymentReceipt(payment.id, manualReceiptFile);
+          } catch {
+            receiptUploadFailed = true;
+          }
         }
         setManualName("");
         setManualMemo("");
-        setManualPaidAt(dateInputValue());
-        setManualStartDate(dateInputValue());
+        setManualPaidAt(todayDateInputValue());
+        setManualStartDate(todayDateInputValue());
         setManualReceiptFile(null);
         await load();
+        if (receiptUploadFailed) {
+          throw new Error(
+            "수동 결제는 등록됐지만 입금 확인 사진 업로드에 실패했습니다. 결제 내역에서 영수증 없음을 확인해 주세요.",
+          );
+        }
       }, "수동 결제를 등록하지 못했습니다.");
     } finally {
       setSavingManualPayment(false);
@@ -462,12 +468,7 @@ export default function AdminDashboard() {
   }
 
   async function saveFreeTrial() {
-    if (
-      !isAdmin ||
-      !manualUserId ||
-      !freeTrialStartDate ||
-      savingFreeTrial
-    )
+    if (!isAdmin || !manualUserId || !freeTrialStartDate || savingFreeTrial)
       return;
     setSavingFreeTrial(true);
     try {
@@ -479,7 +480,7 @@ export default function AdminDashboard() {
           adminMemo: freeTrialMemo.trim() || undefined,
         });
         setFreeTrialMemo("");
-        setFreeTrialStartDate(dateInputValue());
+        setFreeTrialStartDate(todayDateInputValue());
         await load();
       }, "무료 기간을 추가하지 못했습니다.");
     } finally {

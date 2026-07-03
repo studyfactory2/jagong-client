@@ -1084,6 +1084,23 @@
   font-weight: 950;
 }
 
+.admin-extend-auto-note {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(247, 128, 118, 0.2);
+  border-radius: 10px;
+  background: rgba(247, 128, 118, 0.08);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.admin-extend-auto-note strong {
+  color: var(--accent);
+  font-weight: 950;
+}
+
 .admin-dashboard-home .admin-selected-member p {
   margin: 0;
   overflow: hidden;
@@ -1191,6 +1208,99 @@
 .admin-dashboard-home .admin-form-actions button:disabled {
   opacity: 0.65;
   cursor: default;
+}
+
+.admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(9, 33, 46, 0.34);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.admin-confirm-dialog {
+  width: min(430px, 100%);
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(9, 33, 46, 0.24);
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.admin-confirm-dialog > strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.admin-confirm-dialog > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.admin-confirm-dialog dl {
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 10px;
+  background: var(--card-2);
+  display: grid;
+  margin: 0;
+  overflow: hidden;
+}
+
+.admin-confirm-dialog dl div {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.admin-confirm-dialog dl div + div {
+  border-top: 1px solid rgba(20, 63, 86, 0.08);
+}
+
+.admin-confirm-dialog dt,
+.admin-confirm-dialog dd {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.admin-confirm-dialog dt {
+  color: var(--muted);
+}
+
+.admin-confirm-dialog dd {
+  color: var(--ink);
+  text-align: right;
+}
+
+.admin-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-confirm-actions button {
+  min-width: 92px;
+  min-height: 40px;
+  border: 1px solid rgba(20, 63, 86, 0.16);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.admin-confirm-actions button:last-child {
+  border-color: transparent;
+  background: var(--accent);
+  color: #ffffff;
 }
 
 @media (max-width: 1420px) {
