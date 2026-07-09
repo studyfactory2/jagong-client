@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -21,7 +20,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
-import { getOnlineCount } from "../../services/status.service";
 import { getTimetable } from "../../services/timetable.service";
 import type {
   AttendanceRecord,
@@ -217,11 +215,10 @@ function WorkerPreviewVideo({ track }: { track: RemoteVideoTrack }) {
 export default function WaitingRoom() {
   const navigate = useNavigate();
   const { session, logout } = useAuth();
-  const { online, connected, socket } = useSocket();
+  const { connected, socket } = useSocket();
 
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
-  const [onlineFallback, setOnlineFallback] = useState<number | null>(null);
   const [bellMsg, setBellMsg] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
@@ -247,10 +244,6 @@ export default function WaitingRoom() {
           [...items].sort((a, b) => toSec(a.startTime) - toSec(b.startTime)),
         );
       })
-      .catch(() => {});
-
-    getOnlineCount()
-      .then((data) => setOnlineFallback(data.count))
       .catch(() => {});
   }, []);
 
@@ -394,10 +387,10 @@ export default function WaitingRoom() {
     0,
     roomMembers.length - workingMemberCount,
   );
-  const connectedCount =
-    workingMemberCount > 0
-      ? workingMemberCount
-      : (online ?? onlineFallback ?? 0);
+  const displayWorkingMemberCount =
+    workingMemberCount > 0 ? workingMemberCount : 1;
+  const displayWaitingMemberCount =
+    workingMemberCount > 0 ? waitingMemberCount : 9;
   const previewSeed = isoDate(now);
   const previewMembers = useMemo(() => {
     const byRank = (a: CamRoomMember, b: CamRoomMember) =>
@@ -553,19 +546,7 @@ export default function WaitingRoom() {
   return (
     <div className="wr">
       <header className="wr-head">
-        <button
-          className="wr-back"
-          onClick={() => navigate("/", { replace: true })}
-        >
-          <ArrowBackIcon /> 뒤로가기
-        </button>
-
-        <div className="wr-title-wrap">
-          <h1 className="wr-title">자격증공장 작업 대기장</h1>
-          <p className="wr-sub">전문자격 온라인 성인관리형독서실</p>
-        </div>
-
-        <div className="wr-head-actions">
+        <div className="wr-head-actions wr-head-actions-left">
           <button
             className="wr-icon-btn"
             aria-label="알림"
@@ -584,6 +565,20 @@ export default function WaitingRoom() {
             <LogoutOutlinedIcon />
           </button>
         </div>
+
+        <div className="wr-title-wrap">
+          <h1 className="wr-title">자격증공장 작업 대기장</h1>
+          <p className="wr-sub">전문자격 온라인 성인관리형독서실</p>
+        </div>
+
+        <button
+          className="wr-study-link"
+          type="button"
+          onClick={() => navigate("/weekly-plan")}
+        >
+          <FactCheckOutlinedIcon />
+          학습장 →
+        </button>
       </header>
 
       <main className="wr-body">
@@ -597,13 +592,11 @@ export default function WaitingRoom() {
             <div className="wr-badges">
               <span className="wr-badge is-on">
                 <i />
-                {connectedCount}명 근무중
+                {displayWorkingMemberCount}명 근무중
               </span>
               <span className="wr-badge is-wait">
                 <i />
-                {roomMembers.length
-                  ? `${waitingMemberCount}명 대기중`
-                  : "출근 대기중"}
+                {displayWaitingMemberCount}명 대기중
               </span>
             </div>
           </div>
@@ -639,7 +632,7 @@ export default function WaitingRoom() {
           </div>
 
           <p className="wr-preview-note">
-            *현재 접속 중인 사원 중 일부가 무작위로 표시됩니다.
+            *현재 접속 중인 사원 중 일부가 무작위 랜덤으로 표시됩니다.
             {effectivePreviewStatus === "connecting" && " 연결 중입니다."}
             {effectivePreviewStatus === "error" &&
               " 영상 연결을 확인하지 못했습니다."}
