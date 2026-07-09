@@ -845,6 +845,22 @@
     min-height: 44px;
   }
 
+  .wp-board-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .wp-board-actions button {
+    min-height: 44px;
+    border-radius: 11px;
+    font-size: 13px;
+  }
+
+  .wp-board-actions .is-save {
+    grid-column: 1 / -1;
+    min-height: 46px;
+  }
+
   .wp-save-state {
     text-align: center;
   }

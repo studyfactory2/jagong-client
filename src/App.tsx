@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProtectedRoute from "./app/components/ProtectedRoute";
 import MembershipRoute from "./app/components/MembershipRoute";
 import Login from "./app/screens/Login";
@@ -31,9 +31,20 @@ function RootRedirect() {
   );
 }
 
+function ScrollToTop() {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, search]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <Suspense fallback={<AppLoading message="화면을 불러오는 중입니다." />}>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
@@ -79,7 +79,7 @@ export default function Inquiry() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [noticeError, setNoticeError] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesListRef = useRef<HTMLDivElement | null>(null);
 
   /** DERIVED **/
   const myId = session?.user.userId ?? session?.user.id;
@@ -99,7 +99,14 @@ export default function Inquiry() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
+    const element = messagesListRef.current;
+    if (!element) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      element.scrollTop = element.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [messages.length]);
 
   useEffect(() => {
@@ -310,22 +317,28 @@ export default function Inquiry() {
 
           {error && <p className="iq-error">{error}</p>}
 
-          <div className="iq-chat-date">
-            {dateLabel(messages.at(-1)?.createdAt)}
-          </div>
-
-          <div className="iq-messages">
-            {messages.map((item) => {
+          <div className="iq-messages" ref={messagesListRef}>
+            {messages.map((item, index) => {
               const isMe = item.senderId === myId;
+              const currentDate = dateLabel(item.createdAt);
+              const previousDate =
+                index > 0 ? dateLabel(messages[index - 1]?.createdAt) : "";
+              const showDate = currentDate && currentDate !== previousDate;
+
               return (
-                <div className={`iq-msg ${isMe ? "is-me" : ""}`} key={item.id}>
-                  {!isMe && <span className="iq-avatar">관리자</span>}
-                  <div>
-                    {!isMe && <em>{item.sender?.name ?? "관리자"}</em>}
-                    <p>{item.content}</p>
+                <Fragment key={item.id}>
+                  {showDate && <div className="iq-chat-date">{currentDate}</div>}
+                  <div className={`iq-msg ${isMe ? "is-me" : ""}`}>
+                    {!isMe && <span className="iq-avatar">관리자</span>}
+                    {isMe && <time>{timeText(item.createdAt)}</time>}
+                    <div className="iq-bubble">
+                      {!isMe && <em>{item.sender?.name ?? "관리자"}</em>}
+                      <p>{item.content}</p>
+                    </div>
+                    {!isMe && <time>{timeText(item.createdAt)}</time>}
+                    {isMe && <span className="iq-avatar is-me">나</span>}
                   </div>
-                  <time>{timeText(item.createdAt)}</time>
-                </div>
+                </Fragment>
               );
             })}
 
@@ -334,7 +347,6 @@ export default function Inquiry() {
                 아직 문의 내역이 없습니다. 궁금한 내용을 편하게 남겨주세요.
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           <div className="iq-input">

@@ -281,22 +281,23 @@
   gap: 12px;
   min-height: 300px;
   max-height: 520px;
+  overscroll-behavior: contain;
   overflow-y: auto;
   padding: 2px 4px 2px 0;
 }
 
 .iq-msg {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 44px;
+  display: flex;
   gap: 8px;
   align-items: end;
 }
 
 .iq-msg.is-me {
-  grid-template-columns: 44px minmax(0, 1fr) 42px;
+  justify-content: flex-end;
 }
 
 .iq-avatar {
+  flex: 0 0 auto;
   width: 38px;
   height: 38px;
   border-radius: 999px;
@@ -307,6 +308,23 @@
   color: var(--ink);
   font-size: 10px;
   font-weight: 900;
+}
+
+.iq-avatar.is-me {
+  background: var(--mint-soft);
+  border: 1px solid var(--mint-line);
+  color: var(--ink);
+}
+
+.iq-bubble {
+  display: flex;
+  max-width: min(72%, 540px);
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.iq-msg.is-me .iq-bubble {
+  align-items: flex-end;
 }
 
 .iq-msg em {
@@ -321,7 +339,7 @@
 .iq-msg p {
   margin: 0;
   width: fit-content;
-  max-width: min(100%, 520px);
+  max-width: 100%;
   border: 1px solid rgba(20, 63, 86, 0.07);
   border-radius: 16px;
   background: #fff8ed;
@@ -332,7 +350,6 @@
 }
 
 .iq-msg.is-me div {
-  grid-column: 2;
   justify-self: end;
 }
 
@@ -342,15 +359,11 @@
 }
 
 .iq-msg time {
+  flex: 0 0 auto;
+  margin-bottom: 4px;
   color: var(--muted);
   font-size: 11px;
   white-space: nowrap;
-}
-
-.iq-msg.is-me time {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: end;
 }
 
 .iq-input {
@@ -593,15 +606,18 @@
     align-items: flex-start;
   }
 
-  .iq-msg,
-  .iq-msg.is-me {
-    grid-template-columns: 36px minmax(0, 1fr) 38px;
+  .iq-msg {
+    gap: 6px;
   }
 
   .iq-avatar {
     width: 34px;
     height: 34px;
     font-size: 9px;
+  }
+
+  .iq-bubble {
+    max-width: min(74%, 360px);
   }
 
   .iq-msg p {
