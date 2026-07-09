@@ -654,6 +654,46 @@
   box-shadow: 0 10px 24px rgba(20, 63, 86, 0.035);
 }
 
+.wp-board-top {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 12px;
+  align-items: center;
+}
+
+.wp-board-top > span {
+  min-width: 42px;
+  min-height: 28px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.04);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wp-board-top strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.wp-board-top p {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wp-board-top button {
+  min-width: 74px;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .wp-board-note {
   border-color: rgba(159, 206, 180, 0.45);
 }

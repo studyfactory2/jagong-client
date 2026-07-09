@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -107,7 +107,11 @@ function screenError(err: unknown, fallback: string) {
 
 export default function WeeklyPlan() {
   const navigate = useNavigate();
-  const [boardMode, setBoardMode] = useState(false);
+  const location = useLocation();
+  const shouldOpenBoard =
+    new URLSearchParams(location.search).get("view") === "board" ||
+    (location.state as { focus?: string } | null)?.focus === "board";
+  const [boardMode, setBoardMode] = useState(() => shouldOpenBoard);
   const [weekStart, setWeekStart] = useState(() =>
     dateKey(startOfWeek(new Date())),
   );

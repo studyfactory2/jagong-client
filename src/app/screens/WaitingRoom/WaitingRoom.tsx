@@ -586,7 +586,9 @@ export default function WaitingRoom() {
         <button
           className="wr-study-link"
           type="button"
-          onClick={() => navigate("/weekly-plan")}
+          onClick={() =>
+            navigate("/weekly-plan?view=board", { state: { focus: "board" } })
+          }
         >
           <FactCheckOutlinedIcon />
           학습장 →
