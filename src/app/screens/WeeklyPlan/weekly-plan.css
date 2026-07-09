@@ -701,6 +701,9 @@
 .wp-table {
   border-radius: 18px;
   background: rgba(255, 254, 250, 0.92);
+  max-height: min(68vh, 720px);
+  overscroll-behavior: contain;
+  position: relative;
 }
 
 .wp-table-head b,
@@ -711,6 +714,30 @@
 
 .wp-table-head b {
   background: rgba(159, 206, 180, 0.055);
+}
+
+.wp-table-head b {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(250, 254, 251, 0.98);
+  box-shadow: 0 1px 0 rgba(20, 63, 86, 0.1);
+}
+
+.wp-table-head b:first-child {
+  left: 0;
+  z-index: 6;
+  box-shadow:
+    1px 0 0 rgba(20, 63, 86, 0.1),
+    0 1px 0 rgba(20, 63, 86, 0.1);
+}
+
+.wp-period {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: rgba(255, 254, 250, 0.98);
+  box-shadow: 1px 0 0 rgba(20, 63, 86, 0.1);
 }
 
 .wp-cell-task button,
