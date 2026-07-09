@@ -247,27 +247,28 @@ export default function StudyLine() {
         </section>
 
         <section className="sl-card sl-line">
-          {slots.map((slot, index) => {
-            const state = slotState(slot, current, nowSec);
-            return (
-              <div
-                className={`sl-row ${
-                  state === "진행중" || state === "쉬는중" ? "is-now" : ""
-                }`}
-                key={`${slot.slot}-${slot.startTime}`}
-              >
-                <i>{index + 1}</i>
-                {slot.isBreak ? (
-                  <HourglassEmptyOutlinedIcon />
-                ) : (
-                  <NotificationsOutlinedIcon />
-                )}
-                <strong>{slot.label}</strong>
-                <span>{slot.startTime} - {slot.endTime}</span>
-                <em>{state}</em>
-              </div>
-            );
-          })}
+          <div className="sl-line-grid">
+            {slots.map((slot) => {
+              const state = slotState(slot, current, nowSec);
+              return (
+                <div
+                  className={`sl-row ${
+                    state === "진행중" || state === "쉬는중" ? "is-now" : ""
+                  }${slot.isBreak ? " is-break" : ""}`}
+                  key={`${slot.slot}-${slot.startTime}`}
+                >
+                  {slot.isBreak ? (
+                    <HourglassEmptyOutlinedIcon />
+                  ) : (
+                    <NotificationsOutlinedIcon />
+                  )}
+                  <strong>{slot.label}</strong>
+                  <span>{slot.startTime} - {slot.endTime}</span>
+                  <em>{state}</em>
+                </div>
+              );
+            })}
+          </div>
           <p className="sl-note">
             출근 알림 · 쉬는 시간 · 휴식 · 유동 / 교시마다 입장 상태 확인
           </p>
