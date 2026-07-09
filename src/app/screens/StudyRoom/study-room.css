@@ -1202,3 +1202,402 @@
     justify-self: stretch;
   }
 }
+
+@media (max-width: 520px) {
+  .sr-head {
+    grid-template-columns: 68px minmax(0, 1fr) 98px;
+    gap: 6px;
+    min-height: 62px;
+    padding: 9px 12px 7px;
+  }
+
+  .sr-back {
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .sr-back svg {
+    font-size: 22px;
+  }
+
+  .sr-title {
+    font-size: 19px;
+    font-weight: 900;
+  }
+
+  .sr-pill {
+    min-height: 31px;
+    padding: 0 8px;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 800;
+  }
+
+  .sr-pill svg {
+    font-size: 16px;
+  }
+
+  .sr-body {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .sr-panel {
+    border-radius: 16px;
+    padding: 10px;
+    box-shadow: 0 10px 26px rgba(20, 63, 86, 0.055);
+  }
+
+  .sr-cams .sr-panel-head {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .sr-panel-title {
+    gap: 6px;
+    min-width: 0;
+    font-size: 15px;
+  }
+
+  .sr-panel-title svg {
+    font-size: 20px;
+  }
+
+  .sr-view-btn,
+  .sr-wall-btn,
+  .sr-quick-leave {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .sr-view-btn {
+    grid-template-columns: 17px auto;
+    gap: 4px;
+  }
+
+  .sr-view-btn svg {
+    font-size: 17px;
+  }
+
+  .sr-view-btn small {
+    display: none;
+  }
+
+  .sr-setup {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 9px;
+    padding: 9px;
+  }
+
+  .sr-setup-video {
+    aspect-ratio: 16 / 7.8;
+    border-radius: 10px;
+  }
+
+  .sr-setup-video span {
+    gap: 6px;
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  .sr-setup-video span svg {
+    font-size: 27px;
+  }
+
+  .sr-setup-info {
+    gap: 7px;
+  }
+
+  .sr-setup-info strong {
+    font-size: 15px;
+  }
+
+  .sr-setup-info em {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .sr-setup-info label {
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .sr-setup-info select,
+  .sr-live-device select {
+    min-height: 34px;
+    border-radius: 9px;
+    font-size: 11px;
+  }
+
+  .sr-setup-actions {
+    gap: 6px;
+  }
+
+  .sr-preview-btn,
+  .sr-join {
+    min-height: 38px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .sr-grid,
+  .sr-grid.is-compact {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sr-cam {
+    aspect-ratio: 16 / 9.8;
+    border-radius: 10px;
+    box-shadow:
+      inset 0 0 0 1px rgba(20, 63, 86, 0.16),
+      0 8px 16px rgba(20, 63, 86, 0.06);
+  }
+
+  .sr-cam.is-me {
+    box-shadow:
+      inset 0 0 0 2px var(--accent),
+      0 9px 18px rgba(244, 134, 120, 0.16);
+  }
+
+  .sr-cam-name {
+    left: 7px;
+    bottom: 7px;
+    max-width: calc(100% - 58px);
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  .sr-cam-state {
+    right: 7px;
+    bottom: 7px;
+    min-width: 34px;
+    height: 20px;
+    padding-inline: 5px;
+  }
+
+  .sr-live-footer {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 7px;
+    border-radius: 12px;
+  }
+
+  .sr-live-footer .sr-live-device {
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .sr-live-footer .sr-live-device select {
+    min-height: 31px;
+    padding-inline: 8px;
+  }
+
+  .sr-live-footer .sr-live-badge,
+  .sr-smart-badge {
+    width: 100%;
+    min-height: 28px;
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 10.5px;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .sr-live-dot,
+  .sr-smart-badge span {
+    width: 7px;
+    height: 7px;
+  }
+
+  .sr-live-footer p {
+    display: none;
+  }
+
+  .sr-hint {
+    margin: 8px 0 2px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .sr-bottom-status {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 7px;
+    border-radius: 16px;
+  }
+
+  .sr-status-notice,
+  .sr-status-item {
+    min-height: 50px;
+    border-radius: 11px;
+    padding: 7px 8px;
+  }
+
+  .sr-status-notice {
+    grid-column: 1 / -1;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    min-height: 36px;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .sr-status-notice svg {
+    font-size: 16px;
+  }
+
+  .sr-status-notice span,
+  .sr-status-item span {
+    font-size: 10px;
+  }
+
+  .sr-status-notice p,
+  .sr-status-item p {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .sr-status-notice p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sr-status-notice em {
+    display: none;
+  }
+
+  .sr-status-item {
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .sr-status-item strong {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sr-status-item p {
+    display: none;
+  }
+
+  .sr-dots {
+    margin-top: 4px;
+  }
+
+  .sr-footer {
+    gap: 8px;
+    padding: 8px 12px 16px;
+    font-size: 11px;
+  }
+
+  .sr-footer nav {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .sr-cams .sr-panel-head {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .sr-panel-title {
+    grid-column: 1 / -1;
+  }
+
+  .sr-view-btn,
+  .sr-wall-btn,
+  .sr-quick-leave {
+    justify-self: stretch;
+  }
+
+  .sr-view-btn,
+  .sr-wall-btn {
+    justify-content: center;
+  }
+
+  .sr-quick-leave {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 400px) {
+  .sr-head {
+    grid-template-columns: 58px minmax(0, 1fr) 88px;
+    padding-inline: 10px;
+  }
+
+  .sr-title {
+    font-size: 18px;
+  }
+
+  .sr-pill span {
+    display: none;
+  }
+
+  .sr-body {
+    padding: 8px;
+  }
+
+  .sr-panel {
+    padding: 9px;
+  }
+
+  .sr-view-btn,
+  .sr-wall-btn,
+  .sr-quick-leave {
+    min-height: 31px;
+    padding-inline: 8px;
+    font-size: 10.5px;
+  }
+
+  .sr-setup {
+    padding: 8px;
+  }
+
+  .sr-setup-video {
+    aspect-ratio: 16 / 7.4;
+  }
+
+  .sr-cam {
+    aspect-ratio: 16 / 9.4;
+  }
+
+  .sr-cam-name {
+    max-width: calc(100% - 52px);
+    padding-inline: 6px;
+  }
+
+  .sr-cam-state {
+    min-width: 32px;
+  }
+
+  .sr-live-footer {
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .sr-live-footer .sr-live-device {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+
+  .sr-live-footer .sr-live-badge,
+  .sr-smart-badge {
+    min-height: 27px;
+    font-size: 10px;
+  }
+}
