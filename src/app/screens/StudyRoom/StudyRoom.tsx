@@ -29,7 +29,12 @@ import type {
 import { useAuth } from "../../context/AuthContext";
 import "./study-room.css";
 
-const CAMERA_PAGE_SIZE = 8;
+const getCameraPageSize = () => {
+  if (typeof window === "undefined") return 8;
+  if (window.innerWidth >= 1200) return 20;
+  if (window.innerWidth >= 560) return 12;
+  return 8;
+};
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
   {
@@ -167,6 +172,7 @@ export default function StudyRoom() {
   const [compactWall, setCompactWall] = useState(true);
   const [cameraOnly, setCameraOnly] = useState(false);
   const [cameraPage, setCameraPage] = useState(0);
+  const [cameraPageSize, setCameraPageSize] = useState(getCameraPageSize);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
@@ -202,6 +208,19 @@ export default function StudyRoom() {
   const syncedAttendanceSlotRef = useRef<number | null>(null);
   const myId = session?.user.userId ?? session?.user.id ?? "";
   const myName = session?.user.name ?? "나";
+
+  useEffect(() => {
+    const updatePageSize = () => {
+      setCameraPageSize((currentSize) => {
+        const nextSize = getCameraPageSize();
+        return currentSize === nextSize ? currentSize : nextSize;
+      });
+    };
+
+    updatePageSize();
+    window.addEventListener("resize", updatePageSize);
+    return () => window.removeEventListener("resize", updatePageSize);
+  }, []);
 
   const refreshRoomMembers = useCallback(async () => {
     try {
@@ -333,16 +352,16 @@ export default function StudyRoom() {
   }, [joined, myId, myName, roomMembers]);
   const cameraPageCount = Math.max(
     1,
-    Math.ceil(membersForGrid.length / CAMERA_PAGE_SIZE),
+    Math.ceil(membersForGrid.length / cameraPageSize),
   );
   const activeCameraPage = Math.min(cameraPage, cameraPageCount - 1);
   const visibleMembers = useMemo(
     () =>
       membersForGrid.slice(
-        activeCameraPage * CAMERA_PAGE_SIZE,
-        activeCameraPage * CAMERA_PAGE_SIZE + CAMERA_PAGE_SIZE,
+        activeCameraPage * cameraPageSize,
+        activeCameraPage * cameraPageSize + cameraPageSize,
       ),
-    [activeCameraPage, membersForGrid],
+    [activeCameraPage, cameraPageSize, membersForGrid],
   );
 
   function stopLocalCamera() {
@@ -818,7 +837,7 @@ export default function StudyRoom() {
             {visibleMembers.map((member, index) => {
               const isMe = member.id === myId;
               const isWorking = member.isWorking || (isMe && joined);
-              const memberIndex = activeCameraPage * CAMERA_PAGE_SIZE + index;
+              const memberIndex = activeCameraPage * cameraPageSize + index;
               return (
                 <div
                   className={[
@@ -991,14 +1010,6 @@ export default function StudyRoom() {
 
       <footer className="sr-footer">
         <span>자격증공장 재택근무반</span>
-        <nav>
-          <button type="button" onClick={goWaitingRoom}>
-            대기장
-          </button>
-          <button type="button" onClick={() => navigate("/study-line")}>
-            개인작업실
-          </button>
-        </nav>
       </footer>
     </div>
   );
