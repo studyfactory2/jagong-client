@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
-import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
@@ -126,6 +126,9 @@ const formatDuration = (seconds: number) => {
 
 const isClockInSlot = (slot?: TimetableSlot | null) =>
   Boolean(slot && (slot.slot === 0 || slot.label.includes("출근")));
+
+const isWorkPeriodSlot = (slot: TimetableSlot) =>
+  !slot.isBreak && !isClockInSlot(slot);
 
 const ATTENDANCE_TEXT: Record<AttendanceStatusName, string> = {
   PRESENT: "출석",
@@ -338,12 +341,15 @@ export default function WaitingRoom() {
     [slots, nowSec],
   );
 
-  const completedWorkSlots = slots.filter(
-    (slot) => !slot.isBreak && toSec(slot.endTime) <= nowSec,
+  const workPeriodSlots = useMemo(
+    () => slots.filter(isWorkPeriodSlot),
+    [slots],
+  );
+  const completedWorkSlots = workPeriodSlots.filter(
+    (slot) => toSec(slot.endTime) <= nowSec,
   ).length;
-  const totalWorkSlots = slots.filter((slot) => !slot.isBreak).length || 1;
-  const elapsedWorkSeconds = slots.reduce((sum, slot) => {
-    if (slot.isBreak) return sum;
+  const totalWorkSlots = workPeriodSlots.length || 1;
+  const elapsedWorkSeconds = workPeriodSlots.reduce((sum, slot) => {
     const start = toSec(slot.startTime);
     const end = toSec(slot.endTime);
     if (nowSec <= start) return sum;
@@ -351,8 +357,7 @@ export default function WaitingRoom() {
     return sum + nowSec - start;
   }, 0);
   const totalWorkSeconds =
-    slots.reduce((sum, slot) => {
-      if (slot.isBreak) return sum;
+    workPeriodSlots.reduce((sum, slot) => {
       return sum + Math.max(0, toSec(slot.endTime) - toSec(slot.startTime));
     }, 0) || 1;
   const progress = Math.min(
@@ -372,13 +377,19 @@ export default function WaitingRoom() {
     () => new Map(attendance.map((record) => [record.slot, record])),
     [attendance],
   );
+  const workPeriodSlotNumbers = useMemo(
+    () => new Set(workPeriodSlots.map((slot) => slot.slot)),
+    [workPeriodSlots],
+  );
   const currentAttendance = current
     ? attendanceBySlot.get(current.slot)
     : undefined;
   const currentAttendanceStatus =
     (currentAttendance?.status as AttendanceStatusName | undefined) ?? null;
   const attendanceCount = attendance.filter(
-    (record) => record.status === "PRESENT" || record.status === "EXCUSED",
+    (record) =>
+      workPeriodSlotNumbers.has(record.slot) &&
+      (record.status === "PRESENT" || record.status === "EXCUSED"),
   ).length;
   const workingMemberCount = roomMembers.filter(
     (member) => member.isWorking,
@@ -549,20 +560,21 @@ export default function WaitingRoom() {
         <div className="wr-head-actions wr-head-actions-left">
           <button
             className="wr-icon-btn"
-            aria-label="알림"
-            onClick={() => navigate("/inquiry")}
-          >
-            <NotificationsNoneOutlinedIcon />
-          </button>
-          <button
-            className="wr-icon-btn"
             aria-label="로그아웃"
             onClick={() => {
+              if (!window.confirm("로그아웃하시겠습니까?")) return;
               logout();
               navigate("/login", { replace: true });
             }}
           >
-            <LogoutOutlinedIcon />
+            <LogoutRoundedIcon className="wr-logout-icon" />
+          </button>
+          <button
+            className="wr-icon-btn"
+            aria-label="알림"
+            onClick={() => navigate("/inquiry")}
+          >
+            <NotificationsNoneOutlinedIcon />
           </button>
         </div>
 
@@ -632,7 +644,7 @@ export default function WaitingRoom() {
           </div>
 
           <p className="wr-preview-note">
-            *현재 접속 중인 사원 중 일부가 무작위 랜덤으로 표시됩니다.
+            *현재 접속 중인 사원 중 일부가 랜덤으로 표시됩니다.
             {effectivePreviewStatus === "connecting" && " 연결 중입니다."}
             {effectivePreviewStatus === "error" &&
               " 영상 연결을 확인하지 못했습니다."}
@@ -743,11 +755,6 @@ export default function WaitingRoom() {
               );
             })}
           </div>
-
-          <p className="wr-caution">
-            *출근시간과 쉬는시간에는 입장 가능하며, 교시중에는 관리자 허용 후
-            입장합니다.
-          </p>
         </section>
 
         <section className="wr-attendance">
