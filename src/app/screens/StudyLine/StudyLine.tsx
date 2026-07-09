@@ -216,11 +216,12 @@ export default function StudyLine() {
     <div className="sl">
       <header className="sl-head">
         <button className="sl-back" onClick={() => navigate("/waiting-room")}>
-          <ArrowBackIcon /> 뒤로가기
+          <ArrowBackIcon /> 대기장
         </button>
         <h1>개인작업실</h1>
         <button className="sl-pill" onClick={() => navigate("/study-room")}>
-          단체작업장 →
+          <GroupsOutlinedIcon />
+          단체작업장 입장
         </button>
       </header>
 
@@ -230,10 +231,19 @@ export default function StudyLine() {
             <strong>오늘 나의 학습라인</strong>
             <p>내 자리에서 선택한 교시 흐름과 진행 상태를 바로 확인해요.</p>
           </div>
-          <span>
-            <NotificationsOutlinedIcon />
-            출근 알림 설정
-          </span>
+        </section>
+
+        <section className="sl-notice">
+          <NotificationsOutlinedIcon />
+          <div>
+            <span>알림</span>
+            <p>
+              {bellMsg ||
+                `관리자 공지: ${
+                  current?.label ?? nextSlot?.label ?? "오늘 일정"
+                } 중에는 화면 켜 상태를 유지해 주세요.`}
+            </p>
+          </div>
         </section>
 
         <section className="sl-card sl-line">
@@ -261,13 +271,6 @@ export default function StudyLine() {
           <p className="sl-note">
             출근 알림 · 쉬는 시간 · 휴식 · 유동 / 교시마다 입장 상태 확인
           </p>
-        </section>
-
-        <section className="sl-notice">
-          <span>알림</span>
-          {bellMsg ||
-            `관리자 공지: ${current?.label ?? nextSlot?.label ?? "오늘 일정"} 중에는 화면 켜 상태를 유지해 주세요.`}
-          <GroupsOutlinedIcon />
         </section>
 
         <section className="sl-bottom">

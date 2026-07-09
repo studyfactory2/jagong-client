@@ -4,7 +4,10 @@
   max-width: 560px;
   min-height: 100vh;
   margin: 0 auto;
-  background: var(--card);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(159, 206, 180, 0.13), transparent 28%),
+    radial-gradient(circle at 96% 5%, rgba(244, 134, 120, 0.08), transparent 30%),
+    var(--paper);
 }
 
 @media (min-width: 481px) {
@@ -19,11 +22,13 @@
 
 .sl-head {
   min-height: 70px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  position: relative;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 12px 18px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid rgba(20, 63, 86, 0.08);
+  background: rgba(255, 254, 250, 0.86);
 }
 
 .sl-back,
@@ -33,7 +38,9 @@
   gap: 5px;
   color: var(--ink);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800;
+  position: relative;
+  z-index: 1;
 }
 
 .sl-back svg {
@@ -41,16 +48,29 @@
 }
 
 .sl-head h1 {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   margin: 0;
   font-size: 21px;
-  font-weight: 700;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .sl-pill {
-  justify-self: end;
-  border: 1px solid var(--ink);
+  min-height: 38px;
+  border: 0;
   border-radius: 999px;
-  padding: 8px 12px;
+  background: linear-gradient(135deg, var(--ink), #174e63);
+  color: #ffffff;
+  padding: 0 13px;
+  box-shadow: 0 10px 22px rgba(20, 63, 86, 0.16);
+  white-space: nowrap;
+}
+
+.sl-pill svg {
+  color: currentColor;
+  font-size: 17px;
 }
 
 .sl-body {
@@ -61,17 +81,14 @@
 }
 
 .sl-card {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--card);
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 254, 250, 0.92);
+  box-shadow: 0 14px 34px rgba(20, 63, 86, 0.055);
 }
 
 .sl-intro {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
+  padding: 15px 16px;
 }
 
 .sl-intro strong {
@@ -85,31 +102,15 @@
   font-size: 12px;
 }
 
-.sl-intro span {
-  border: 1px solid var(--gold);
-  border-radius: 12px;
-  background: var(--gold-soft);
-  padding: 8px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.sl-intro svg {
-  font-size: 20px;
-}
-
 .sl-line {
-  padding: 8px;
+  padding: 12px 10px;
 }
 
 .sl-row {
-  min-height: 38px;
+  min-height: 41px;
   border-radius: 999px;
   display: grid;
-  grid-template-columns: 25px 24px 58px 1fr 58px;
+  grid-template-columns: 24px 22px 62px minmax(0, 1fr) 54px;
   align-items: center;
   gap: 8px;
   padding: 0 8px;
@@ -117,10 +118,10 @@
 }
 
 .sl-row i {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  background: var(--line-soft);
+  background: rgba(20, 63, 86, 0.08);
   display: grid;
   place-items: center;
   color: var(--ink);
@@ -129,7 +130,7 @@
 }
 
 .sl-row svg {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .sl-row strong {
@@ -137,20 +138,24 @@
 }
 
 .sl-row span {
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
+  font-size: 12px;
 }
 
 .sl-row em {
-  border: 1px solid var(--line);
+  justify-self: end;
+  border: 1px solid rgba(20, 63, 86, 0.14);
   border-radius: 999px;
-  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 4px 9px;
   text-align: center;
   font-style: normal;
-  font-size: 11px;
+  font-size: 10.5px;
 }
 
 .sl-row.is-now {
-  background: var(--accent-soft);
+  background: rgba(255, 247, 244, 0.92);
   color: var(--accent-deep);
 }
 
@@ -163,43 +168,53 @@
 
 .sl-note {
   margin: 8px 2px 0;
-  border: 1px solid var(--gold);
-  border-radius: 999px;
-  background: var(--gold-soft);
-  color: var(--ink-2);
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 12px;
+  background: rgba(239, 249, 244, 0.72);
+  color: var(--muted);
   padding: 8px 10px;
   font-size: 11px;
   text-align: center;
 }
 
 .sl-notice {
-  min-height: 44px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border: 1px solid rgba(117, 185, 152, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(239, 249, 244, 0.94), rgba(255, 254, 250, 0.92));
+  box-shadow: 0 12px 28px rgba(20, 63, 86, 0.05);
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 12px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
   font-size: 12px;
 }
 
-.sl-notice span {
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-  padding: 6px 12px;
-  font-weight: 700;
+.sl-notice > svg {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  padding: 6px;
+  box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.08);
 }
 
-.sl-notice svg {
-  margin-left: auto;
-  color: var(--mint-deep);
-  font-size: 18px;
+.sl-notice span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.sl-notice p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .sl-bottom {
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 254, 250, 0.92);
+  box-shadow: 0 14px 34px rgba(20, 63, 86, 0.055);
   display: grid;
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
@@ -210,7 +225,7 @@
 }
 
 .sl-bottom > div + div {
-  border-left: 1px solid var(--ink);
+  border-left: 1px solid rgba(20, 63, 86, 0.12);
 }
 
 .sl-bottom span {
@@ -235,8 +250,9 @@
 
 .sl-bottom div div {
   height: 11px;
-  border: 1px solid var(--ink);
+  border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
   overflow: hidden;
 }
 
@@ -252,18 +268,41 @@
 }
 
 @media (max-width: 420px) {
-  .sl-row {
-    grid-template-columns: 23px 22px 46px 1fr 50px;
-    gap: 5px;
+  .sl-head {
+    padding-inline: 12px;
+  }
+
+  .sl-head h1 {
+    font-size: 19px;
+  }
+
+  .sl-back {
     font-size: 11px;
   }
 
-  .sl-intro {
-    display: block;
+  .sl-back svg {
+    font-size: 22px;
   }
 
-  .sl-intro span {
-    margin-top: 10px;
+  .sl-pill {
+    min-height: 34px;
+    padding-inline: 10px;
+    font-size: 10.5px;
+  }
+
+  .sl-pill svg {
+    font-size: 15px;
+  }
+
+  .sl-row {
+    grid-template-columns: 23px 21px 48px minmax(0, 1fr) 48px;
+    gap: 5px;
+    font-size: 11px;
+    padding-inline: 7px;
+  }
+
+  .sl-row span {
+    font-size: 11px;
   }
 }
 
