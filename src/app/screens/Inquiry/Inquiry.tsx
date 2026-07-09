@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -60,6 +61,25 @@ function appendUniqueMessage(
   return [...messages, incoming];
 }
 
+const CHAT_IMAGE_MAX_COUNT = 5;
+const CHAT_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+type SelectedChatImage = {
+  file: File;
+  url: string;
+};
+
+function imageFileError(file: File) {
+  if (!CHAT_IMAGE_TYPES.includes(file.type)) {
+    return "png, jpg, webp 이미지만 첨부할 수 있습니다.";
+  }
+  if (file.size > CHAT_IMAGE_MAX_SIZE) {
+    return "이미지는 5MB 이하만 첨부할 수 있습니다.";
+  }
+  return "";
+}
+
 export default function Inquiry() {
   /** STATE **/
   const navigate = useNavigate();
@@ -74,12 +94,14 @@ export default function Inquiry() {
   );
   const [dismissedRoutedNoticeId, setDismissedRoutedNoticeId] = useState("");
   const [newNoticeIds, setNewNoticeIds] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<SelectedChatImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [noticeLoading, setNoticeLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [noticeError, setNoticeError] = useState("");
   const messagesListRef = useRef<HTMLDivElement | null>(null);
+  const selectedImagesRef = useRef<SelectedChatImage[]>([]);
 
   /** DERIVED **/
   const myId = session?.user.userId ?? session?.user.id;
@@ -88,7 +110,7 @@ export default function Inquiry() {
     (location.state as { noticeId?: string } | null)?.noticeId ?? "";
   const routedNotice =
     routedNoticeId && dismissedRoutedNoticeId !== routedNoticeId
-      ? notices.find((notice) => notice.id === routedNoticeId) ?? null
+      ? (notices.find((notice) => notice.id === routedNoticeId) ?? null)
       : null;
   const activeNotice = selectedNotice ?? routedNotice;
 
@@ -144,6 +166,15 @@ export default function Inquiry() {
     };
   }, [socket]);
 
+  useEffect(
+    () => () => {
+      selectedImagesRef.current.forEach((image) =>
+        URL.revokeObjectURL(image.url),
+      );
+    },
+    [],
+  );
+
   /** HANDLERS **/
   async function loadRoom() {
     setLoading(true);
@@ -189,13 +220,53 @@ export default function Inquiry() {
     setSelectedNotice(null);
   }
 
+  function addImages(files: FileList | null) {
+    if (!files?.length) return;
+    setError("");
+    const incoming = Array.from(files);
+    setSelectedImages((current) => {
+      const next = [...current];
+      for (const file of incoming) {
+        const errorMessage = imageFileError(file);
+        if (errorMessage) {
+          setError(errorMessage);
+          continue;
+        }
+        if (next.length >= CHAT_IMAGE_MAX_COUNT) {
+          setError("이미지는 최대 5개까지 첨부할 수 있습니다.");
+          break;
+        }
+        next.push({ file, url: URL.createObjectURL(file) });
+      }
+      selectedImagesRef.current = next;
+      return next;
+    });
+  }
+
+  function removeImage(index: number) {
+    setSelectedImages((current) => {
+      const removed = current[index];
+      if (removed) URL.revokeObjectURL(removed.url);
+      const next = current.filter((_, itemIndex) => itemIndex !== index);
+      selectedImagesRef.current = next;
+      return next;
+    });
+  }
+
+  function clearImages() {
+    selectedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+    selectedImagesRef.current = [];
+    setSelectedImages([]);
+  }
+
   async function send() {
-    if (!message.trim() || sending) return;
+    if ((!message.trim() && !selectedImages.length) || sending) return;
     const content = message.trim();
+    const files = selectedImages.map((image) => image.file);
     setSending(true);
     setError("");
     try {
-      const sent = await sendMyChatMessage(content);
+      const sent = await sendMyChatMessage({ content, files });
       setRoom((current) =>
         current
           ? {
@@ -205,6 +276,7 @@ export default function Inquiry() {
           : current,
       );
       setMessage("");
+      clearImages();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "문의 전송에 실패했습니다.",
@@ -278,9 +350,7 @@ export default function Inquiry() {
             <div className="iq-notice-detail" role="dialog" aria-modal="true">
               <div>
                 <span
-                  className={
-                    activeNotice.level === "IMPORTANT" ? "is-hot" : ""
-                  }
+                  className={activeNotice.level === "IMPORTANT" ? "is-hot" : ""}
                 >
                   {activeNotice.level === "IMPORTANT" ? "중요" : "공지"}
                 </span>
@@ -327,13 +397,36 @@ export default function Inquiry() {
 
               return (
                 <Fragment key={item.id}>
-                  {showDate && <div className="iq-chat-date">{currentDate}</div>}
+                  {showDate && (
+                    <div className="iq-chat-date">{currentDate}</div>
+                  )}
                   <div className={`iq-msg ${isMe ? "is-me" : ""}`}>
                     {!isMe && <span className="iq-avatar">관리자</span>}
                     {isMe && <time>{timeText(item.createdAt)}</time>}
                     <div className="iq-bubble">
                       {!isMe && <em>{item.sender?.name ?? "관리자"}</em>}
-                      <p>{item.content}</p>
+                      {item.content && <p>{item.content}</p>}
+                      {!!item.attachments?.length && (
+                        <div className="iq-attachments">
+                          {item.attachments.map((attachment) =>
+                            attachment.signedUrl ? (
+                              <a
+                                href={attachment.signedUrl}
+                                key={attachment.id}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                <img
+                                  alt={
+                                    attachment.fileName ?? "문의 첨부 이미지"
+                                  }
+                                  src={attachment.signedUrl}
+                                />
+                              </a>
+                            ) : null,
+                          )}
+                        </div>
+                      )}
                     </div>
                     {!isMe && <time>{timeText(item.createdAt)}</time>}
                     {isMe && <span className="iq-avatar is-me">나</span>}
@@ -349,8 +442,32 @@ export default function Inquiry() {
             )}
           </div>
 
+          {!!selectedImages.length && (
+            <div className="iq-image-preview" aria-label="첨부 이미지 미리보기">
+              {selectedImages.map((image, index) => (
+                <div key={`${image.file.name}-${index}`}>
+                  <img src={image.url} alt={image.file.name} />
+                  <button onClick={() => removeImage(index)} type="button">
+                    <CloseOutlinedIcon />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="iq-input">
-            <AddOutlinedIcon />
+            <label className="iq-attach">
+              <ImageOutlinedIcon />
+              <input
+                accept="image/png,image/jpeg,image/webp"
+                multiple
+                onChange={(event) => {
+                  addImages(event.target.files);
+                  event.target.value = "";
+                }}
+                type="file"
+              />
+            </label>
             <input
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -361,7 +478,7 @@ export default function Inquiry() {
               placeholder="문의 내용을 입력해 주세요"
             />
             <button
-              disabled={sending || !message.trim()}
+              disabled={sending || (!message.trim() && !selectedImages.length)}
               onClick={send}
               type="button"
             >

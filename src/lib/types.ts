@@ -312,6 +312,16 @@ export interface ChatRoomSender {
   role: RoleName;
 }
 
+export interface ChatAttachment {
+  id: string;
+  messageId: string;
+  fileName?: string | null;
+  mimeType: string;
+  size: number;
+  signedUrl?: string | null;
+  createdAt: string;
+}
+
 export interface ChatRoomMessage {
   id: string;
   roomId: string;
@@ -320,6 +330,7 @@ export interface ChatRoomMessage {
   isRead: boolean;
   createdAt: string;
   sender?: ChatRoomSender;
+  attachments?: ChatAttachment[];
 }
 
 export interface ChatRoom {

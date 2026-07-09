@@ -8,17 +8,43 @@ import type {
 
 /** MEMBER ROOM CHAT API **/
 
+type ChatMessagePayload = {
+  content?: string;
+  files?: File[];
+};
+
+function chatMessageBody(payload: string | ChatMessagePayload) {
+  const content =
+    typeof payload === "string" ? payload : (payload.content ?? "");
+  const files = typeof payload === "string" ? [] : (payload.files ?? []);
+
+  if (!files.length) {
+    return { body: { content }, headers: undefined };
+  }
+
+  const form = new FormData();
+  if (content.trim()) form.append("content", content);
+  files.forEach((file) => form.append("files", file));
+  return {
+    body: form,
+    headers: { "Content-Type": "multipart/form-data" },
+  };
+}
+
 export async function getMyChatRoom(): Promise<ChatRoom> {
   const { data } = await http.get<ChatRoom>("/chat/me");
   return data;
 }
 
 export async function sendMyChatMessage(
-  content: string,
+  payload: string | ChatMessagePayload,
 ): Promise<ChatRoomMessage> {
-  const { data } = await http.post<ChatRoomMessage>("/chat/me/messages", {
-    content,
-  });
+  const request = chatMessageBody(payload);
+  const { data } = await http.post<ChatRoomMessage>(
+    "/chat/me/messages",
+    request.body,
+    request.headers ? { headers: request.headers } : undefined,
+  );
   return data;
 }
 
@@ -42,11 +68,13 @@ export async function getAdminChatRoom(userId: string): Promise<ChatRoom> {
 
 export async function sendAdminChatMessage(
   userId: string,
-  content: string,
+  payload: string | ChatMessagePayload,
 ): Promise<ChatRoomMessage> {
+  const request = chatMessageBody(payload);
   const { data } = await http.post<ChatRoomMessage>(
     "/chat/rooms/" + userId + "/messages",
-    { content },
+    request.body,
+    request.headers ? { headers: request.headers } : undefined,
   );
   return data;
 }

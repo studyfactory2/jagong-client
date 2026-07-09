@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import {
   getAdminChatRoom,
@@ -33,7 +35,9 @@ type ChatProps = {
 };
 
 function latestText(room: ChatRoom) {
-  return room.latestMessage?.content ?? "아직 대화가 없습니다.";
+  if (room.latestMessage?.content) return room.latestMessage.content;
+  if (room.latestMessage?.attachments?.length) return "이미지를 보냈습니다.";
+  return "아직 대화가 없습니다.";
 }
 
 function roomTime(room: ChatRoom) {
@@ -43,6 +47,25 @@ function roomTime(room: ChatRoom) {
 
 function isManagerMessage(message: ChatRoomMessage) {
   return message.sender?.role === "ADMIN" || message.sender?.role === "STAFF";
+}
+
+const CHAT_IMAGE_MAX_COUNT = 5;
+const CHAT_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+type SelectedChatImage = {
+  file: File;
+  url: string;
+};
+
+function imageFileError(file: File) {
+  if (!CHAT_IMAGE_TYPES.includes(file.type)) {
+    return "png, jpg, webp 이미지만 첨부할 수 있습니다.";
+  }
+  if (file.size > CHAT_IMAGE_MAX_SIZE) {
+    return "이미지는 5MB 이하만 첨부할 수 있습니다.";
+  }
+  return "";
 }
 
 export default function Chat(props: ChatProps) {
@@ -60,15 +83,23 @@ export default function Chat(props: ChatProps) {
   const [preferredUserId, setPreferredUserId] = useState("");
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [draft, setDraft] = useState("");
+  const [selectedImages, setSelectedImages] = useState<SelectedChatImage[]>([]);
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const onRoomReadRef = useRef(onRoomRead);
+  const selectedImagesRef = useRef<SelectedChatImage[]>([]);
 
   useEffect(() => {
     onRoomReadRef.current = onRoomRead;
   }, [onRoomRead]);
+
+  function clearImages() {
+    selectedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+    selectedImagesRef.current = [];
+    setSelectedImages([]);
+  }
 
   /** DERIVED **/
   const selectedUserId = useMemo(() => {
@@ -136,14 +167,68 @@ export default function Chat(props: ChatProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [activeRoom?.id, messages.length]);
 
+  useEffect(
+    () => () => {
+      selectedImagesRef.current.forEach((image) =>
+        URL.revokeObjectURL(image.url),
+      );
+    },
+    [],
+  );
+
+  function addImages(files: FileList | null) {
+    if (!files?.length) return;
+    setError("");
+    const incoming = Array.from(files);
+    setSelectedImages((current) => {
+      const next = [...current];
+      for (const file of incoming) {
+        const errorMessage = imageFileError(file);
+        if (errorMessage) {
+          setError(errorMessage);
+          continue;
+        }
+        if (next.length >= CHAT_IMAGE_MAX_COUNT) {
+          setError("이미지는 최대 5개까지 첨부할 수 있습니다.");
+          break;
+        }
+        next.push({ file, url: URL.createObjectURL(file) });
+      }
+      selectedImagesRef.current = next;
+      return next;
+    });
+  }
+
+  function removeImage(index: number) {
+    setSelectedImages((current) => {
+      const removed = current[index];
+      if (removed) URL.revokeObjectURL(removed.url);
+      const next = current.filter((_, itemIndex) => itemIndex !== index);
+      selectedImagesRef.current = next;
+      return next;
+    });
+  }
+
+  function selectRoom(userId: string) {
+    setPreferredUserId(userId);
+    setDraft("");
+    clearImages();
+  }
+
   async function sendReply() {
-    if (!selectedUserId || !draft.trim() || sending) return;
+    if (!selectedUserId || (!draft.trim() && !selectedImages.length) || sending)
+      return;
     const content = draft.trim();
+    const files = selectedImages.map((image) => image.file);
     setSending(true);
     setError("");
     try {
-      const message = await sendAdminChatMessage(selectedUserId, content);
+      const message = await sendAdminChatMessage(selectedUserId, {
+        content,
+        files,
+      });
       setDraft("");
+      clearImages();
       setActiveRoom((current) =>
         current
           ? { ...current, messages: [...(current.messages ?? []), message] }
@@ -192,7 +277,7 @@ export default function Chat(props: ChatProps) {
               <button
                 className={room.userId === selectedUserId ? "is-active" : ""}
                 key={room.id}
-                onClick={() => setPreferredUserId(room.userId)}
+                onClick={() => selectRoom(room.userId)}
                 type="button"
               >
                 <span
@@ -236,7 +321,28 @@ export default function Chat(props: ChatProps) {
                     </span>
                     <div className="admin-chat-message-body">
                       <span>{message.sender?.name ?? "회원"}</span>
-                      <p>{message.content}</p>
+                      {message.content && <p>{message.content}</p>}
+                      {!!message.attachments?.length && (
+                        <div className="admin-chat-attachments">
+                          {message.attachments.map((attachment) =>
+                            attachment.signedUrl ? (
+                              <a
+                                href={attachment.signedUrl}
+                                key={attachment.id}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                <img
+                                  alt={
+                                    attachment.fileName ?? "문의 첨부 이미지"
+                                  }
+                                  src={attachment.signedUrl}
+                                />
+                              </a>
+                            ) : null,
+                          )}
+                        </div>
+                      )}
                       <time>
                         {dateText(message.createdAt)}
                         {fromManager && (
@@ -264,6 +370,33 @@ export default function Chat(props: ChatProps) {
             </div>
 
             <div className="admin-chat-compose">
+              {!!selectedImages.length && (
+                <div
+                  className="admin-chat-image-preview"
+                  aria-label="첨부 이미지 미리보기"
+                >
+                  {selectedImages.map((image, index) => (
+                    <div key={`${image.file.name}-${index}`}>
+                      <img src={image.url} alt={image.file.name} />
+                      <button onClick={() => removeImage(index)} type="button">
+                        <CloseOutlinedIcon />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="admin-chat-attach">
+                <ImageOutlinedIcon />
+                <input
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  onChange={(event) => {
+                    addImages(event.target.files);
+                    event.target.value = "";
+                  }}
+                  type="file"
+                />
+              </label>
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -275,7 +408,7 @@ export default function Chat(props: ChatProps) {
                 placeholder="회원에게 보낼 메시지"
               />
               <button
-                disabled={sending || !draft.trim()}
+                disabled={sending || (!draft.trim() && !selectedImages.length)}
                 onClick={sendReply}
                 type="button"
               >

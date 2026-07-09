@@ -1,8 +1,8 @@
 .iq {
-  width: min(100%, 1180px);
+  width: min(100%, 1240px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 0 18px 32px;
+  padding: 0 22px 32px;
   color: var(--ink);
   font-family: var(--sans);
   background:
@@ -53,7 +53,7 @@
 }
 
 .iq-body {
-  padding-top: 24px;
+  padding-top: 22px;
   display: grid;
   gap: 16px;
 }
@@ -67,6 +67,14 @@
     var(--card);
   box-shadow: 0 18px 44px rgba(20, 63, 86, 0.05);
   padding: 18px;
+}
+
+.iq-chat {
+  overflow: hidden;
+}
+
+.iq-chat .iq-error {
+  margin-bottom: 12px;
 }
 
 .iq-panel-title,
@@ -141,10 +149,11 @@
 .iq-notices {
   margin-top: 14px;
   display: grid;
-  gap: 8px;
+  gap: 9px;
   max-height: 520px;
   overflow-y: auto;
   padding-right: 4px;
+  scrollbar-gutter: stable;
 }
 
 .iq-notices button {
@@ -249,10 +258,10 @@
 }
 
 .iq-chat-meta {
-  min-height: 42px;
+  min-height: 40px;
   border: 1px solid rgba(20, 63, 86, 0.08);
   border-radius: 16px;
-  margin: 14px 0;
+  margin: 12px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -278,15 +287,22 @@
 .iq-messages {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
   min-height: 300px;
   max-height: 520px;
   overscroll-behavior: contain;
   overflow-y: auto;
-  padding: 2px 4px 2px 0;
+  border: 1px solid rgba(20, 63, 86, 0.06);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 254, 250, 0.64)),
+    radial-gradient(circle at 88% 8%, rgba(159, 206, 180, 0.1), transparent 32%);
+  padding: 16px 12px;
+  scrollbar-gutter: stable;
 }
 
 .iq-msg {
+  width: 100%;
   display: flex;
   gap: 8px;
   align-items: end;
@@ -318,9 +334,10 @@
 
 .iq-bubble {
   display: flex;
-  max-width: min(72%, 540px);
+  max-width: min(74%, 560px);
   flex-direction: column;
   align-items: flex-start;
+  gap: 6px;
 }
 
 .iq-msg.is-me .iq-bubble {
@@ -358,6 +375,27 @@
   background: var(--mint-soft);
 }
 
+.iq-attachments {
+  display: grid;
+  gap: 7px;
+  max-width: min(320px, 68vw);
+}
+
+.iq-attachments a {
+  display: block;
+  border: 1px solid rgba(20, 63, 86, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.iq-attachments img {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+}
+
 .iq-msg time {
   flex: 0 0 auto;
   margin-bottom: 4px;
@@ -367,7 +405,7 @@
 }
 
 .iq-input {
-  margin-top: 14px;
+  margin-top: 12px;
   min-height: 54px;
   border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 999px;
@@ -377,6 +415,20 @@
   align-items: center;
   padding: 6px 7px 6px 13px;
   gap: 8px;
+}
+
+.iq-attach {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iq-attach input {
+  display: none;
 }
 
 .iq-input svg {
@@ -412,6 +464,51 @@
 .iq-input button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.iq-image-preview {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid rgba(20, 63, 86, 0.06);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.56);
+  padding: 10px;
+}
+
+.iq-image-preview > div {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.iq-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.iq-image-preview button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.72);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iq-image-preview svg {
+  font-size: 16px;
 }
 
 .iq .app-foot {
@@ -490,13 +587,11 @@
   white-space: pre-wrap;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1120px) {
   .iq-body {
-    grid-template-columns: minmax(360px, 0.88fr) minmax(0, 1.12fr);
+    grid-template-columns: minmax(360px, 0.78fr) minmax(0, 1.22fr);
     align-items: stretch;
-    height: calc(100vh - 128px);
-    min-height: 650px;
-    max-height: 820px;
+    height: clamp(680px, calc(100vh - 126px), 840px);
   }
 
   .iq-notice-panel,
@@ -510,7 +605,20 @@
   }
 
   .iq-chat {
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  }
+
+  .iq-panel-title {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .iq-panel-title svg {
+    font-size: 30px;
+  }
+
+  .iq-notices button {
+    min-height: 70px;
+    grid-template-columns: 54px minmax(0, 1fr) 22px;
   }
 
   .iq-notices,
@@ -518,20 +626,51 @@
     max-height: none;
     min-height: 0;
   }
+
+  .iq-messages {
+    padding: 18px 14px;
+  }
+
+  .iq-chat {
+    box-shadow: 0 22px 60px rgba(20, 63, 86, 0.08);
+  }
 }
 
-@media (min-width: 900px) and (max-width: 1100px) {
+@media (min-width: 1120px) and (max-width: 1280px) {
   .iq {
     padding-inline: 14px;
   }
 
   .iq-body {
-    grid-template-columns: minmax(320px, 0.84fr) minmax(0, 1.16fr);
+    grid-template-columns: minmax(330px, 0.74fr) minmax(0, 1.26fr);
     gap: 14px;
   }
 }
 
-@media (max-width: 899px) {
+@media (min-width: 700px) and (max-width: 1119px) {
+  .iq {
+    max-width: 760px;
+  }
+
+  .iq-body {
+    gap: 18px;
+  }
+
+  .iq-notices {
+    max-height: 330px;
+  }
+
+  .iq-messages {
+    min-height: 430px;
+    max-height: 58vh;
+  }
+
+  .iq-bubble {
+    max-width: min(76%, 520px);
+  }
+}
+
+@media (max-width: 699px) {
   .iq {
     max-width: 620px;
     padding: 0 14px 24px;
@@ -626,11 +765,11 @@
 
   .iq-input {
     border-radius: 16px;
-    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) 82px;
     padding: 9px;
   }
 
   .iq-input button {
-    grid-column: 1 / -1;
+    min-width: 0;
   }
 }
