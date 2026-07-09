@@ -6,6 +6,10 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftRounded";
+import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
+import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
+import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
 import type { Room } from "livekit-client";
 import {
   getCamRoomMembers,
@@ -24,6 +28,8 @@ import type {
 } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import "./study-room.css";
+
+const CAMERA_PAGE_SIZE = 8;
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
   {
@@ -160,6 +166,7 @@ export default function StudyRoom() {
   const { session } = useAuth();
   const [compactWall, setCompactWall] = useState(true);
   const [cameraOnly, setCameraOnly] = useState(false);
+  const [cameraPage, setCameraPage] = useState(0);
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
@@ -324,6 +331,19 @@ export default function StudyRoom() {
       return a.name.localeCompare(b.name, "ko");
     });
   }, [joined, myId, myName, roomMembers]);
+  const cameraPageCount = Math.max(
+    1,
+    Math.ceil(membersForGrid.length / CAMERA_PAGE_SIZE),
+  );
+  const activeCameraPage = Math.min(cameraPage, cameraPageCount - 1);
+  const visibleMembers = useMemo(
+    () =>
+      membersForGrid.slice(
+        activeCameraPage * CAMERA_PAGE_SIZE,
+        activeCameraPage * CAMERA_PAGE_SIZE + CAMERA_PAGE_SIZE,
+      ),
+    [activeCameraPage, membersForGrid],
+  );
 
   function stopLocalCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -620,6 +640,8 @@ export default function StudyRoom() {
   }
 
   async function toggleJoin() {
+    if (joined && !window.confirm("작업실에서 퇴장하시겠습니까?")) return;
+
     setError("");
     setJoining(true);
     try {
@@ -793,9 +815,10 @@ export default function StudyRoom() {
           ) : null}
 
           <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
-            {membersForGrid.map((member, index) => {
+            {visibleMembers.map((member, index) => {
               const isMe = member.id === myId;
               const isWorking = member.isWorking || (isMe && joined);
+              const memberIndex = activeCameraPage * CAMERA_PAGE_SIZE + index;
               return (
                 <div
                   className={[
@@ -808,11 +831,11 @@ export default function StudyRoom() {
                   key={member.id}
                   style={{
                     background:
-                      index % 4 === 0
+                      memberIndex % 4 === 0
                         ? "linear-gradient(135deg,#3f5b6e,#273d4d)"
-                        : index % 4 === 1
+                        : memberIndex % 4 === 1
                           ? "linear-gradient(135deg,#6a8f6f,#4f7a5a)"
-                          : index % 4 === 2
+                          : memberIndex % 4 === 2
                             ? "linear-gradient(135deg,#7d7aa8,#5d5a88)"
                             : "linear-gradient(135deg,#b08a4f,#8a6a2f)",
                   }}
@@ -840,6 +863,54 @@ export default function StudyRoom() {
               </div>
             )}
           </div>
+
+          {cameraPageCount > 1 && (
+            <nav className="sr-pagination" aria-label="작업 캠 페이지">
+              <button
+                type="button"
+                className="sr-page-icon"
+                onClick={() => setCameraPage(0)}
+                disabled={activeCameraPage === 0}
+                aria-label="첫 페이지"
+              >
+                <KeyboardDoubleArrowLeftRoundedIcon />
+              </button>
+              <button
+                type="button"
+                className="sr-page-icon"
+                onClick={() => setCameraPage(Math.max(0, activeCameraPage - 1))}
+                disabled={activeCameraPage === 0}
+                aria-label="이전 페이지"
+              >
+                <KeyboardArrowLeftRoundedIcon />
+              </button>
+              <span className="sr-page-counter" aria-live="polite">
+                {activeCameraPage + 1} / {cameraPageCount}
+              </span>
+              <button
+                type="button"
+                className="sr-page-icon"
+                onClick={() =>
+                  setCameraPage(
+                    Math.min(cameraPageCount - 1, activeCameraPage + 1),
+                  )
+                }
+                disabled={activeCameraPage >= cameraPageCount - 1}
+                aria-label="다음 페이지"
+              >
+                <KeyboardArrowRightRoundedIcon />
+              </button>
+              <button
+                type="button"
+                className="sr-page-icon"
+                onClick={() => setCameraPage(cameraPageCount - 1)}
+                disabled={activeCameraPage >= cameraPageCount - 1}
+                aria-label="마지막 페이지"
+              >
+                <KeyboardDoubleArrowRightRoundedIcon />
+              </button>
+            </nav>
+          )}
 
           {error && <p className="sr-error">{error}</p>}
           {joined && (
@@ -916,15 +987,6 @@ export default function StudyRoom() {
           </section>
         )}
 
-        {!cameraOnly && (
-          <div className="sr-dots">
-            <i className="is-active" />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        )}
       </main>
 
       <footer className="sr-footer">
