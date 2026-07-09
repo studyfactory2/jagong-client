@@ -639,6 +639,67 @@ export default function WaitingRoom() {
           </p>
         </section>
 
+        <button
+          className="wr-notice"
+          onClick={() => navigate("/inquiry")}
+          type="button"
+        >
+          <span>공지</span>
+          {bellMsg ||
+            `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라 상태를 확인해 주세요.`}
+        </button>
+
+        <section className="wr-entry">
+          <button
+            className="wr-entry-btn is-private"
+            disabled={!canEnterRoom}
+            onClick={() => navigate("/study-line")}
+          >
+            <DoorFrontOutlinedIcon />
+            <span>
+              <strong>개인 작업실 입장</strong>
+              <em>{canEnterRoom ? "나만의 집중 작업실" : enterStatusText}</em>
+            </span>
+          </button>
+
+          <button
+            className="wr-entry-btn is-group"
+            disabled={!canEnterRoom}
+            onClick={() => navigate("/study-room")}
+          >
+            <GroupsOutlinedIcon />
+            <span>
+              <strong>단체 작업장 입장</strong>
+              <em>
+                {canEnterRoom ? "전국 사원과 함께 입장" : enterStatusText}
+              </em>
+            </span>
+          </button>
+        </section>
+
+        <section className="wr-progress">
+          <div className="wr-progress-card">
+            <span>오늘 작업장 진행률</span>
+            <strong>{progress}%</strong>
+            <em>
+              ({completedWorkSlots}/{totalWorkSlots})
+            </em>
+            <div className="wr-progress-bar">
+              <i style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="wr-countdown">
+            <NotificationsOutlinedIcon />
+            <span>다음종까지</span>
+            <strong>
+              {countdownTarget == null
+                ? "--:--"
+                : formatDuration(countdownTarget)}
+            </strong>
+          </div>
+        </section>
+
         <section className="wr-panel wr-time">
           <div className="wr-panel-head">
             <div className="wr-panel-title">
@@ -717,67 +778,6 @@ export default function WaitingRoom() {
               자세히 보기
             </button>
           </div>
-        </section>
-
-        <section className="wr-progress">
-          <div className="wr-progress-card">
-            <span>오늘 작업장 진행률</span>
-            <strong>{progress}%</strong>
-            <em>
-              ({completedWorkSlots}/{totalWorkSlots})
-            </em>
-            <div className="wr-progress-bar">
-              <i style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          <div className="wr-countdown">
-            <NotificationsOutlinedIcon />
-            <span>다음종까지</span>
-            <strong>
-              {countdownTarget == null
-                ? "--:--"
-                : formatDuration(countdownTarget)}
-            </strong>
-          </div>
-        </section>
-
-        <button
-          className="wr-notice"
-          onClick={() => navigate("/inquiry")}
-          type="button"
-        >
-          <span>공지</span>
-          {bellMsg ||
-            `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라 상태를 확인해 주세요.`}
-        </button>
-
-        <section className="wr-entry">
-          <button
-            className="wr-entry-btn is-private"
-            disabled={!canEnterRoom}
-            onClick={() => navigate("/study-line")}
-          >
-            <DoorFrontOutlinedIcon />
-            <span>
-              <strong>개인 작업실 입장</strong>
-              <em>{canEnterRoom ? "나만의 집중 작업실" : enterStatusText}</em>
-            </span>
-          </button>
-
-          <button
-            className="wr-entry-btn is-group"
-            disabled={!canEnterRoom}
-            onClick={() => navigate("/study-room")}
-          >
-            <GroupsOutlinedIcon />
-            <span>
-              <strong>단체 작업장 입장</strong>
-              <em>
-                {canEnterRoom ? "전국 사원과 함께 입장" : enterStatusText}
-              </em>
-            </span>
-          </button>
         </section>
 
         <section className="wr-shortcuts">
