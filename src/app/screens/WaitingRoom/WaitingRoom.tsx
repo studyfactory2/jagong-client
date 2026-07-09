@@ -554,6 +554,42 @@ export default function WaitingRoom() {
     };
   }, [livePreviewIds.length, syncPreviewSubscriptions]);
 
+  const timetableMidpoint = Math.ceil(slots.length / 2);
+  const timetableColumns = [
+    slots.slice(0, timetableMidpoint),
+    slots.slice(timetableMidpoint),
+  ].filter((column) => column.length > 0);
+
+  const renderTimeRow = (slot: TimetableSlot) => {
+    const isCurrent =
+      current?.slot === slot.slot && current.startTime === slot.startTime;
+
+    return (
+      <div
+        className={`wr-time-row${isCurrent ? " is-current" : ""}${
+          slot.isBreak ? " is-break" : ""
+        }`}
+        key={`${slot.slot}-${slot.startTime}`}
+      >
+        {slot.isBreak ? (
+          <HourglassEmptyOutlinedIcon />
+        ) : (
+          <NotificationsOutlinedIcon />
+        )}
+        <span className="wr-time-label">{slot.label}</span>
+        <span className="wr-time-range">
+          {slot.startTime} - {slot.endTime}
+        </span>
+        <span className="wr-time-duration">
+          (
+          {slot.duration ??
+            Math.round((toSec(slot.endTime) - toSec(slot.startTime)) / 60)}
+          분)
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="wr">
       <header className="wr-head">
@@ -724,38 +760,11 @@ export default function WaitingRoom() {
           </div>
 
           <div className="wr-time-grid">
-            {slots.map((slot) => {
-              const isCurrent =
-                current?.slot === slot.slot &&
-                current.startTime === slot.startTime;
-
-              return (
-                <div
-                  className={`wr-time-row${isCurrent ? " is-current" : ""}${
-                    slot.isBreak ? " is-break" : ""
-                  }`}
-                  key={`${slot.slot}-${slot.startTime}`}
-                >
-                  {slot.isBreak ? (
-                    <HourglassEmptyOutlinedIcon />
-                  ) : (
-                    <NotificationsOutlinedIcon />
-                  )}
-                  <span className="wr-time-label">{slot.label}</span>
-                  <span className="wr-time-range">
-                    {slot.startTime} - {slot.endTime}
-                  </span>
-                  <span className="wr-time-duration">
-                    (
-                    {slot.duration ??
-                      Math.round(
-                        (toSec(slot.endTime) - toSec(slot.startTime)) / 60,
-                      )}
-                    분)
-                  </span>
-                </div>
-              );
-            })}
+            {timetableColumns.map((column, index) => (
+              <div className="wr-time-column" key={`time-column-${index}`}>
+                {column.map(renderTimeRow)}
+              </div>
+            ))}
           </div>
         </section>
 

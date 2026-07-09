@@ -226,23 +226,26 @@ export default function StudyLine() {
       </header>
 
       <main className="sl-body">
-        <section className="sl-card sl-intro">
-          <div>
-            <strong>오늘 나의 학습라인</strong>
-            <p>내 자리에서 선택한 교시 흐름과 진행 상태를 바로 확인해요.</p>
+        <section className="sl-bottom">
+          <div className="sl-metric sl-progress-card">
+            <span>오늘 나의 진행률</span>
+            <strong>{progress}%</strong>
+            <em>
+              {completedSlots}/{slots.length} 완료 ·{" "}
+              {Math.max(0, slots.length - completedSlots)}개 남음
+            </em>
+            <div className="sl-progress-track">
+              <i style={{ width: `${progress}%` }} />
+            </div>
           </div>
-        </section>
-
-        <section className="sl-notice">
-          <NotificationsOutlinedIcon />
-          <div>
-            <span>알림</span>
-            <p>
-              {bellMsg ||
-                `관리자 공지: ${
-                  current?.label ?? nextSlot?.label ?? "오늘 일정"
-                } 중에는 화면 켜 상태를 유지해 주세요.`}
-            </p>
+          <div className="sl-metric sl-countdown-card">
+            <span>다음 종까지</span>
+            <strong>
+              {countdownTarget == null
+                ? "--:--:--"
+                : formatCountdown(countdownTarget)}
+            </strong>
+            <em>{countdownLabel}</em>
           </div>
         </section>
 
@@ -269,28 +272,18 @@ export default function StudyLine() {
               );
             })}
           </div>
-          <p className="sl-note">
-            출근 알림 · 쉬는 시간 · 휴식 · 유동 / 교시마다 입장 상태 확인
-          </p>
         </section>
 
-        <section className="sl-bottom">
+        <section className="sl-notice">
+          <NotificationsOutlinedIcon />
           <div>
-            <span>오늘 나의 진행률</span>
-            <strong>{progress}%</strong>
-            <em>({completedSlots}/{slots.length} 완료)</em>
-            <div>
-              <i style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-          <div>
-            <span>다음 종까지</span>
-            <strong>
-              {countdownTarget == null
-                ? "--:--:--"
-                : formatCountdown(countdownTarget)}
-            </strong>
-            <em>{countdownLabel}</em>
+            <span>알림</span>
+            <p>
+              {bellMsg ||
+                `관리자 공지: ${
+                  current?.label ?? nextSlot?.label ?? "오늘 일정"
+                } 중에는 화면 켜 상태를 유지해 주세요.`}
+            </p>
           </div>
         </section>
       </main>
