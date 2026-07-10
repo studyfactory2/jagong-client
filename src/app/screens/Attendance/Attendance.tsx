@@ -31,7 +31,7 @@ const STATUS_TEXT: Record<AttendanceStatusName, string> = {
   PRESENT: "출석",
   LATE: "지각",
   ABSENT: "결석",
-  EXCUSED: "인정",
+  EXCUSED: "기타",
 };
 
 const STATUS_CLASS: Record<AttendanceStatusName, string> = {
@@ -94,6 +94,17 @@ function statusClass(status?: string) {
 
 function slotLabel(slots: TimetableSlot[], slot: number) {
   return slots.find((item) => item.slot === slot)?.label ?? `${slot}교시`;
+}
+
+function attendanceReasonText(record: AttendanceRecord) {
+  return record.reason?.trim() || record.reasonType?.trim() || "";
+}
+
+function attendanceChipText(record: AttendanceRecord) {
+  if (record.status === "EXCUSED") {
+    return attendanceReasonText(record) || statusText(record.status);
+  }
+  return statusText(record.status);
 }
 
 function emptyCounts(): AttendanceCounts {
@@ -207,8 +218,6 @@ export default function Attendance() {
     return monthRecords;
   }, [monthRecords, todayRecords, view, weekRecords]);
 
-  const counts = useMemo(() => summarize(monthRecords), [monthRecords]);
-
   const selectedCounts = useMemo(
     () => summarize(selectedRecords),
     [selectedRecords],
@@ -307,7 +316,9 @@ export default function Attendance() {
             </div>
           </section>
 
-          <section className="attendance-section is-selected-view">
+          <section
+            className={`attendance-section is-selected-view is-${view}`}
+          >
             <div className="attendance-section-head">
               <div>
                 <h3>{viewMeta[view].title}</h3>
@@ -321,17 +332,6 @@ export default function Attendance() {
                 선택한 기간에 기록된 출석이 없습니다. 작업장 입장 후 교시 출석이
                 표시됩니다.
               </p>
-            ) : view === "daily" ? (
-              <div className="attendance-today-grid">
-                {selectedRecords.map((record) => (
-                  <article className="attendance-today-card" key={record.id}>
-                    <span>{slotLabel(slots, record.slot)}</span>
-                    <strong className={statusClass(record.status)}>
-                      {statusText(record.status)}
-                    </strong>
-                  </article>
-                ))}
-              </div>
             ) : (
               <div className="attendance-day-list">
                 {selectedGroups.map((group) => (
@@ -364,7 +364,7 @@ export default function Attendance() {
                           key={record.id}
                         >
                           <b>{slotLabel(slots, record.slot)}</b>
-                          <em>{statusText(record.status)}</em>
+                          <em>{attendanceChipText(record)}</em>
                         </span>
                       ))}
                     </div>

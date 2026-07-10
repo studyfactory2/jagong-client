@@ -424,6 +424,8 @@ export interface AttendanceRecord {
   slot: number;
   status: AttendanceStatusName | string;
   markedBy?: string | null;
+  reasonType?: string | null;
+  reason?: string | null;
   createdAt: string;
   updatedAt: string;
   user?: Pick<AdminUser, "id" | "name" | "branchId"> | null;

@@ -28,6 +28,8 @@ export async function markAttendance(input: {
   date: string;
   slot: number;
   status: AttendanceStatusName;
+  reasonType?: string;
+  reason?: string;
 }): Promise<AttendanceRecord> {
   const { data } = await http.post<AttendanceRecord>("/attendance/mark", input);
   return data;

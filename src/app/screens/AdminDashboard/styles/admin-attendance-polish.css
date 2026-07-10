@@ -2467,3 +2467,85 @@
     top: 106px;
   }
 }
+
+/* Attendance reason + scroll finish: keep the tool surface steady on every size. */
+.admin-attendance .admin-att-editor {
+  position: sticky;
+  top: 14px;
+  z-index: 24;
+  backdrop-filter: blur(14px);
+}
+
+.admin-attendance .admin-att-grid {
+  max-height: min(640px, calc(100vh - 316px));
+  max-height: min(640px, calc(100dvh - 316px));
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-attendance .admin-att-grid::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-attendance .admin-att-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.22);
+}
+
+.admin-attendance .admin-att-cell {
+  min-height: 36px;
+  line-height: 1;
+}
+
+.admin-attendance .admin-att-cell span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 1180px) {
+  .admin-attendance .admin-att-grid {
+    max-height: min(670px, calc(100vh - 292px));
+    max-height: min(670px, calc(100dvh - 292px));
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1179px) {
+  .admin-attendance .admin-att-editor {
+    top: 120px;
+  }
+
+  .admin-attendance .admin-att-grid {
+    max-height: min(620px, calc(100vh - 306px));
+    max-height: min(620px, calc(100dvh - 306px));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-attendance .admin-att-grid {
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
+  .admin-attendance .admin-att-row {
+    scroll-margin-top: 132px;
+  }
+
+  .admin-attendance .admin-att-cell {
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-attendance .admin-att-grid {
+    max-height: none;
+  }
+}
