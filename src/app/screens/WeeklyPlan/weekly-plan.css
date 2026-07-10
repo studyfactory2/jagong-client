@@ -55,6 +55,13 @@
   padding: 0 12px;
 }
 
+.wp-save.is-direction {
+  border-color: rgba(20, 63, 86, 0.18);
+  background: linear-gradient(135deg, rgba(239, 249, 244, 0.98), #ffffff);
+  color: var(--ink);
+  box-shadow: 0 10px 22px rgba(20, 63, 86, 0.08);
+}
+
 .wp-body,
 .wp-board {
   padding: 14px 18px 24px;
@@ -335,6 +342,23 @@
   grid-template-columns: 1fr 1fr 2fr;
 }
 
+.wp-board-actions button {
+  background: rgba(255, 254, 250, 0.92);
+}
+
+.wp-board-actions button:first-child,
+.wp-board-actions button:nth-child(2) {
+  color: var(--ink);
+}
+
+.wp-board-memo {
+  padding: 12px;
+}
+
+.wp-board-memo input {
+  height: 42px;
+}
+
 .wp .app-foot {
   display: none;
 }
@@ -375,6 +399,29 @@
 
   .wp-board-actions {
     grid-template-columns: 1fr;
+  }
+
+  .wp-table {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wp-table-head b,
+  .wp-period {
+    position: static;
+    box-shadow: none;
+  }
+
+  .wp-board-memo {
+    padding: 12px;
+  }
+
+  .wp-board-memo input {
+    height: 42px;
   }
 }
 
@@ -881,10 +928,6 @@
     min-height: 46px;
   }
 
-  .wp-save-state {
-    text-align: center;
-  }
-
   .wp-guide,
   .wp-help,
   .wp-board-top,
@@ -904,5 +947,20 @@
   .wp-guide > span,
   .wp-help > span {
     font-size: 16px;
+  }
+
+  .wp-table {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wp-table-head b,
+  .wp-period {
+    position: static;
+    box-shadow: none;
   }
 }

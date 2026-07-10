@@ -304,7 +304,7 @@ export default function WeeklyPlan() {
         </button>
         <h1>{boardMode ? "주간학습장" : "작업계획"}</h1>
         <button
-          className="wp-save"
+          className={boardMode ? "wp-save is-direction" : "wp-save"}
           onClick={() => setBoardMode((value) => !value)}
           type="button"
         >
@@ -429,19 +429,19 @@ export default function WeeklyPlan() {
         </main>
       ) : (
         <main className="wp-board">
-          <section className="wp-board-top">
-            <span>계획</span>
-            <div>
-              <strong>{month} 목표 작업량</strong>
-              <p>{goal || "이번 달 목표를 먼저 작성해 주세요."}</p>
-            </div>
-            <button
-              onClick={save}
-              disabled={saving || membershipLocked}
-              type="button"
-            >
-              {saving ? "저장중" : "저장"}
-            </button>
+          <section className="wp-month-goal wp-board-memo">
+            <label>
+              <MenuBookOutlinedIcon />
+              이번주 목표
+            </label>
+            <input
+              value={memo}
+              onChange={(event) => {
+                setMemo(event.target.value);
+                setSaveState("dirty");
+              }}
+              placeholder="예) 오전에는 기출, 오후에는 오답 정리"
+            />
           </section>
 
           <section className="wp-table">
