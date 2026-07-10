@@ -1,10 +1,18 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -114,11 +122,47 @@ export default function Inquiry() {
       : null;
   const activeNotice = selectedNotice ?? routedNotice;
 
+  /** LOADERS **/
+  const loadRoom = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setRoom(await getMyChatRoom());
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "문의 대화를 불러오지 못했습니다.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadNotices = useCallback(async () => {
+    setNoticeLoading(true);
+    setNoticeError("");
+    try {
+      setNotices(await getNotices());
+    } catch (err) {
+      setNoticeError(
+        err instanceof Error ? err.message : "공지 목록을 불러오지 못했습니다.",
+      );
+    } finally {
+      setNoticeLoading(false);
+    }
+  }, []);
+
+  const reloadInquiry = useCallback(async () => {
+    await Promise.all([loadRoom(), loadNotices()]);
+  }, [loadNotices, loadRoom]);
+
   /** EFFECTS **/
   useEffect(() => {
-    loadRoom();
-    loadNotices();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void loadRoom();
+      void loadNotices();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadNotices, loadRoom]);
 
   useEffect(() => {
     const element = messagesListRef.current;
@@ -176,34 +220,6 @@ export default function Inquiry() {
   );
 
   /** HANDLERS **/
-  async function loadRoom() {
-    setLoading(true);
-    setError("");
-    try {
-      setRoom(await getMyChatRoom());
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "문의 대화를 불러오지 못했습니다.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadNotices() {
-    setNoticeLoading(true);
-    setNoticeError("");
-    try {
-      setNotices(await getNotices());
-    } catch (err) {
-      setNoticeError(
-        err instanceof Error ? err.message : "공지 목록을 불러오지 못했습니다.",
-      );
-    } finally {
-      setNoticeLoading(false);
-    }
-  }
-
   function openNotice(notice: NoticeRecord) {
     setSelectedNotice(notice);
     setNewNoticeIds((current) => current.filter((id) => id !== notice.id));
@@ -254,7 +270,9 @@ export default function Inquiry() {
   }
 
   function clearImages() {
-    selectedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+    selectedImagesRef.current.forEach((image) =>
+      URL.revokeObjectURL(image.url),
+    );
     selectedImagesRef.current = [];
     setSelectedImages([]);
   }
@@ -290,11 +308,24 @@ export default function Inquiry() {
   return (
     <div className="iq">
       <header className="iq-head">
-        <button onClick={() => navigate("/waiting-room")} type="button">
+        <button
+          className="iq-back"
+          onClick={() => navigate("/waiting-room")}
+          type="button"
+        >
           <ArrowBackIcon /> 대기장
         </button>
         <h1>게시판</h1>
-        <span />
+        <button
+          aria-label="게시판 새로고침"
+          className="iq-refresh"
+          disabled={loading || noticeLoading}
+          onClick={reloadInquiry}
+          title="새로고침"
+          type="button"
+        >
+          <RefreshOutlinedIcon />
+        </button>
       </header>
 
       <main className="iq-body">
@@ -303,11 +334,7 @@ export default function Inquiry() {
             <CampaignOutlinedIcon />
             <div>
               <strong>관리자 공지</strong>
-              <p>공지표시 · 제목 · 등록날짜/요일/시간을 최신순으로 확인해요</p>
             </div>
-            <button onClick={loadNotices} type="button">
-              새로고침
-            </button>
           </div>
 
           {noticeError && <p className="iq-error">{noticeError}</p>}
@@ -347,20 +374,37 @@ export default function Inquiry() {
           </div>
 
           {activeNotice && (
-            <div className="iq-notice-detail" role="dialog" aria-modal="true">
-              <div>
-                <span
-                  className={activeNotice.level === "IMPORTANT" ? "is-hot" : ""}
-                >
-                  {activeNotice.level === "IMPORTANT" ? "중요" : "공지"}
-                </span>
-                <button onClick={closeNotice} type="button">
-                  닫기
-                </button>
-              </div>
-              <strong>{activeNotice.title}</strong>
-              <time>{noticeDate(activeNotice.createdAt)}</time>
-              <p>{activeNotice.body}</p>
+            <div className="iq-notice-overlay" onClick={closeNotice}>
+              <article
+                aria-labelledby="iq-notice-title"
+                aria-modal="true"
+                className="iq-notice-detail"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+              >
+                <header className="iq-notice-detail-head">
+                  <span
+                    className={
+                      activeNotice.level === "IMPORTANT" ? "is-hot" : ""
+                    }
+                  >
+                    {activeNotice.level === "IMPORTANT" ? "중요" : "공지"}
+                  </span>
+                  <button
+                    aria-label="공지 닫기"
+                    className="iq-notice-close"
+                    onClick={closeNotice}
+                    type="button"
+                  >
+                    <CloseOutlinedIcon />
+                  </button>
+                </header>
+                <h2 id="iq-notice-title">{activeNotice.title}</h2>
+                <time>{noticeDate(activeNotice.createdAt)}</time>
+                <div className="iq-notice-body">
+                  <p>{activeNotice.body}</p>
+                </div>
+              </article>
             </div>
           )}
         </section>
@@ -372,17 +416,6 @@ export default function Inquiry() {
               <strong>1:1 문의 게시판</strong>
               <p>관리자와 나만 보는 대화방입니다.</p>
             </div>
-            <button onClick={loadRoom} type="button">
-              새로고침
-            </button>
-          </div>
-
-          <div className="iq-chat-meta">
-            <span>
-              {loading
-                ? "대화를 불러오는 중입니다."
-                : `전체 대화 ${messages.length}개`}
-            </span>
           </div>
 
           {error && <p className="iq-error">{error}</p>}

@@ -3,6 +3,7 @@ import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutline
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
+import { useSocket } from "../../context/SocketContext";
 import {
   getAdminChatRoom,
   markAdminChatRoomRead,
@@ -49,6 +50,14 @@ function isManagerMessage(message: ChatRoomMessage) {
   return message.sender?.role === "ADMIN" || message.sender?.role === "STAFF";
 }
 
+function appendUniqueMessage(
+  messages: ChatRoomMessage[],
+  incoming: ChatRoomMessage,
+): ChatRoomMessage[] {
+  if (messages.some((message) => message.id === incoming.id)) return messages;
+  return [...messages, incoming];
+}
+
 const CHAT_IMAGE_MAX_COUNT = 5;
 const CHAT_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
 const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -56,6 +65,13 @@ const CHAT_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 type SelectedChatImage = {
   file: File;
   url: string;
+};
+
+type ChatRealtimePayload = {
+  room?: ChatRoom;
+  roomId?: string;
+  userId?: string;
+  message?: ChatRoomMessage;
 };
 
 function imageFileError(file: File) {
@@ -80,6 +96,7 @@ export default function Chat(props: ChatProps) {
     pageMeta,
     onPageChange,
   } = props;
+  const { socket } = useSocket();
   const [preferredUserId, setPreferredUserId] = useState("");
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [draft, setDraft] = useState("");
@@ -88,12 +105,19 @@ export default function Chat(props: ChatProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const activeRoomRef = useRef<ChatRoom | null>(null);
   const onRoomReadRef = useRef(onRoomRead);
+  const onRefreshRef = useRef(onRefresh);
+  const selectedUserIdRef = useRef("");
   const selectedImagesRef = useRef<SelectedChatImage[]>([]);
 
   useEffect(() => {
     onRoomReadRef.current = onRoomRead;
   }, [onRoomRead]);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   function clearImages() {
     selectedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
@@ -128,6 +152,14 @@ export default function Chat(props: ChatProps) {
       null
     );
   }, [selectedSummary?.user, selectedUserId, users]);
+
+  useEffect(() => {
+    selectedUserIdRef.current = selectedUserId;
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    activeRoomRef.current = activeRoom;
+  }, [activeRoom]);
 
   /** HANDLERS **/
   const loadRoom = useCallback(async (userId: string) => {
@@ -166,6 +198,49 @@ export default function Chat(props: ChatProps) {
 
     return () => window.cancelAnimationFrame(frame);
   }, [activeRoom?.id, messages.length]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleChatEvent = (payload: ChatRealtimePayload = {}) => {
+      const currentRoom = activeRoomRef.current;
+      const currentUserId = selectedUserIdRef.current;
+      const incoming = payload.message;
+      const eventRoomId = incoming?.roomId ?? payload.roomId ?? payload.room?.id;
+      const eventUserId = payload.userId ?? payload.room?.userId;
+
+      if (incoming && currentRoom?.id === incoming.roomId) {
+        setActiveRoom((current) =>
+          current
+            ? {
+                ...current,
+                messages: appendUniqueMessage(current.messages ?? [], incoming),
+              }
+            : current,
+        );
+      }
+
+      void onRefreshRef.current();
+
+      const shouldReloadActive =
+        !!currentUserId &&
+        (!eventRoomId ||
+          eventRoomId === currentRoom?.id ||
+          eventUserId === currentUserId);
+
+      if (shouldReloadActive) {
+        void loadRoom(currentUserId);
+      }
+    };
+
+    socket.on("chat:new-message", handleChatEvent);
+    socket.on("chat:room-updated", handleChatEvent);
+
+    return () => {
+      socket.off("chat:new-message", handleChatEvent);
+      socket.off("chat:room-updated", handleChatEvent);
+    };
+  }, [loadRoom, socket]);
 
   useEffect(
     () => () => {
@@ -231,7 +306,10 @@ export default function Chat(props: ChatProps) {
       clearImages();
       setActiveRoom((current) =>
         current
-          ? { ...current, messages: [...(current.messages ?? []), message] }
+          ? {
+              ...current,
+              messages: appendUniqueMessage(current.messages ?? [], message),
+            }
           : current,
       );
       await onRefresh();

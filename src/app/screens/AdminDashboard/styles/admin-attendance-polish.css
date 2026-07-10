@@ -814,8 +814,11 @@
   display: grid;
   gap: 2px;
   margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
   padding: 0;
   list-style: none;
+  scrollbar-gutter: stable;
 }
 
 .admin-recent-notices li {
@@ -2648,5 +2651,74 @@
 @media (max-width: 390px) {
   .admin-attendance .admin-att-editor {
     top: 112px;
+  }
+}
+
+/* Final inquiry polish: readable chat inputs and safer mobile scroll. */
+.admin-chat-compose input {
+  font-size: 16px;
+}
+
+.admin-chat-messages {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 760px) {
+  .admin-chat-layout {
+    grid-template-areas:
+      "thread"
+      "rooms"
+      "context";
+  }
+
+  .admin-chat-thread {
+    grid-template-rows: auto minmax(280px, 52vh) auto;
+    overflow: hidden;
+  }
+
+  .admin-chat-messages {
+    min-height: 280px;
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+
+  .admin-chat-compose {
+    position: relative;
+    grid-template-columns: 40px minmax(0, 1fr) 82px;
+    gap: 8px;
+    border-top: 1px solid rgba(20, 63, 86, 0.08);
+    border-radius: 0 0 18px 18px;
+    background: #fffefa;
+  }
+
+  .admin-chat-compose input,
+  .admin-chat-compose button,
+  .admin-chat-attach {
+    min-height: 44px;
+    border-radius: 14px;
+  }
+
+  .admin-chat-compose input {
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .admin-chat-image-preview {
+    grid-column: 1 / -1;
+  }
+
+  .admin-chat-rooms {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-chat-compose {
+    grid-template-columns: 38px minmax(0, 1fr) 74px;
+  }
+
+  .admin-chat-compose button {
+    font-size: 12px;
   }
 }
