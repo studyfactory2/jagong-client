@@ -96,6 +96,22 @@ function daysUntil(value?: string | null): number | null {
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
+function projectedMembershipEndText(
+  membership: MembershipStatus | null,
+  selectedPlan: MembershipPlan | undefined,
+  hasValidMembership: boolean,
+): string {
+  if (!selectedPlan) return "-";
+  const base =
+    hasValidMembership && membership?.membershipEnd
+      ? new Date(membership.membershipEnd)
+      : new Date();
+  if (Number.isNaN(base.getTime())) return "-";
+  base.setHours(0, 0, 0, 0);
+  base.setDate(base.getDate() + selectedPlan.days - 1);
+  return dateObjectText(base);
+}
+
 function paymentNotice(
   viewState: MembershipViewState,
   membership: MembershipStatus | null,
@@ -158,6 +174,12 @@ export default function PaymentHistory() {
         : viewState === "active"
           ? `D-${membership?.daysLeft ?? 0}`
           : "만료";
+  const ticketSubtext =
+    viewState === "active"
+      ? "남았어요"
+      : viewState === "future"
+        ? "부터 시작합니다"
+        : "이용권 상태를 확인해주세요";
 
   useEffect(() => {
     let alive = true;
@@ -266,6 +288,13 @@ export default function PaymentHistory() {
   const selectedMonthly = selectedPlan
     ? Math.round(selectedPlan.total / selectedPlan.months)
     : 0;
+  const baseMonthly =
+    plans.find((plan) => plan.months === 1)?.total ?? FALLBACK_PLANS[0].total;
+  const projectedEnd = projectedMembershipEndText(
+    membership,
+    selectedPlan,
+    hasValidMembership,
+  );
 
   return (
     <div className="pay">
@@ -286,37 +315,21 @@ export default function PaymentHistory() {
         )}
 
         <section className="pay-ticket">
-          <div className="pay-ticket-top">
-            <span>현재 이용권</span>
-            <em className={`is-${viewState}`}>
-              {viewState === "active"
-                ? "이용 중"
-                : viewState === "future"
-                  ? "시작 전"
-                  : viewState === "loading"
-                    ? "확인 중"
-                    : "결제 필요"}
-            </em>
+          <div className="pay-ticket-metrics">
+            <div className="pay-ticket-metric is-days">
+              <span>남은 기간</span>
+              <strong>{ticketBadge}</strong>
+              <small>{ticketSubtext}</small>
+            </div>
+            <div className="pay-ticket-metric">
+              <span>시작일</span>
+              <strong>{dateText(membership?.startDate)}</strong>
+            </div>
+            <div className="pay-ticket-metric">
+              <span>만료일</span>
+              <strong>{membershipEndText(membership?.membershipEnd)}</strong>
+            </div>
           </div>
-          <strong className="pay-ticket-dday">{ticketBadge}</strong>
-          <p>
-            {viewState === "active"
-              ? "남았어요"
-              : viewState === "future"
-                ? "부터 시작합니다"
-                : "이용권 상태를 확인해주세요"}
-          </p>
-          <dl>
-            <div>
-              <dt>시작일</dt>
-              <dd>{dateText(membership?.startDate)}</dd>
-            </div>
-            <div>
-              <dt>만료일</dt>
-              <dd>{membershipEndText(membership?.membershipEnd)}</dd>
-            </div>
-          </dl>
-          <small>남은 기간 뒤로 누적 적용돼요</small>
         </section>
 
         {notice && (
@@ -328,37 +341,55 @@ export default function PaymentHistory() {
 
         <section className="pay-fees">
           <h2>이용권 선택</h2>
+          <p className="pay-fees-copy">남은 기간 뒤로 누적 적용돼요</p>
           <div>
-            {plans.map((plan) => (
-              <button
-                className={selected === plan.months ? "is-active" : ""}
-                key={plan.months}
-                onClick={() => setSelected(plan.months)}
-                type="button"
-              >
-                <i aria-hidden="true" />
-                <span>
-                  <strong>{plan.months}달</strong>
-                  <small>총 {money(plan.total)}</small>
-                </span>
-                <b>
-                  {money(plan.total)}
-                  <small>
-                    월 {money(Math.round(plan.total / plan.months))}
-                  </small>
-                </b>
-              </button>
-            ))}
+            {plans.map((plan) => {
+              const monthly = Math.round(plan.total / plan.months);
+              const discount =
+                baseMonthly > monthly ? baseMonthly - monthly : 0;
+              return (
+                <button
+                  className={selected === plan.months ? "is-active" : ""}
+                  key={plan.months}
+                  onClick={() => setSelected(plan.months)}
+                  type="button"
+                >
+                  <i aria-hidden="true" />
+                  <span className="pay-plan-term">
+                    <strong>{plan.months}달</strong>
+                    {discount > 0 && (
+                      <small className="pay-plan-discount">
+                        월 {money(discount)} 할인
+                      </small>
+                    )}
+                  </span>
+                  <b className="pay-plan-price">
+                    {money(plan.total)}
+                    <small>월 {money(monthly)}</small>
+                  </b>
+                </button>
+              );
+            })}
           </div>
           <p className="pay-fee-note">모든 금액은 부가세 포함 금액이에요</p>
         </section>
 
         <section className="pay-summary">
-          <div>
+          <div className="pay-summary-head">
             <span>선택한 이용권</span>
             <strong>{selectedPlan?.months ?? "-"}개월권</strong>
           </div>
-          <div>
+          <dl className="pay-summary-list">
+            <div>
+              <dt>이용 기간</dt>
+              <dd>{selectedPlan?.months ?? "-"}개월</dd>
+            </div>
+            <div>
+              <dt>적용 후 만료일</dt>
+              <dd>{projectedEnd}</dd>
+            </div>
+          </dl>
+          <div className="pay-summary-total">
             <span>결제 금액</span>
             <strong>{selectedPlan ? money(selectedPlan.total) : "-"}</strong>
             <small>월 {selectedMonthly ? money(selectedMonthly) : "-"}</small>
@@ -375,7 +406,9 @@ export default function PaymentHistory() {
                 ? "결제수단으로 연장하기"
                 : "결제수단으로 결제하기"}
           </button>
-          <p>결제는 포트원(PG)을 통해 안전하게 처리돼요</p>
+          <p className="pay-safe-line">
+            결제는 포트원(PG)을 통해 안전하게 처리돼요
+          </p>
         </section>
 
         <section className="pay-alert">
