@@ -147,11 +147,19 @@ const toMin = (time: string) => {
   return hour * 60 + minute;
 };
 
+function isClockInSlot(slot: TimetableSlot) {
+  return slot.slot === 0 || slot.label.includes("출근");
+}
+
+function isAttendanceSlot(slot: TimetableSlot) {
+  return !slot.isBreak && !isClockInSlot(slot);
+}
+
 function currentSlot(timetable: TimetableSlot[]): number | null {
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const period = timetable.find((slot) => {
-    if (slot.isBreak) return false;
+    if (!isAttendanceSlot(slot)) return false;
     return toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime);
   });
   return period?.slot ?? null;

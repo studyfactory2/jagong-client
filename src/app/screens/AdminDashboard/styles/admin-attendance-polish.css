@@ -2527,7 +2527,39 @@
   }
 }
 
+@media (min-width: 761px) and (max-width: 979px) {
+  .app-shell.admin-shell .app-shell-head {
+    z-index: 34;
+  }
+
+  .app-shell.admin-shell .admin-menu-shell {
+    position: sticky;
+    top: 70px;
+    z-index: 32;
+  }
+
+  .admin-attendance .admin-att-editor {
+    position: sticky;
+    top: 126px;
+    z-index: 30;
+  }
+}
+
 @media (max-width: 760px) {
+  .app-shell.admin-shell .app-shell-head {
+    z-index: 32;
+  }
+
+  .app-shell.admin-shell .admin-menu-shell {
+    top: 60px;
+    z-index: 30;
+  }
+
+  .admin-attendance .admin-att-editor {
+    top: 116px;
+    z-index: 28;
+  }
+
   .admin-attendance .admin-att-grid {
     max-height: none;
     overflow-x: hidden;
@@ -2545,7 +2577,76 @@
 }
 
 @media (max-width: 390px) {
+  .admin-attendance .admin-att-editor {
+    top: 112px;
+  }
+
   .admin-attendance .admin-att-grid {
     max-height: none;
+  }
+}
+
+/* Attendance scroll contract: desktop table scrolls; touch/tablet pages scroll. */
+@media (max-width: 1179px) {
+  .app-shell.admin-shell,
+  .admin-layout,
+  .admin-workspace {
+    overflow-y: visible;
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    z-index: 42;
+  }
+
+  .app-shell.admin-shell .admin-menu-shell {
+    z-index: 40;
+  }
+
+  .admin-attendance .admin-att-editor {
+    z-index: 38;
+  }
+
+  .admin-attendance .admin-att-grid {
+    max-height: none;
+    overflow-y: visible;
+    overscroll-behavior-y: auto;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1179px) {
+  .app-shell.admin-shell .admin-menu-shell {
+    position: sticky;
+    top: 70px;
+  }
+
+  .admin-attendance .admin-att-editor {
+    position: sticky;
+    top: 126px;
+  }
+
+  .admin-attendance .admin-att-grid {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell.admin-shell .admin-menu-shell {
+    position: sticky;
+    top: 60px;
+  }
+
+  .admin-attendance .admin-att-editor {
+    position: sticky;
+    top: 116px;
+  }
+
+  .admin-attendance .admin-att-grid {
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 390px) {
+  .admin-attendance .admin-att-editor {
+    top: 112px;
   }
 }

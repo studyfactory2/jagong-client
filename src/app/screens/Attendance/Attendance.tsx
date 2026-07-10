@@ -96,6 +96,20 @@ function slotLabel(slots: TimetableSlot[], slot: number) {
   return slots.find((item) => item.slot === slot)?.label ?? `${slot}교시`;
 }
 
+function isClockInSlot(slot: TimetableSlot) {
+  return slot.slot === 0 || slot.label.includes("출근");
+}
+
+function isAttendanceSlot(slot: TimetableSlot) {
+  return !slot.isBreak && !isClockInSlot(slot);
+}
+
+function isAttendanceRecordSlot(record: AttendanceRecord, slots: TimetableSlot[]) {
+  const timetableSlot = slots.find((slot) => slot.slot === record.slot);
+  if (timetableSlot) return isAttendanceSlot(timetableSlot);
+  return record.slot > 0;
+}
+
 function attendanceReasonText(record: AttendanceRecord) {
   return record.reason?.trim() || record.reasonType?.trim() || "";
 }
@@ -180,13 +194,17 @@ export default function Attendance() {
   const monthRecords = useMemo(
     () =>
       records
-        .filter((record) => String(record.date).slice(0, 7) === currentMonth)
+        .filter(
+          (record) =>
+            isAttendanceRecordSlot(record, slots) &&
+            String(record.date).slice(0, 7) === currentMonth,
+        )
         .sort((a, b) => {
           const dateOrder = String(b.date).localeCompare(String(a.date));
           if (dateOrder !== 0) return dateOrder;
           return a.slot - b.slot;
         }),
-    [currentMonth, records],
+    [currentMonth, records, slots],
   );
 
   const todayRecords = useMemo(
@@ -201,6 +219,7 @@ export default function Attendance() {
     () =>
       records
         .filter((record) => {
+          if (!isAttendanceRecordSlot(record, slots)) return false;
           const key = String(record.date).slice(0, 10);
           return key >= weekStartKey && key <= weekEndKey;
         })
@@ -209,7 +228,7 @@ export default function Attendance() {
           if (dateOrder !== 0) return dateOrder;
           return a.slot - b.slot;
         }),
-    [records, weekEndKey, weekStartKey],
+    [records, slots, weekEndKey, weekStartKey],
   );
 
   const selectedRecords = useMemo(() => {

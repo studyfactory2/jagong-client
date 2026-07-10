@@ -74,6 +74,14 @@ function isAttendanceStatus(value: string): value is AttendanceStatusName {
   return STATUS_OPTIONS.some((option) => option.value === value);
 }
 
+function isClockInSlot(slot: TimetableSlot) {
+  return slot.slot === 0 || slot.label.includes("출근");
+}
+
+function isAttendanceSlot(slot: TimetableSlot) {
+  return !slot.isBreak && !isClockInSlot(slot);
+}
+
 export default function Attendance({ users, timetable }: AttendanceProps) {
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -94,7 +102,7 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
   const workSlots = useMemo(
     () =>
       timetable
-        .filter((slot) => !slot.isBreak)
+        .filter(isAttendanceSlot)
         .sort((a, b) => a.slot - b.slot),
     [timetable],
   );
