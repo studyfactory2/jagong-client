@@ -801,7 +801,7 @@ export default function WaitingRoom() {
         <section className="wr-shortcuts">
           <button onClick={() => navigate("/weekly-plan")}>
             <EventNoteOutlinedIcon />
-            주간작업계획
+            작업계획
           </button>
           <button onClick={() => navigate("/leaves")}>
             <LockOutlinedIcon />

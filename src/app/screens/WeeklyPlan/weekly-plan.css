@@ -119,6 +119,7 @@
 .wp-days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
   text-align: center;
 }
 
@@ -130,14 +131,20 @@
 }
 
 .wp-days button {
-  min-height: 34px;
+  min-height: 32px;
   border-radius: 999px;
-  font-size: 14px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .wp-days .is-picked {
-  background: var(--accent);
+  background: rgba(244, 134, 120, 0.92);
   color: #fff;
+}
+
+.wp-days .is-muted {
+  color: rgba(20, 63, 86, 0.28);
 }
 
 .wp-calendar p {
@@ -179,6 +186,12 @@
   background: var(--card);
 }
 
+.wp-month-goal input[readonly] {
+  color: var(--ink);
+  background: rgba(250, 250, 247, 0.72);
+  cursor: default;
+}
+
 .wp-actions,
 .wp-stats,
 .wp-board-actions {
@@ -205,19 +218,27 @@
 .wp-stats div {
   border: 1px solid var(--line);
   border-radius: 13px;
-  padding: 14px;
+  min-height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
 }
 
 .wp-stats span {
   color: var(--ink);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .wp-stats strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 0;
   color: var(--mint-deep);
-  font-size: 24px;
+  font-size: 22px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .wp-stats div + div strong {
@@ -340,8 +361,7 @@
     padding: 12px;
   }
 
-  .wp-actions,
-  .wp-stats {
+  .wp-actions {
     grid-template-columns: 1fr;
   }
 
@@ -487,20 +507,13 @@
     display: grid;
     grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
     grid-template-areas:
-      "guide calendar"
-      "goal memo"
+      "goal calendar"
+      "memo calendar"
       "save save"
-      "todo done"
-      "help help";
+      "stats stats";
     gap: 14px 16px;
     padding: 22px 10px 38px;
     align-items: stretch;
-  }
-
-  .wp-guide {
-    grid-area: guide;
-    grid-template-columns: auto minmax(0, 1fr);
-    min-height: 124px;
   }
 
   .wp-calendar {
@@ -508,11 +521,11 @@
     padding: 16px;
   }
 
-  .wp-body > .wp-month-goal:nth-of-type(3) {
+  .wp-monthly-goal {
     grid-area: goal;
   }
 
-  .wp-body > .wp-month-goal:nth-of-type(4) {
+  .wp-week-goal {
     grid-area: memo;
   }
 
@@ -521,29 +534,7 @@
   }
 
   .wp-stats {
-    display: contents;
-  }
-
-  .wp-stats > div:first-child {
-    grid-area: todo;
-  }
-
-  .wp-stats > div:last-child {
-    grid-area: done;
-  }
-
-  .wp-help {
-    grid-area: help;
-    grid-template-columns: auto minmax(0, 1fr);
-    padding: 16px 18px;
-  }
-
-  .wp-guide > span,
-  .wp-help > span {
-    min-width: 74px;
-    font-size: 18px;
-    line-height: 1;
-    letter-spacing: 0;
+    grid-area: stats;
   }
 
   .wp-board {
@@ -759,58 +750,55 @@
 }
 
 .wp-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  min-height: 56px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 8px;
+  min-height: 0;
   border: 1px solid rgba(159, 206, 180, 0.45);
   border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(237, 248, 243, 0.96), rgba(255, 247, 244, 0.82)),
     var(--mint-soft);
-  padding: 8px 10px 8px 18px;
+  padding: 10px;
   box-shadow: 0 12px 28px rgba(88, 164, 104, 0.08);
 }
 
+.wp-actions .wp-edit-action,
 .wp-actions .wp-main-action {
-  flex: 0 0 auto;
-  min-height: 40px;
+  width: 100%;
+  min-height: 42px;
   border: 0;
   border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+}
+
+.wp-actions .wp-edit-action svg,
+.wp-actions .wp-main-action svg {
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.wp-actions .wp-main-action {
   background: linear-gradient(135deg, #f47f72, #df665b);
   color: #ffffff;
-  padding: 0 22px;
   box-shadow: 0 10px 18px rgba(244, 127, 114, 0.24);
 }
 
+.wp-actions .wp-edit-action {
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  background: rgba(255, 254, 250, 0.92);
+}
+
+.wp-actions .wp-edit-action:hover:not(:disabled),
 .wp-actions .wp-main-action:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 14px 24px rgba(244, 127, 114, 0.28);
-}
-
-.wp-actions .wp-main-action svg {
-  color: currentColor;
-}
-
-.wp-save-state {
-  flex: 1;
-  margin: 0;
-  min-height: 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.45;
-  text-align: left;
-}
-
-.wp-save-state.is-dirty {
-  color: var(--accent-deep);
-  font-weight: 800;
-}
-
-.wp-save-state.is-saved {
-  color: var(--mint-deep);
-  font-weight: 800;
 }
 
 @media (min-width: 900px) {
@@ -823,6 +811,38 @@
     padding-top: 24px;
   }
 
+  .wp-body {
+    grid-template-columns: minmax(340px, 0.74fr) minmax(0, 1.26fr);
+    grid-template-areas:
+      "goal calendar"
+      "memo calendar"
+      "stats save";
+  }
+
+  .wp-actions {
+    align-self: stretch;
+    justify-self: stretch;
+    grid-template-columns: repeat(2, minmax(112px, 1fr));
+    align-content: center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255, 254, 250, 0.82);
+  }
+
+  .wp-actions .wp-edit-action,
+  .wp-actions .wp-main-action {
+    min-height: 44px;
+  }
+
+  .wp-stats {
+    gap: 10px;
+  }
+
+  .wp-stats div {
+    min-height: 72px;
+    padding-inline: 14px;
+  }
+
   .wp-guide,
   .wp-calendar,
   .wp-month-goal,
@@ -833,13 +853,13 @@
 
 @media (max-width: 520px) {
   .wp-actions {
-    align-items: stretch;
-    flex-direction: column;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     min-height: 0;
     padding: 12px;
   }
 
+  .wp-actions .wp-edit-action,
   .wp-actions .wp-main-action {
     width: 100%;
     min-height: 44px;

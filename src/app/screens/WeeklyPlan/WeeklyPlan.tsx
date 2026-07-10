@@ -69,6 +69,10 @@ function addDays(date: Date, days: number) {
   return copy;
 }
 
+function addMonths(date: Date, months: number) {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
 function taskKey(dayOfWeek: DayOfWeekName, slot: number) {
   return dayOfWeek + ":" + slot;
 }
@@ -115,6 +119,9 @@ export default function WeeklyPlan() {
   const [weekStart, setWeekStart] = useState(() =>
     dateKey(startOfWeek(new Date())),
   );
+  const [calendarMonthDate, setCalendarMonthDate] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
   const [goal, setGoal] = useState("");
   const [memo, setMemo] = useState("");
   const [tasks, setTasks] = useState<DraftMap>({});
@@ -124,6 +131,7 @@ export default function WeeklyPlan() {
   const [saveState, setSaveState] = useState<"idle" | "dirty" | "saved">(
     "idle",
   );
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
 
   const weekStartDate = useMemo(
     () => new Date(weekStart + "T00:00:00"),
@@ -138,7 +146,23 @@ export default function WeeklyPlan() {
       })),
     [weekStartDate],
   );
-  const month = monthKey(weekStartDate);
+  const month = monthKey(calendarMonthDate);
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(
+      calendarMonthDate.getFullYear(),
+      calendarMonthDate.getMonth(),
+      1,
+    );
+    const start = startOfWeek(firstDay);
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = addDays(start, index);
+      const key = dateKey(date);
+      const isCurrentMonth = date.getMonth() === calendarMonthDate.getMonth();
+      const isSelectedWeek =
+        key >= weekStart && key <= dateKey(weekEndDate);
+      return { date, key, isCurrentMonth, isSelectedWeek };
+    });
+  }, [calendarMonthDate, weekEndDate, weekStart]);
   const taskList = filledTasks(tasks);
   const doneCount = taskList.filter((task) => task.isDone).length;
   const membershipLocked = isMembershipAccessError(error);
@@ -159,6 +183,7 @@ export default function WeeklyPlan() {
         setMemo(weekData?.memo ?? "");
         setTasks(toDraft(weekData?.tasks ?? []));
         setSaveState("idle");
+        setIsEditingPlan(false);
       } catch (err) {
         if (!alive) return;
         setError(screenError(err, "주간계획을 불러오지 못했습니다."));
@@ -173,8 +198,29 @@ export default function WeeklyPlan() {
     };
   }, [month, weekStart]);
 
+  useEffect(() => {
+    if (saveState !== "saved") return;
+    const timer = window.setTimeout(() => setSaveState("idle"), 800);
+    return () => window.clearTimeout(timer);
+  }, [saveState]);
+
   function moveWeek(delta: number) {
-    setWeekStart(dateKey(addDays(weekStartDate, delta * 7)));
+    const nextWeekStart = addDays(weekStartDate, delta * 7);
+    setWeekStart(dateKey(nextWeekStart));
+    setCalendarMonthDate(
+      new Date(nextWeekStart.getFullYear(), nextWeekStart.getMonth(), 1),
+    );
+  }
+
+  function moveMonth(delta: number) {
+    const nextMonth = addMonths(calendarMonthDate, delta);
+    setCalendarMonthDate(nextMonth);
+    setWeekStart(dateKey(startOfWeek(nextMonth)));
+  }
+
+  function selectCalendarDate(date: Date) {
+    setWeekStart(dateKey(startOfWeek(date)));
+    setCalendarMonthDate(new Date(date.getFullYear(), date.getMonth(), 1));
   }
 
   function updateTask(
@@ -242,6 +288,7 @@ export default function WeeklyPlan() {
         ),
       });
       setSaveState("saved");
+      setIsEditingPlan(false);
     } catch (err) {
       setError(screenError(err, "주간계획을 저장하지 못했습니다."));
     } finally {
@@ -255,14 +302,14 @@ export default function WeeklyPlan() {
         <button onClick={() => navigate("/waiting-room")} type="button">
           <ArrowBackIcon /> 대기장
         </button>
-        <h1>{boardMode ? "주간학습장" : "나의 주간 작업계획"}</h1>
+        <h1>{boardMode ? "주간학습장" : "작업계획"}</h1>
         <button
           className="wp-save"
           onClick={() => setBoardMode((value) => !value)}
           type="button"
         >
           {boardMode ? <SaveOutlinedIcon /> : <EditNoteOutlinedIcon />}
-          {boardMode ? "계획보기" : "학습장 →"}
+          {boardMode ? "작업계획" : "학습장 →"}
         </button>
       </header>
 
@@ -279,32 +326,50 @@ export default function WeeklyPlan() {
 
       {!boardMode ? (
         <main className="wp-body">
-          <section className="wp-guide">
-            <span>목표</span>
-            <div>
-              <strong>이번 주 공부를 직접 설계해요</strong>
-              <p>월 목표와 교시별 할 일을 저장하고 완료율을 확인합니다.</p>
-            </div>
+          <section className="wp-month-goal wp-monthly-goal">
+            <label>
+              <EditNoteOutlinedIcon />
+              이번달 목표
+            </label>
+            <input
+              value={goal}
+              onChange={(event) => {
+                setGoal(event.target.value);
+                setSaveState("dirty");
+              }}
+              placeholder="예) 재무회계 2회독 + 기출 300문제 완료"
+              readOnly={!isEditingPlan}
+            />
           </section>
 
           <section className="wp-calendar">
             <div className="wp-cal-head">
-              <button onClick={() => moveWeek(-1)} type="button">
+              <button onClick={() => moveMonth(-1)} type="button">
                 {"<"}
               </button>
               <strong>{month.replace("-", "년 ")}월</strong>
-              <button onClick={() => moveWeek(1)} type="button">
+              <button onClick={() => moveMonth(1)} type="button">
                 {">"}
               </button>
             </div>
             <div className="wp-weekdays">
-              {weekDays.map((day) => (
+              {DAYS.map((day) => (
                 <span key={day.key}>{day.label}</span>
               ))}
             </div>
             <div className="wp-days">
-              {weekDays.map((day) => (
-                <button className="is-picked" key={day.key} type="button">
+              {calendarDays.map((day) => (
+                <button
+                  className={[
+                    day.isCurrentMonth ? "" : "is-muted",
+                    day.isSelectedWeek ? "is-picked" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  key={day.key}
+                  onClick={() => selectCalendarDate(day.date)}
+                  type="button"
+                >
                   {day.date.getDate()}
                 </button>
               ))}
@@ -314,25 +379,10 @@ export default function WeeklyPlan() {
             </p>
           </section>
 
-          <section className="wp-month-goal">
-            <label>
-              <EditNoteOutlinedIcon />
-              이번달의 목표
-            </label>
-            <input
-              value={goal}
-              onChange={(event) => {
-                setGoal(event.target.value);
-                setSaveState("dirty");
-              }}
-              placeholder="예) 재무회계 2회독 + 기출 300문제 완료"
-            />
-          </section>
-
-          <section className="wp-month-goal">
+          <section className="wp-month-goal wp-week-goal">
             <label>
               <MenuBookOutlinedIcon />
-              이번 주 메모
+              이번주 목표
             </label>
             <input
               value={memo}
@@ -341,47 +391,39 @@ export default function WeeklyPlan() {
                 setSaveState("dirty");
               }}
               placeholder="예) 오전에는 기출, 오후에는 오답 정리"
+              readOnly={!isEditingPlan}
             />
           </section>
 
           <section className="wp-actions">
             <button
+              className="wp-edit-action"
+              disabled={loading || saving || membershipLocked}
+              onClick={() => setIsEditingPlan(true)}
+              type="button"
+            >
+              <EditNoteOutlinedIcon />
+              수정
+            </button>
+            <button
               className="wp-main-action"
-              disabled={saving || membershipLocked}
+              disabled={loading || saving || membershipLocked || !isEditingPlan}
               onClick={save}
               type="button"
             >
               <SaveOutlinedIcon />
-              {saving ? "저장중" : "이번 주 계획 저장하기"}
+              {saving ? "저장중" : saveState === "saved" ? "저장 완료" : "저장"}
             </button>
-            <p className={`wp-save-state is-${saveState}`}>
-              {saveState === "dirty"
-                ? "저장되지 않은 변경사항이 있어요."
-                : saveState === "saved"
-                  ? "저장 완료"
-                  : "목표와 메모는 저장 후 다시 열어도 유지됩니다."}
-            </p>
           </section>
 
           <section className="wp-stats">
             <div>
-              <span>작성한 할 일</span>
+              <span>이번주 할 일</span>
               <strong>{taskList.length}개</strong>
             </div>
             <div>
-              <span>완료 체크</span>
+              <span>완료</span>
               <strong>{doneCount}개</strong>
-            </div>
-          </section>
-
-          <section className="wp-help">
-            <span>안내</span>
-            <div>
-              <strong>{loading ? "불러오는 중" : "주간학습장 사용법"}</strong>
-              <p>
-                각 교시 칸에 할 일을 여러 개 적고 저장하면 관리자도 확인할 수
-                있어요.
-              </p>
             </div>
           </section>
         </main>
@@ -401,11 +443,6 @@ export default function WeeklyPlan() {
               {saving ? "저장중" : "저장"}
             </button>
           </section>
-
-          <div className="wp-board-note">
-            <MenuBookOutlinedIcon />각 칸은 여러 줄 할 일을 작성하고 체크박스로
-            완료 표시합니다.
-          </div>
 
           <section className="wp-table">
             <div className="wp-table-head">
