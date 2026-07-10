@@ -8,7 +8,11 @@ import {
   requestLeave,
 } from "../../services/leave.service";
 import { isMembershipAccessError } from "../../utils/access";
-import type { LeaveRecord, LeaveTypeName, SpecialLeaveRecord } from "../../../lib/types";
+import type {
+  LeaveRecord,
+  LeaveTypeName,
+  SpecialLeaveRecord,
+} from "../../../lib/types";
 import "./leave-request.css";
 
 const TYPE_LABEL: Record<LeaveTypeName, string> = {
@@ -22,6 +26,8 @@ const TYPE_VALUE: Array<{ key: LeaveTypeName; label: string }> = [
   { key: "MORNING", label: "오전반차" },
   { key: "AFTERNOON", label: "오후반차" },
 ];
+
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function dateKey(date: Date) {
   const year = date.getFullYear();
@@ -38,6 +44,23 @@ function monthDays(date: Date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
+function calendarCells(date: Date) {
+  const firstWeekday = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    1,
+  ).getDay();
+  const leadingEmptyDays = (firstWeekday + 6) % 7;
+  const days = Array.from({ length: monthDays(date) }, (_, i) => i + 1);
+  const trailingEmptyDays = (7 - ((leadingEmptyDays + days.length) % 7)) % 7;
+
+  return [
+    ...Array.from({ length: leadingEmptyDays }, () => null),
+    ...days,
+    ...Array.from({ length: trailingEmptyDays }, () => null),
+  ];
+}
+
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -49,19 +72,50 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function formatDatePill(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const weekday = WEEKDAY_LABELS[date.getDay()];
+
+  return `${year}.${month}.${day} (${weekday})`;
+}
+
 function isFutureDate(value: string) {
   return value > dateKey(new Date());
 }
 
-function tagFor(day: number, leaves: LeaveRecord[], special: SpecialLeaveRecord[]) {
+function tagFor(
+  day: number,
+  leaves: LeaveRecord[],
+  special: SpecialLeaveRecord[],
+) {
   const suffix = "-" + String(day).padStart(2, "0");
   const leave = leaves.find((item) => item.date.slice(0, 10).endsWith(suffix));
-  if (leave) return TYPE_LABEL[leave.leaveType] ?? leave.leaveType;
-  const item = special.find((entry) => entry.date.slice(0, 10).endsWith(suffix));
-  if (!item) return "";
-  if (item.type === "OUTING") return "외출";
-  if (item.type === "MOCK_EXAM") return "모의";
-  return "스터디";
+  if (leave) {
+    const label =
+      leave.leaveType === "MORNING"
+        ? "오전"
+        : leave.leaveType === "AFTERNOON"
+          ? "오후"
+          : (TYPE_LABEL[leave.leaveType] ?? leave.leaveType);
+
+    return {
+      className: "is-" + leave.leaveType.toLowerCase(),
+      label,
+    };
+  }
+  const item = special.find((entry) =>
+    entry.date.slice(0, 10).endsWith(suffix),
+  );
+  if (!item) return null;
+  if (item.type === "OUTING") return { className: "is-special", label: "외출" };
+  if (item.type === "MOCK_EXAM") {
+    return { className: "is-special", label: "모의" };
+  }
+  return { className: "is-special", label: "스터디" };
 }
 
 export default function LeaveRequest() {
@@ -72,12 +126,11 @@ export default function LeaveRequest() {
   const [reason, setReason] = useState("");
   const [leaves, setLeaves] = useState<LeaveRecord[]>([]);
   const [specialLeaves, setSpecialLeaves] = useState<SpecialLeaveRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const month = monthKey(currentMonth);
-  const days = useMemo(() => Array.from({ length: monthDays(currentMonth) }, (_, i) => i + 1), [currentMonth]);
+  const days = useMemo(() => calendarCells(currentMonth), [currentMonth]);
   const selectedDate = month + "-" + String(selectedDay).padStart(2, "0");
   const membershipLocked = isMembershipAccessError(error);
   const canRequestSelectedDate = isFutureDate(selectedDate);
@@ -85,7 +138,6 @@ export default function LeaveRequest() {
   useEffect(() => {
     let alive = true;
     async function load() {
-      setLoading(true);
       setError("");
       try {
         const calendar = await getLeaveCalendar(month);
@@ -94,9 +146,11 @@ export default function LeaveRequest() {
         setSpecialLeaves(calendar.specialLeaves ?? []);
       } catch (err) {
         if (!alive) return;
-        setError(err instanceof Error ? err.message : "휴가 내역을 불러오지 못했습니다.");
-      } finally {
-        if (alive) setLoading(false);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "휴가 내역을 불러오지 못했습니다.",
+        );
       }
     }
     load();
@@ -106,7 +160,10 @@ export default function LeaveRequest() {
   }, [month]);
 
   function moveMonth(delta: number) {
-    setCurrentMonth((current) => new Date(current.getFullYear(), current.getMonth() + delta, 1));
+    setCurrentMonth(
+      (current) =>
+        new Date(current.getFullYear(), current.getMonth() + delta, 1),
+    );
     setSelectedDay(1);
   }
 
@@ -126,7 +183,9 @@ export default function LeaveRequest() {
       setLeaves((current) => [created, ...current]);
       setReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "휴가 신청에 실패했습니다.");
+      setError(
+        err instanceof Error ? err.message : "휴가 신청에 실패했습니다.",
+      );
     } finally {
       setSaving(false);
     }
@@ -135,16 +194,22 @@ export default function LeaveRequest() {
   async function cancel(id: string) {
     const target = leaves.find((item) => item.id === id);
     if (!target || !isFutureDate(String(target.date).slice(0, 10))) {
-      setError("오늘 또는 지난 휴가는 직접 취소할 수 없습니다. 관리자에게 문의해주세요.");
+      setError(
+        "오늘 또는 지난 휴가는 직접 취소할 수 없습니다. 관리자에게 문의해주세요.",
+      );
       return;
     }
 
     setError("");
     try {
       const updated = await cancelLeave(id);
-      setLeaves((current) => current.map((item) => (item.id === id ? updated : item)));
+      setLeaves((current) =>
+        current.map((item) => (item.id === id ? updated : item)),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "휴가 취소에 실패했습니다.");
+      setError(
+        err instanceof Error ? err.message : "휴가 취소에 실패했습니다.",
+      );
     }
   }
 
@@ -152,10 +217,10 @@ export default function LeaveRequest() {
     <div className="lv">
       <header className="lv-head">
         <button onClick={() => navigate("/waiting-room")} type="button">
-          <ArrowBackIcon /> 대기실
+          <ArrowBackIcon /> 대기장
         </button>
         <h1>휴가신청</h1>
-        <span>{month.replace("-", ".")}</span>
+        <span>{formatDatePill(selectedDate)}</span>
       </header>
 
       <main className="lv-body">
@@ -170,19 +235,17 @@ export default function LeaveRequest() {
           </div>
         )}
 
-        <section className="lv-guide">
-          <span>휴가</span>
-          <div>
-            <strong>쉬는 날도 계획적으로 관리해요</strong>
-            <p>{loading ? "휴가 내역을 불러오는 중입니다." : "월차·반차 신청과 지난 휴가 내역을 한눈에 볼 수 있어요."}</p>
-          </div>
-        </section>
-
         <section className="lv-calendar">
           <div className="lv-cal-head">
-            <button onClick={() => moveMonth(-1)} type="button">{"<"}</button>
-            <strong>{currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월</strong>
-            <button onClick={() => moveMonth(1)} type="button">{">"}</button>
+            <button onClick={() => moveMonth(-1)} type="button">
+              {"<"}
+            </button>
+            <strong>
+              {currentMonth.getFullYear()}년 {currentMonth.getMonth() + 1}월
+            </strong>
+            <button onClick={() => moveMonth(1)} type="button">
+              {">"}
+            </button>
           </div>
           <div className="lv-weekdays">
             {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
@@ -190,7 +253,16 @@ export default function LeaveRequest() {
             ))}
           </div>
           <div className="lv-days">
-            {days.map((day) => {
+            {days.map((day, index) => {
+              if (day === null) {
+                return (
+                  <span
+                    aria-hidden="true"
+                    className="lv-day-spacer"
+                    key={"empty-" + index}
+                  />
+                );
+              }
               const tag = tagFor(day, leaves, specialLeaves);
               return (
                 <button
@@ -200,26 +272,23 @@ export default function LeaveRequest() {
                   type="button"
                 >
                   {day}
-                  {tag && <em>{tag}</em>}
+                  {tag && <em className={tag.className}>{tag.label}</em>}
                 </button>
               );
             })}
           </div>
         </section>
 
-        <div className="lv-info is-yellow">
-          매주 월차와 반차 신청 한도가 적용됩니다. 승인/반려 상태는 관리자 확인 후 반영돼요.
-        </div>
-        <div className="lv-info is-green">
-          관리자 등록 일정 · 외출 · 모의 · 스터디 일정도 달력에 함께 표시됩니다.
-        </div>
-
         <section className="lv-apply">
           <strong>선택한 날짜 {formatDate(selectedDate)}</strong>
           <div>
             {TYPE_VALUE.map((type) => (
               <button
-                className={leaveType === type.key ? "is-active" : ""}
+                className={[
+                  "lv-type",
+                  "is-" + type.key.toLowerCase(),
+                  leaveType === type.key ? "is-active" : "",
+                ].join(" ")}
                 key={type.key}
                 onClick={() => setLeaveType(type.key)}
                 type="button"
@@ -227,52 +296,56 @@ export default function LeaveRequest() {
                 {type.label}
               </button>
             ))}
-            <button className="lv-submit" disabled={saving || membershipLocked || !canRequestSelectedDate} onClick={submit} type="button">
+            <button
+              className="lv-submit"
+              disabled={saving || membershipLocked || !canRequestSelectedDate}
+              onClick={submit}
+              type="button"
+            >
               {saving ? "신청중" : "신청하기"}
             </button>
           </div>
-          <input
-            className="lv-reason"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            placeholder="사유를 입력해주세요 (선택)"
-          />
         </section>
 
         <section className="lv-list">
           <div className="lv-list-head">
             <strong>신청내역 리스트</strong>
-            <span>미래 휴가만 취소 가능</span>
           </div>
-          {leaves.length === 0 && <p className="lv-empty">신청한 휴가가 없습니다.</p>}
-          {leaves.map((leave) => (
-            <div className="lv-list-row" key={leave.id}>
-              <CalendarMonthOutlinedIcon />
-              <span>{formatDate(leave.date)}</span>
-              <em className={leave.leaveType === "FULL" ? "is-green" : "is-coral"}>
-                {TYPE_LABEL[leave.leaveType] ?? leave.leaveType}
-              </em>
-              <button
-                disabled={
-                  leave.status === "CANCELLED" ||
-                  !isFutureDate(String(leave.date).slice(0, 10))
-                }
-                onClick={() => cancel(leave.id)}
-                type="button"
-              >
-                {leave.status === "CANCELLED"
-                  ? "취소됨"
-                  : isFutureDate(String(leave.date).slice(0, 10))
-                    ? "취소"
-                    : "취소불가"}
-              </button>
+          {leaves.length === 0 && (
+            <p className="lv-empty">신청한 휴가가 없습니다.</p>
+          )}
+          {leaves.length > 0 && (
+            <div className="lv-list-scroll">
+              {leaves.map((leave) => (
+                <div className="lv-list-row" key={leave.id}>
+                  <CalendarMonthOutlinedIcon />
+                  <span>{formatDate(leave.date)}</span>
+                  <em
+                    className={
+                      "lv-leave-badge is-" + leave.leaveType.toLowerCase()
+                    }
+                  >
+                    {TYPE_LABEL[leave.leaveType] ?? leave.leaveType}
+                  </em>
+                  <button
+                    disabled={
+                      leave.status === "CANCELLED" ||
+                      !isFutureDate(String(leave.date).slice(0, 10))
+                    }
+                    onClick={() => cancel(leave.id)}
+                    type="button"
+                  >
+                    {leave.status === "CANCELLED"
+                      ? "취소됨"
+                      : isFutureDate(String(leave.date).slice(0, 10))
+                        ? "취소"
+                        : "확정"}
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </section>
-
-        <div className="lv-info is-yellow">
-          오늘보다 과거에 신청한 휴가 내역은 취소할 수 없어요. 변경이 필요하면 관리자에게 문의해주세요.
-        </div>
       </main>
 
       <p className="app-foot">자격증공장 재택근무반</p>

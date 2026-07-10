@@ -21,16 +21,23 @@
 }
 
 .lv-head button {
+  width: fit-content;
+  min-height: 42px;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0 14px 0 10px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   color: var(--ink);
   font-size: 13px;
   font-weight: 800;
+  box-shadow: 0 10px 24px rgba(20, 63, 86, 0.035);
 }
 
 .lv-head svg {
-  font-size: 28px;
+  font-size: 22px;
 }
 
 .lv-head h1 {
@@ -44,9 +51,10 @@
   border: 1px solid rgba(240, 210, 146, 0.92);
   border-radius: 999px;
   background: var(--gold-soft);
-  padding: 8px 13px;
-  font-size: 13px;
+  padding: 8px 12px;
+  font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .lv-body {
@@ -142,6 +150,10 @@
   margin-top: 8px;
 }
 
+.lv-day-spacer {
+  min-height: 52px;
+}
+
 .lv-days button {
   min-height: 52px;
   border-radius: 16px;
@@ -174,6 +186,36 @@
   background: var(--mint-soft);
 }
 
+.lv-days em.is-full {
+  border-color: rgba(244, 127, 114, 0.38);
+  background: rgba(255, 232, 229, 0.92);
+  color: var(--accent-deep);
+}
+
+.lv-days em.is-morning {
+  border-color: rgba(240, 210, 146, 0.9);
+  background: var(--gold-soft);
+  color: #8b5a18;
+}
+
+.lv-days em.is-afternoon {
+  border-color: rgba(240, 210, 146, 0.9);
+  background: var(--gold-soft);
+  color: #8b5a18;
+}
+
+.lv-days em.is-special {
+  border-color: rgba(159, 206, 180, 0.64);
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.lv-days .is-picked em {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
 .lv-info {
   padding: 13px 15px;
   font-size: 13px;
@@ -203,29 +245,45 @@
 
 .lv-apply div {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .lv-apply button {
-  min-height: 44px;
+  min-height: 42px;
   border: 1px solid rgba(20, 63, 86, 0.12);
-  border-radius: 999px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--ink);
   font-weight: 900;
+  white-space: nowrap;
 }
 
-.lv-apply .is-active {
-  border-color: rgba(159, 206, 180, 0.72);
-  background: var(--mint-soft);
+.lv-type.is-full.is-active {
+  border-color: rgba(244, 127, 114, 0.46);
+  background: rgba(255, 232, 229, 0.92);
+  color: var(--accent-deep);
+}
+
+.lv-type.is-morning.is-active {
+  border-color: rgba(240, 210, 146, 0.92);
+  background: var(--gold-soft);
+  color: #8b5a18;
+}
+
+.lv-type.is-afternoon.is-active {
+  border-color: rgba(240, 210, 146, 0.92);
+  background: var(--gold-soft);
+  color: #8b5a18;
 }
 
 .lv-submit {
+  grid-column: 1 / -1;
   border-color: var(--accent) !important;
   background: linear-gradient(135deg, var(--accent), #df665b) !important;
   color: #fff !important;
   box-shadow: 0 10px 22px rgba(244, 127, 114, 0.18);
+  margin-top: 3px;
 }
 
 .lv-submit:disabled {
@@ -247,6 +305,11 @@
   outline: none;
 }
 
+.lv-reason::placeholder {
+  color: rgba(119, 136, 143, 0.78);
+  font-weight: 700;
+}
+
 .lv-reason:focus {
   border-color: rgba(244, 127, 114, 0.72);
   box-shadow: 0 0 0 3px rgba(244, 127, 114, 0.1);
@@ -254,6 +317,7 @@
 
 .lv-list {
   padding: 16px;
+  overflow: hidden;
 }
 
 .lv-list-head {
@@ -272,6 +336,27 @@
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.lv-list-scroll {
+  max-height: min(44vh, 420px);
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 63, 86, 0.24) transparent;
+}
+
+.lv-list-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lv-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lv-list-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.2);
 }
 
 .lv-list-row {
@@ -316,17 +401,39 @@
   color: var(--accent-deep);
 }
 
-.lv-list-row button {
-  min-height: 32px;
-  border: 1px solid var(--accent-line);
-  border-radius: 999px;
+.lv-leave-badge.is-full {
+  border-color: rgba(244, 127, 114, 0.36);
+  background: rgba(255, 232, 229, 0.9);
   color: var(--accent-deep);
+}
+
+.lv-leave-badge.is-morning {
+  border-color: rgba(240, 210, 146, 0.86);
+  background: var(--gold-soft);
+  color: #8b5a18;
+}
+
+.lv-leave-badge.is-afternoon {
+  border-color: rgba(240, 210, 146, 0.86);
+  background: var(--gold-soft);
+  color: #8b5a18;
+}
+
+.lv-list-row button {
+  min-height: 30px;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.74);
   padding: 0 11px;
   font-weight: 900;
 }
 
 .lv-list-row button:disabled {
-  opacity: 0.48;
+  border-color: rgba(244, 127, 114, 0.22);
+  background: rgba(255, 232, 229, 0.46);
+  color: rgba(188, 81, 73, 0.72);
+  opacity: 1;
 }
 
 .lv-error,
@@ -365,7 +472,9 @@
   .lv {
     width: min(calc(100vw - 56px), 1080px);
     max-width: none;
-    margin: 0 auto;
+    min-height: calc(100vh - 24px);
+    margin: 24px auto 0;
+    border-radius: 0 0 28px 28px;
   }
 
   .lv-head {
@@ -377,36 +486,16 @@
   .lv-body {
     grid-template-columns: minmax(420px, 1.05fr) minmax(360px, 0.9fr);
     grid-template-areas:
-      "guide guide"
-      "calendar notice"
       "calendar apply"
-      "calendar special"
-      "calendar list"
-      ". final";
+      "calendar list";
     align-items: start;
     gap: 16px;
     padding: 22px 10px 38px;
   }
 
-  .lv-guide {
-    grid-area: guide;
-  }
-
   .lv-calendar {
     grid-area: calendar;
     padding: 20px;
-  }
-
-  .lv-body > .lv-info:nth-of-type(1) {
-    grid-area: notice;
-  }
-
-  .lv-body > .lv-info:nth-of-type(2) {
-    grid-area: special;
-  }
-
-  .lv-body > .lv-info:nth-of-type(3) {
-    grid-area: final;
   }
 
   .lv-apply {
@@ -415,6 +504,11 @@
 
   .lv-list {
     grid-area: list;
+    max-height: 492px;
+  }
+
+  .lv-list-scroll {
+    max-height: 420px;
   }
 
   .lv-days button {
@@ -442,6 +536,30 @@
     padding: 12px;
   }
 
+  .lv-head {
+    grid-template-columns: minmax(88px, 1fr) auto minmax(112px, 1fr);
+    padding-inline: 12px;
+  }
+
+  .lv-head button {
+    min-height: 38px;
+    padding-inline: 8px 11px;
+    font-size: 12px;
+  }
+
+  .lv-head svg {
+    font-size: 20px;
+  }
+
+  .lv-head h1 {
+    font-size: 22px;
+  }
+
+  .lv-head span {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
   .lv-guide {
     grid-template-columns: 1fr;
   }
@@ -454,19 +572,24 @@
   }
 
   .lv-apply div {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
   }
 
-  .lv-submit {
-    grid-column: 1 / -1;
+  .lv-apply button {
+    min-height: 40px;
+    border-radius: 15px;
+    font-size: 13px;
   }
 
   .lv-list-row {
-    grid-template-columns: 28px 1fr auto;
+    grid-template-columns: 26px minmax(0, 1fr) auto auto;
+    gap: 7px;
+    padding: 9px;
   }
 
-  .lv-list-row button {
-    grid-column: 2 / -1;
-    justify-self: start;
+  .lv-list-scroll {
+    max-height: 356px;
+    padding-right: 3px;
   }
 }

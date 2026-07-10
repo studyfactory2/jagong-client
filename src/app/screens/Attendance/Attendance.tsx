@@ -260,7 +260,9 @@ export default function Attendance() {
       </section>
 
       {error && <p className="attendance-error">{error}</p>}
-      {loading && <p className="attendance-loading">출석 정보를 불러오는 중입니다.</p>}
+      {loading && (
+        <p className="attendance-loading">출석 정보를 불러오는 중입니다.</p>
+      )}
 
       <section className="attendance-dashboard">
         <aside className="attendance-menu" aria-label="출석 보기 선택">
@@ -279,7 +281,10 @@ export default function Attendance() {
         </aside>
 
         <div className="attendance-content">
-          <section className="attendance-stats" aria-label="선택 기간 출석 요약">
+          <section
+            className="attendance-stats"
+            aria-label="선택 기간 출석 요약"
+          >
             <div className="is-present">
               <CheckCircleOutlineOutlinedIcon />
               <span>출석</span>
@@ -292,7 +297,7 @@ export default function Attendance() {
             </div>
             <div className="is-excused">
               <EventAvailableOutlinedIcon />
-              <span>인정</span>
+              <span>기타</span>
               <strong>{selectedCounts.excused}</strong>
             </div>
             <div className="is-absent">
@@ -337,10 +342,16 @@ export default function Attendance() {
                         <span>{group.records.length}개 교시 기록</span>
                       </div>
                       <div className="attendance-day-summary">
-                        <em className="is-present">출석 {group.counts.present}</em>
+                        <em className="is-present">
+                          출석 {group.counts.present}
+                        </em>
                         <em className="is-late">지각 {group.counts.late}</em>
-                        <em className="is-excused">인정 {group.counts.excused}</em>
-                        <em className="is-absent">결석 {group.counts.absent}</em>
+                        <em className="is-excused">
+                          기타 {group.counts.excused}
+                        </em>
+                        <em className="is-absent">
+                          결석 {group.counts.absent}
+                        </em>
                       </div>
                     </header>
 
@@ -361,18 +372,6 @@ export default function Attendance() {
                 ))}
               </div>
             )}
-          </section>
-
-          <section className="attendance-note">
-            <strong>기록 기준</strong>
-            <p>
-              공부방 입장과 관리자 수정 내역이 함께 반영됩니다. 쉬는시간은 출석
-              집계에 포함되지 않습니다.
-            </p>
-            <small>
-              이번 달 전체: 출석 {counts.present} · 지각 {counts.late} · 인정{" "}
-              {counts.excused} · 결석 {counts.absent}
-            </small>
           </section>
         </div>
       </section>
