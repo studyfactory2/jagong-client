@@ -538,42 +538,6 @@
   line-height: 1.45;
 }
 
-.admin-membership-action-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: rgba(20, 63, 86, 0.04);
-  padding: 5px;
-}
-
-.admin-membership-action-tabs button {
-  min-height: 38px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.admin-membership-action-tabs button svg {
-  width: 17px;
-  height: 17px;
-}
-
-.admin-membership-action-tabs button.is-active {
-  background: #ffffff;
-  color: var(--ink);
-  box-shadow: 0 6px 18px rgba(20, 63, 86, 0.08);
-}
-
 .admin-free-period-note {
   min-height: 64px;
   border: 1px solid var(--mint-line);

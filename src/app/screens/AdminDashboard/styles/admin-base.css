@@ -351,47 +351,6 @@
   color: #ffffff;
 }
 
-.admin-compact-notice {
-  grid-column: 1 / -1;
-  align-self: stretch;
-  gap: 10px;
-}
-
-.admin-compact-notice h2 {
-  margin-bottom: 4px;
-}
-
-.admin-notice-fields {
-  display: grid;
-  grid-template-columns: minmax(180px, 0.75fr) minmax(280px, 2fr) 128px;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.admin-notice-fields input,
-.admin-notice-fields textarea {
-  min-height: 40px;
-}
-
-.admin-notice-fields textarea {
-  max-height: 120px;
-  padding-top: 10px;
-  resize: vertical;
-}
-
-.admin-notice-fields button {
-  width: 128px;
-  min-height: 40px;
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #ffffff;
-  font-size: 12px;
-}
-
-.admin-manual-payment-card {
-  grid-column: 1 / -1;
-}
-
 .admin-table {
   display: grid;
   gap: 8px;
@@ -515,11 +474,6 @@
   .admin-notice-card {
     grid-column: span 3;
   }
-
-  .admin-compact-notice,
-  .admin-manual-payment-card {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (max-width: 720px) {
@@ -534,14 +488,6 @@
 
   .admin-notice-card {
     grid-column: auto;
-  }
-
-  .admin-notice-fields {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-notice-fields button {
-    width: 100%;
   }
 
   .admin-row,
