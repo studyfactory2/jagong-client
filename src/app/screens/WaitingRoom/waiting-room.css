@@ -575,6 +575,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+.wr-schedule-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .wr-notice {
   min-height: 34px;
   border: 1px solid var(--line);
@@ -592,6 +599,33 @@
     border-color 0.16s ease,
     background-color 0.16s ease,
     transform 0.16s ease;
+}
+
+.wr-sound-toggle {
+  min-width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.wr-sound-toggle:hover,
+.wr-sound-toggle:focus-visible,
+.wr-sound-toggle.is-on {
+  border-color: var(--mint-line);
+  color: var(--mint-deep);
+  background: var(--mint-soft);
+}
+
+.wr-sound-toggle svg {
+  font-size: 20px;
 }
 
 .wr-notice:hover,

@@ -83,6 +83,31 @@
   font-size: 19px;
 }
 
+.sr-sound-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.sr-sound-btn:hover,
+.sr-sound-btn:focus-visible,
+.sr-sound-btn.is-on {
+  border-color: var(--mint-line);
+  color: var(--mint-deep);
+  background: var(--mint-soft);
+}
+
+.sr-sound-btn svg {
+  font-size: 19px;
+}
+
 .sr-body {
   padding: 14px 18px 22px;
   display: flex;

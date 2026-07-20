@@ -6,6 +6,8 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
 import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
+import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
@@ -28,6 +30,12 @@ import type {
 } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import {
+  getScheduleSoundEnabled,
+  playScheduleTone,
+  scheduleBellMessage,
+  setScheduleSoundEnabled,
+} from "../../utils/schedule-bell";
 import "./study-room.css";
 
 const getCameraPageSize = () => {
@@ -237,6 +245,10 @@ export default function StudyRoom() {
   const [timetable, setTimetable] =
     useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
+  const [bellMsg, setBellMsg] = useState("");
+  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
+    getScheduleSoundEnabled,
+  );
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -255,6 +267,8 @@ export default function StudyRoom() {
   const joinedRef = useRef(false);
   const joinedSlotRef = useRef<number | null>(null);
   const syncedAttendanceSlotRef = useRef<number | null>(null);
+  const bellTimerRef = useRef<number | null>(null);
+  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const myId = session?.user.userId ?? session?.user.id ?? "";
   const myName = session?.user.name ?? "나";
 
@@ -281,6 +295,10 @@ export default function StudyRoom() {
   }, []);
 
   useEffect(() => {
+    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
+  }, [scheduleSoundEnabled]);
+
+  useEffect(() => {
     const initialTimer = window.setTimeout(() => {
       void refreshRoomMembers();
     }, 0);
@@ -297,9 +315,32 @@ export default function StudyRoom() {
     socket.on("cam:join", refreshRoomMembers);
     socket.on("cam:leave", refreshRoomMembers);
 
+    const onBell = (data: {
+      type: string;
+      label?: string;
+      messages?: string[];
+    }) => {
+      const message = scheduleBellMessage(data);
+      if (!message) return;
+      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
+      if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
+      setBellMsg(message);
+      bellTimerRef.current = window.setTimeout(() => {
+        setBellMsg("");
+        bellTimerRef.current = null;
+      }, 8000);
+    };
+
+    socket.on("bell", onBell);
+
     return () => {
       socket.off("cam:join", refreshRoomMembers);
       socket.off("cam:leave", refreshRoomMembers);
+      socket.off("bell", onBell);
+      if (bellTimerRef.current) {
+        window.clearTimeout(bellTimerRef.current);
+        bellTimerRef.current = null;
+      }
     };
   }, [refreshRoomMembers, socket]);
 
@@ -383,11 +424,23 @@ export default function StudyRoom() {
   const nextWindow = nextSlot
     ? `${nextSlot.startTime} - ${nextSlot.endTime}`
     : "오늘 일정 완료";
-  const noticeBody = current
-    ? `${current.label} 집중 체크 중입니다. 화면을 켜고 자리를 유지해 주세요.`
-    : nextSlot
-      ? `${nextSlot.label} 시작 전입니다. 입장 상태와 카메라를 확인해 주세요.`
-      : "오늘 작업장 일정이 종료되었습니다.";
+  const noticeBody =
+    bellMsg ||
+    (current?.isBreak
+      ? `지금은 ${current.label} 시간입니다. ${current.endTime}까지 편하게 쉬세요.`
+      : current
+        ? `${current.label} 집중 체크 중입니다. 화면을 켜고 자리를 유지해 주세요.`
+        : nextSlot
+          ? `${nextSlot.label} 시작 전입니다. 입장 상태와 카메라를 확인해 주세요.`
+          : "오늘 작업장 일정이 종료되었습니다.");
+
+  const toggleScheduleSound = () => {
+    const next = !scheduleSoundEnabled;
+    setScheduleSoundPreference(next);
+    void setScheduleSoundEnabled(next).then((enabled) => {
+      if (next && enabled) playScheduleTone("countdown");
+    });
+  };
   const membersForGrid = useMemo(() => {
     const withSelfStatus = roomMembers.map((member) =>
       member.id === myId
@@ -897,6 +950,16 @@ export default function StudyRoom() {
               {cameraOnly ? "전체 보기" : "캠만 보기"}
             </button>
 
+            <button
+              className={`sr-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
+              type="button"
+              onClick={toggleScheduleSound}
+              aria-label={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+              title={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+            >
+              {scheduleSoundEnabled ? <VolumeUpRoundedIcon /> : <VolumeOffRoundedIcon />}
+            </button>
+
             {joined && (
               <button
                 className="sr-quick-leave"
@@ -1123,13 +1186,13 @@ export default function StudyRoom() {
           <section className="sr-bottom-status">
             <div className="sr-status-notice">
               <CampaignOutlinedIcon />
-              <span>공지</span>
+              <span>{bellMsg || current?.isBreak ? "일정" : "공지"}</span>
               <p>{noticeBody}</p>
               <em>실시간</em>
             </div>
 
             <div className="sr-status-item">
-              <span>{current ? "현재 교시" : "다음 교시"}</span>
+              <span>{current?.isBreak ? "현재 휴식" : current ? "현재 교시" : "다음 교시"}</span>
               <strong>{current?.label ?? nextSlot?.label ?? "종료"}</strong>
               <p>
                 <NotificationsOutlinedIcon /> {periodWindow}

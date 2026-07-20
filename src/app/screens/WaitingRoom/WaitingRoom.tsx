@@ -15,6 +15,8 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import type { Room } from "livekit-client";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -27,6 +29,12 @@ import type {
   CamRoomMember,
   TimetableSlot,
 } from "../../../lib/types";
+import {
+  getScheduleSoundEnabled,
+  playScheduleTone,
+  scheduleBellMessage,
+  setScheduleSoundEnabled,
+} from "../../utils/schedule-bell";
 import "./waiting-room.css";
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
@@ -223,6 +231,9 @@ export default function WaitingRoom() {
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
+  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
+    getScheduleSoundEnabled,
+  );
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [previewVideos, setPreviewVideos] = useState<RemoteVideo[]>([]);
@@ -230,6 +241,7 @@ export default function WaitingRoom() {
     "idle" | "connecting" | "connected" | "stub" | "error"
   >("idle");
   const bellTimerRef = useRef<number | null>(null);
+  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
 
@@ -289,19 +301,21 @@ export default function WaitingRoom() {
   }, []);
 
   useEffect(() => {
+    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
+  }, [scheduleSoundEnabled]);
+
+  useEffect(() => {
     if (!socket) return;
 
-    const onBell = (data: { type: string; label?: string }) => {
-      const message =
-        data.type === "countdown"
-          ? `곧 ${data.label ?? "다음 교시"} 시작돼요`
-          : data.type === "periodStart"
-            ? `${data.label ?? "교시"} 시작! 카메라 상태를 확인해 주세요.`
-            : data.type === "breakStart"
-              ? "쉬는시간입니다. 다음 교시 전까지 준비해 주세요."
-              : "";
+    const onBell = (data: {
+      type: string;
+      label?: string;
+      messages?: string[];
+    }) => {
+      const message = scheduleBellMessage(data);
 
       if (!message) return;
+      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
       if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       setBellMsg(message);
       bellTimerRef.current = window.setTimeout(() => {
@@ -371,6 +385,19 @@ export default function WaitingRoom() {
       : null;
   const canEnterRoom = !current || current.isBreak || isClockInSlot(current);
   const enterStatusText = canEnterRoom ? "입장 가능" : "교시중 입장 불가";
+  const scheduleNotice =
+    bellMsg ||
+    (current?.isBreak
+      ? `지금은 ${current.label} 시간입니다. ${current.endTime}까지 편하게 쉬세요.`
+      : `관리자 공지: ${current?.label ?? "다음 교시"} 시작 전 카메라 상태를 확인해 주세요.`);
+
+  const toggleScheduleSound = () => {
+    const next = !scheduleSoundEnabled;
+    setScheduleSoundPreference(next);
+    void setScheduleSoundEnabled(next).then((enabled) => {
+      if (next && enabled) playScheduleTone("countdown");
+    });
+  };
   const canUseAdmin =
     session?.user.role === "ADMIN" || session?.user.role === "STAFF";
   const attendanceBySlot = useMemo(
@@ -689,15 +716,25 @@ export default function WaitingRoom() {
           </p>
         </section>
 
-        <button
-          className="wr-notice"
-          onClick={() => navigate("/inquiry")}
-          type="button"
-        >
-          <span>공지</span>
-          {bellMsg ||
-            `관리자 공지: ${current?.label ?? "현재 교시"} 시작 전 카메라 상태를 확인해 주세요.`}
-        </button>
+        <section className="wr-schedule-notice" aria-live="polite">
+          <button
+            className="wr-notice"
+            onClick={() => navigate("/inquiry")}
+            type="button"
+          >
+            <span>{bellMsg || current?.isBreak ? "일정" : "공지"}</span>
+            {scheduleNotice}
+          </button>
+          <button
+            className={`wr-sound-toggle${scheduleSoundEnabled ? " is-on" : ""}`}
+            type="button"
+            onClick={toggleScheduleSound}
+            aria-label={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+            title={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+          >
+            {scheduleSoundEnabled ? <VolumeUpRoundedIcon /> : <VolumeOffRoundedIcon />}
+          </button>
+        </section>
 
         <section className="wr-entry">
           <button
