@@ -326,17 +326,22 @@
   box-shadow: 0 0 0 2px rgba(244, 134, 120, 0.35);
 }
 
-.sr-cam-self-video {
+.sr-cam-self-video,
+.sr-cam-remote-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.sr-cam-self-video {
   transform: scaleX(-1);
 }
 
 .sr-cam-name {
   position: absolute;
+  z-index: 1;
   left: 5px;
   bottom: 5px;
   max-width: calc(100% - 58px);
@@ -353,6 +358,7 @@
 
 .sr-cam-state {
   position: absolute;
+  z-index: 1;
   right: 5px;
   bottom: 5px;
   min-width: 44px;

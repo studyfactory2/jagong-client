@@ -27,6 +27,7 @@ import type {
   TimetableSlot,
 } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
+import { useSocket } from "../../context/SocketContext";
 import "./study-room.css";
 
 const getCameraPageSize = () => {
@@ -142,6 +143,17 @@ type SmartAlertState = {
   resolving: boolean;
 };
 
+type RemoteVideoTrack = {
+  attach: (element?: HTMLMediaElement) => HTMLMediaElement;
+  detach: (element?: HTMLMediaElement) => HTMLMediaElement[];
+};
+
+type RemoteVideo = {
+  trackSid: string;
+  userId: string;
+  track: RemoteVideoTrack;
+};
+
 const toMin = (time: string) => {
   const [hour, minute] = time.split(":").map(Number);
   return hour * 60 + minute;
@@ -174,9 +186,36 @@ function timeLeftText(minutes: number): string {
   return `${hours}시간 ${mins}분`;
 }
 
+function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) return undefined;
+
+    track.attach(element);
+    void element.play().catch(() => undefined);
+
+    return () => {
+      track.detach(element);
+    };
+  }, [track]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      className="sr-cam-remote-video"
+    />
+  );
+}
+
 export default function StudyRoom() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { socket } = useSocket();
   const [compactWall, setCompactWall] = useState(true);
   const [cameraOnly, setCameraOnly] = useState(false);
   const [cameraPage, setCameraPage] = useState(0);
@@ -192,6 +231,7 @@ export default function StudyRoom() {
   const [error, setError] = useState("");
   const [camToken, setCamToken] = useState<CamTokenDto | null>(null);
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
+  const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [timetable, setTimetable] =
@@ -202,6 +242,7 @@ export default function StudyRoom() {
   const streamRef = useRef<MediaStream | null>(null);
   const publishedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const visibleCameraIdsRef = useRef<string[]>([]);
   const faceDetectorRef = useRef<FaceDetectorRuntime | null>(null);
   const smartTimerRef = useRef<number | null>(null);
   const smartAlertRef = useRef<SmartAlertState>({
@@ -249,6 +290,18 @@ export default function StudyRoom() {
       window.clearInterval(timer);
     };
   }, [refreshRoomMembers]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("cam:join", refreshRoomMembers);
+    socket.on("cam:leave", refreshRoomMembers);
+
+    return () => {
+      socket.off("cam:join", refreshRoomMembers);
+      socket.off("cam:leave", refreshRoomMembers);
+    };
+  }, [refreshRoomMembers, socket]);
 
   useEffect(() => {
     getTimetable()
@@ -371,6 +424,42 @@ export default function StudyRoom() {
       ),
     [activeCameraPage, cameraPageSize, membersForGrid],
   );
+  const visibleCameraIds = useMemo(
+    () =>
+      visibleMembers
+        .filter((member) => member.id !== myId)
+        .map((member) => member.id),
+    [myId, visibleMembers],
+  );
+  const remoteVideoByUser = useMemo(() => {
+    const videos = new Map<string, RemoteVideo>();
+    remoteVideos.forEach((video) => videos.set(video.userId, video));
+    return videos;
+  }, [remoteVideos]);
+  const syncRemoteCameraSubscriptions = useCallback(
+    (room = roomRef.current) => {
+      if (!room) return;
+      const visible = new Set(visibleCameraIdsRef.current);
+
+      room.remoteParticipants.forEach((participant) => {
+        const shouldSubscribe = visible.has(participant.identity);
+
+        participant.trackPublications.forEach((publication) => {
+          const isVideo =
+            String(publication.kind) === "video" ||
+            String(publication.source) === "camera";
+          if (!isVideo) return;
+          publication.setSubscribed(shouldSubscribe);
+        });
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    visibleCameraIdsRef.current = visibleCameraIds;
+    syncRemoteCameraSubscriptions();
+  }, [syncRemoteCameraSubscriptions, visibleCameraIds]);
 
   function stopLocalCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -547,6 +636,7 @@ export default function StudyRoom() {
     roomRef.current?.disconnect();
     roomRef.current = null;
     publishedVideoTrackRef.current = null;
+    setRemoteVideos([]);
   }
 
   async function unpublishCameraTrack() {
@@ -607,15 +697,53 @@ export default function StudyRoom() {
   async function connectLiveKit(token: CamTokenDto) {
     if (!token.url || token.token.startsWith("stub.")) return;
 
-    const { Room, Track } = await import("livekit-client");
+    const { Room, RoomEvent, Track } = await import("livekit-client");
     const room = new Room({
       adaptiveStream: true,
       dynacast: true,
     });
 
     try {
-      await room.connect(token.url, token.token);
+      room.on(
+        RoomEvent.TrackSubscribed,
+        (track, publication, participant) => {
+          if (String(track.kind) !== "video") return;
+
+          setRemoteVideos((current) => {
+            const next = current.filter(
+              (video) => video.trackSid !== publication.trackSid,
+            );
+            return [
+              ...next,
+              {
+                trackSid: publication.trackSid,
+                userId: participant.identity,
+                track: track as RemoteVideoTrack,
+              },
+            ];
+          });
+        },
+      );
+
+      room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
+        setRemoteVideos((current) =>
+          current.filter((video) => video.trackSid !== publication.trackSid),
+        );
+      });
+
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        setRemoteVideos((current) =>
+          current.filter((video) => video.userId !== participant.identity),
+        );
+      });
+
+      room.on(RoomEvent.TrackPublished, () => {
+        syncRemoteCameraSubscriptions(room);
+      });
+
+      await room.connect(token.url, token.token, { autoSubscribe: false });
       roomRef.current = room;
+      syncRemoteCameraSubscriptions(room);
 
       if (token.canPublish) {
         const videoTrack = streamRef.current?.getVideoTracks()[0];
@@ -628,6 +756,7 @@ export default function StudyRoom() {
       }
     } catch (err) {
       room.disconnect();
+      if (roomRef.current === room) roomRef.current = null;
       throw err;
     }
   }
@@ -795,8 +924,8 @@ export default function StudyRoom() {
               <div className="sr-setup-info">
                 <strong>작업실 입장 준비</strong>
                 <em>
-                  입장 후에는 학생 화면에 큰 셀프 영상이 보이지 않고, 관리자에게
-                  캠만 송출됩니다.
+                  입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께 확인할 수
+                  있습니다.
                 </em>
 
                 <label>
@@ -844,7 +973,11 @@ export default function StudyRoom() {
           <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
             {visibleMembers.map((member, index) => {
               const isMe = member.id === myId;
-              const isWorking = member.isWorking || (isMe && joined);
+              const remoteVideo = isMe
+                ? undefined
+                : remoteVideoByUser.get(member.id);
+              const isWorking =
+                member.isWorking || (isMe && joined) || Boolean(remoteVideo);
               const memberIndex = activeCameraPage * cameraPageSize + index;
               return (
                 <div
@@ -852,6 +985,7 @@ export default function StudyRoom() {
                     "sr-cam",
                     isWorking ? "is-working" : "is-waiting",
                     isMe ? "is-me" : "",
+                    remoteVideo ? "has-video" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -874,6 +1008,9 @@ export default function StudyRoom() {
                       playsInline
                       className="sr-cam-self-video"
                     />
+                  )}
+                  {remoteVideo && (
+                    <StudyRoomRemoteVideo track={remoteVideo.track} />
                   )}
                   <span className="sr-cam-name">
                     {isMe ? "나" : member.name}
