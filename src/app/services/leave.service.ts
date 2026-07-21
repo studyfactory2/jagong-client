@@ -1,5 +1,13 @@
 import { http } from "./http";
-import type { LeaveRecord, PaginatedResult, SpecialLeaveRecord } from "../../lib/types";
+import type {
+  FixedLeaveExceptionRecord,
+  FixedLeaveRecord,
+  LeaveAttendanceCoverage,
+  LeaveRecord,
+  MemberLeaveCalendar,
+  PaginatedResult,
+  SpecialLeaveRecord,
+} from "../../lib/types";
 
 /** MEMBER LEAVE API **/
 
@@ -32,6 +40,78 @@ export async function requestLeave(input: {
 
 export async function cancelLeave(id: string): Promise<LeaveRecord> {
   const { data } = await http.post<LeaveRecord>("/leaves/cancel/" + id);
+  return data;
+}
+
+export async function getLeaveAttendanceCoverage(input: {
+  date: string;
+  branchId?: string;
+}): Promise<LeaveAttendanceCoverage> {
+  const { data } = await http.get<LeaveAttendanceCoverage>(
+    "/leaves/attendance-coverage",
+    { params: input },
+  );
+  return data;
+}
+
+export async function getMemberLeaveCalendar(input: {
+  userId: string;
+  month: string;
+}): Promise<MemberLeaveCalendar> {
+  const { data } = await http.get<MemberLeaveCalendar>(
+    "/leaves/member-calendar",
+    { params: input },
+  );
+  return data;
+}
+
+export async function cancelLeaveFromAttendance(id: string): Promise<LeaveRecord> {
+  const { data } = await http.post<LeaveRecord>(
+    "/leaves/attendance/cancel/" + id,
+  );
+  return data;
+}
+
+export async function createFixedLeave(input: {
+  userId: string;
+  dayOfWeek: FixedLeaveRecord["dayOfWeek"];
+  slots: number[];
+  reason: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<FixedLeaveRecord> {
+  const { data } = await http.post<FixedLeaveRecord>("/leaves/fixed", input);
+  return data;
+}
+
+export async function getFixedLeaves(input?: {
+  userId?: string;
+  branchId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResult<FixedLeaveRecord>> {
+  const { data } = await http.get<PaginatedResult<FixedLeaveRecord>>(
+    "/leaves/fixed",
+    { params: input },
+  );
+  return data;
+}
+
+export async function cancelFixedLeave(id: string): Promise<FixedLeaveRecord> {
+  const { data } = await http.post<FixedLeaveRecord>(
+    "/leaves/fixed/cancel/" + id,
+  );
+  return data;
+}
+
+export async function cancelFixedLeaveOccurrence(
+  id: string,
+  date: string,
+): Promise<FixedLeaveExceptionRecord> {
+  const { data } = await http.post<FixedLeaveExceptionRecord>(
+    "/leaves/fixed/" + id + "/exceptions",
+    { date },
+  );
   return data;
 }
 

@@ -280,6 +280,64 @@ export interface LeaveRecord {
   user?: AdminUser;
 }
 
+export type LeaveCoverageSource = "LEAVE_REQUEST" | "FIXED_LEAVE";
+
+export interface LeaveCoverageItem {
+  source: LeaveCoverageSource;
+  sourceId: string;
+  user: Pick<AdminUser, "id" | "name" | "branchId">;
+  leaveType: LeaveTypeName | null;
+  slots: number[];
+  reason?: string | null;
+  status: LeaveStatusName | "ACTIVE" | string;
+}
+
+export interface LeaveAttendanceCoverage {
+  date: string;
+  items: LeaveCoverageItem[];
+}
+
+export interface MemberLeaveCalendarItem {
+  source: "LEAVE" | "SPECIAL" | "FIXED";
+  id: string;
+  date: string;
+  type: LeaveTypeName | SpecialLeaveTypeName | "FIXED" | null;
+  status: LeaveStatusName | "ACTIVE" | string;
+  reason?: string | null;
+  slots: number[];
+}
+
+export interface MemberLeaveCalendar {
+  month: string;
+  leaves: LeaveRecord[];
+  specialLeaves: SpecialLeaveRecord[];
+  items: MemberLeaveCalendarItem[];
+}
+
+export interface FixedLeaveExceptionRecord {
+  id: string;
+  fixedLeaveId: string;
+  date: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface FixedLeaveRecord {
+  id: string;
+  userId: string;
+  branchId?: string | null;
+  dayOfWeek: DayOfWeekName;
+  slots: number[];
+  reason: string;
+  isActive: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  user?: Pick<AdminUser, "id" | "name" | "branchId">;
+  exceptions?: FixedLeaveExceptionRecord[];
+}
+
 export interface SpecialLeaveRecord {
   id: string;
   userId: string;

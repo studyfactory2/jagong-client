@@ -16,7 +16,6 @@ export type AdminTabKey =
   | "members"
   | "consultations"
   | "payments"
-  | "leaves"
   | "attendance"
   | "chat"
   | "camera";
@@ -95,7 +94,6 @@ export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
   { key: "members", label: "회원" },
   { key: "consultations", label: "상담" },
   { key: "payments", label: "결제" },
-  { key: "leaves", label: "휴가" },
   { key: "attendance", label: "출석" },
   { key: "chat", label: "문의" },
   { key: "camera", label: "캠" },

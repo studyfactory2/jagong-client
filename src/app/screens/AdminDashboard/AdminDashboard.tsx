@@ -7,7 +7,6 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
-import BeachAccessOutlinedIcon from "@mui/icons-material/BeachAccessOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
@@ -34,11 +33,7 @@ import {
   grantFreeTrial,
   recordManualPayment,
 } from "../../services/membership.service";
-import {
-  approveLeave,
-  getAdminLeaves,
-  rejectLeave,
-} from "../../services/leave.service";
+import { getAdminLeaves } from "../../services/leave.service";
 import { getAdminChatRooms } from "../../services/chat.service";
 import {
   acknowledgeCamAlert,
@@ -53,7 +48,6 @@ import Camera from "./Camera";
 import Attendance from "./Attendance";
 import Chat from "./Chat";
 import Consultations from "./Consultations";
-import Leaves from "./Leaves";
 import Members from "./Members";
 import Overview from "./Overview";
 import Payments from "./Payments";
@@ -78,7 +72,6 @@ function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
   if (tab === "members") return <GroupsOutlinedIcon />;
   if (tab === "consultations") return <SupportAgentOutlinedIcon />;
   if (tab === "payments") return <PaymentsOutlinedIcon />;
-  if (tab === "leaves") return <BeachAccessOutlinedIcon />;
   if (tab === "attendance") return <FactCheckOutlinedIcon />;
   if (tab === "chat") return <ChatBubbleOutlineOutlinedIcon />;
   return <VideocamOutlinedIcon />;
@@ -90,7 +83,6 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   members: "사전등록, 직원 등록, 회원 정보를 관리합니다.",
   consultations: "상담 예약, 결제 링크, 사전등록 준비를 처리합니다.",
   payments: "온라인 결제와 수동 결제 내역을 확인합니다.",
-  leaves: "회원 휴가 신청을 승인하거나 반려합니다.",
   attendance: "교시별 출석 상태를 확인하고 조정합니다.",
   chat: "회원과의 1:1 문의를 확인하고 답변합니다.",
   camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
@@ -546,15 +538,6 @@ export default function AdminDashboard() {
     }, "상담 상태를 변경하지 못했습니다.");
   }
 
-  async function handleLeave(id: string, action: "approve" | "reject") {
-    if (!isAdmin) return;
-    await runAdminAction(async () => {
-      if (action === "approve") await approveLeave(id);
-      else await rejectLeave(id);
-      await load();
-    }, "휴가 상태를 변경하지 못했습니다.");
-  }
-
   function updateStaffForm(field: keyof typeof staffForm, value: string) {
     setStaffForm((current) => ({ ...current, [field]: value }));
   }
@@ -852,18 +835,6 @@ export default function AdminDashboard() {
                 pageMeta={pageMeta.payments}
                 onPageChange={(page) => changePage("payments", page)}
                 onRefundRecorded={load}
-              />
-            )}
-
-            {isAdmin && activeTab === "leaves" && (
-              <Leaves
-                leaves={data.leaves}
-                users={data.allMembers}
-                searchText={search.leaves}
-                onSearchChange={(value) => changeSearch("leaves", value)}
-                onAction={handleLeave}
-                pageMeta={pageMeta.leaves}
-                onPageChange={(page) => changePage("leaves", page)}
               />
             )}
 
