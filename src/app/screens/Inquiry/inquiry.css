@@ -631,16 +631,9 @@
 
   .iq-notice-panel,
   .iq-chat {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     min-height: 0;
-  }
-
-  .iq-notice-panel {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-  }
-
-  .iq-chat {
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   }
 
   .iq-panel-title {
@@ -658,6 +651,7 @@
 
   .iq-notices,
   .iq-messages {
+    flex: 1 1 auto;
     max-height: none;
     min-height: 0;
   }
@@ -668,6 +662,12 @@
 
   .iq-chat {
     box-shadow: 0 22px 60px rgba(20, 63, 86, 0.08);
+  }
+
+  .iq-chat .iq-error,
+  .iq-chat .iq-image-preview,
+  .iq-chat .iq-input {
+    flex: 0 0 auto;
   }
 }
 
