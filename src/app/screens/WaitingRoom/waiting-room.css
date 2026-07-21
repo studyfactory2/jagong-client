@@ -577,7 +577,7 @@
 
 .wr-schedule-notice {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 40px;
+  grid-template-columns: minmax(0, 1fr) 42px;
   align-items: stretch;
   gap: 8px;
 }
@@ -602,9 +602,11 @@
 }
 
 .wr-sound-toggle {
-  min-width: 40px;
+  width: 42px;
+  min-width: 0;
+  height: 42px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--card);
   color: var(--muted);
   display: grid;
@@ -625,7 +627,7 @@
 }
 
 .wr-sound-toggle svg {
-  font-size: 20px;
+  font-size: 21px;
 }
 
 .wr-notice:hover,
@@ -1239,7 +1241,7 @@
   .wr-time { grid-area: time; }
   .wr-attendance { grid-area: attendance; }
   .wr-progress { grid-area: progress; }
-  .wr-notice { grid-area: notice; }
+  .wr-schedule-notice { grid-area: notice; }
   .wr-entry { grid-area: entry; }
   .wr-shortcuts { grid-area: shortcuts; }
   .wr-user { grid-area: user; }

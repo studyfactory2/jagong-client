@@ -395,7 +395,7 @@ export default function WaitingRoom() {
     const next = !scheduleSoundEnabled;
     setScheduleSoundPreference(next);
     void setScheduleSoundEnabled(next).then((enabled) => {
-      if (next && enabled) playScheduleTone("countdown");
+      if (next && enabled) playScheduleTone("preview");
     });
   };
   const canUseAdmin =

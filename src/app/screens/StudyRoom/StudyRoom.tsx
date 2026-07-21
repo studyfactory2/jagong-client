@@ -438,7 +438,7 @@ export default function StudyRoom() {
     const next = !scheduleSoundEnabled;
     setScheduleSoundPreference(next);
     void setScheduleSoundEnabled(next).then((enabled) => {
-      if (next && enabled) playScheduleTone("countdown");
+      if (next && enabled) playScheduleTone("preview");
     });
   };
   const membersForGrid = useMemo(() => {
