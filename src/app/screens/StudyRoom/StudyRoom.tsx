@@ -691,56 +691,69 @@ export default function StudyRoom() {
               <span>전국 단체 작업 캠</span>
             </div>
 
-            <button
-              className="sr-view-btn"
-              onClick={() => setCompactWall((value) => !value)}
-              type="button"
-            >
-              <GridViewOutlinedIcon />
-              {compactWall ? "크게 보기" : "많이 보기"}
-              <small>전체 {membersForGrid.length}명</small>
-            </button>
-
-            <button
-              className="sr-wall-btn"
-              onClick={() => setCameraOnly((value) => !value)}
-              type="button"
-            >
-              {cameraOnly ? "전체 보기" : "캠만 보기"}
-            </button>
-
-            <button
-              className={`sr-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
-              type="button"
-              onClick={toggleScheduleSound}
-              aria-label={
-                scheduleSoundEnabled
-                  ? "일정 알림 소리 끄기"
-                  : "일정 알림 소리 켜기"
-              }
-              title={
-                scheduleSoundEnabled
-                  ? "일정 알림 소리 끄기"
-                  : "일정 알림 소리 켜기"
-              }
-            >
-              {scheduleSoundEnabled ? (
-                <VolumeUpRoundedIcon />
-              ) : (
-                <VolumeOffRoundedIcon />
-              )}
-            </button>
-
-            {joined && (
+            <div className="sr-panel-actions">
               <button
-                className="sr-quick-leave"
-                onClick={toggleJoin}
+                className="sr-view-btn"
+                onClick={() => setCompactWall((value) => !value)}
                 type="button"
-                disabled={joining}
+                title={compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"}
+                aria-label={compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"}
               >
-                {joining ? "처리 중" : "퇴장"}
+                <GridViewOutlinedIcon />
+                <span className="sr-view-label">
+                  {compactWall ? "크게 보기" : "많이 보기"}
+                </span>
+                <small>전체 {membersForGrid.length}명</small>
               </button>
-            )}
+
+              <button
+                className="sr-wall-btn"
+                onClick={() => setCameraOnly((value) => !value)}
+                type="button"
+                title={cameraOnly ? "전체 보기" : "캠만 보기"}
+                aria-label={cameraOnly ? "전체 보기" : "캠만 보기"}
+              >
+                <span className="sr-wall-label-full">
+                  {cameraOnly ? "전체 보기" : "캠만 보기"}
+                </span>
+                <span className="sr-wall-label-short">
+                  {cameraOnly ? "전체" : "캠"}
+                </span>
+              </button>
+
+              <button
+                className={`sr-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
+                type="button"
+                onClick={toggleScheduleSound}
+                aria-label={
+                  scheduleSoundEnabled
+                    ? "일정 알림 소리 끄기"
+                    : "일정 알림 소리 켜기"
+                }
+                title={
+                  scheduleSoundEnabled
+                    ? "일정 알림 소리 끄기"
+                    : "일정 알림 소리 켜기"
+                }
+              >
+                {scheduleSoundEnabled ? (
+                  <VolumeUpRoundedIcon />
+                ) : (
+                  <VolumeOffRoundedIcon />
+                )}
+              </button>
+
+              {joined && (
+                <button
+                  className="sr-quick-leave"
+                  onClick={toggleJoin}
+                  type="button"
+                  disabled={joining}
+                >
+                  {joining ? "처리 중" : "퇴장"}
+                </button>
+              )}
+            </div>
           </div>
 
           {!joined ? (
