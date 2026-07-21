@@ -88,6 +88,97 @@
   gap: 10px;
 }
 
+.sl-camera-session {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(117, 185, 152, 0.32);
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(239, 249, 244, 0.96),
+    rgba(255, 254, 250, 0.94)
+  );
+  box-shadow: 0 12px 28px rgba(20, 63, 86, 0.045);
+}
+
+.sl-camera-preview {
+  width: 72px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #315e65, #204a55);
+  color: #ffffff;
+}
+
+.sl-camera-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.sl-camera-preview svg {
+  font-size: 21px;
+}
+
+.sl-camera-session strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sl-camera-session p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.sl-camera-session > span {
+  min-width: 29px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.sl-camera-session > span.is-live {
+  color: #49a76d;
+}
+
+.sl-camera-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid rgba(244, 134, 120, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 247, 244, 0.9);
+  color: var(--accent-deep);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.sl-camera-error button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  border: 1px solid rgba(244, 134, 120, 0.48);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--accent-deep);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 0 9px;
+}
+
 .sl-card {
   border: 1px solid rgba(20, 63, 86, 0.12);
   border-radius: 18px;
@@ -407,6 +498,15 @@
 
   .sl-body {
     padding-inline: 12px;
+  }
+
+  .sl-camera-session {
+    grid-template-columns: 62px minmax(0, 1fr) auto;
+  }
+
+  .sl-camera-preview {
+    width: 62px;
+    height: 46px;
   }
 
   .sl-line-grid {

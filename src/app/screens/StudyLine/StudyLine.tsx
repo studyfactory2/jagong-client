@@ -4,7 +4,9 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import { useSocket } from "../../context/SocketContext";
+import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
 import "./study-line.css";
@@ -122,19 +124,20 @@ function slotState(
 export default function StudyLine() {
   const navigate = useNavigate();
   const { socket } = useSocket();
+  const { joined, joining, cameraReady, error, localStream, startSession } =
+    useWorkroomSession();
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
   const bellTimerRef = useRef<number | null>(null);
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     getTimetable()
       .then((items) => {
         if (!items.length) return;
         setSlots(
-          [...items].sort(
-            (a, b) => toSec(a.startTime) - toSec(b.startTime),
-          ),
+          [...items].sort((a, b) => toSec(a.startTime) - toSec(b.startTime)),
         );
       })
       .catch(() => {});
@@ -212,6 +215,27 @@ export default function StudyLine() {
       ? `${nextSlot.label} 시작 알림 예정`
       : "오늘 일정이 종료되었습니다";
 
+  const activeAttendanceSlot =
+    current && !current.isBreak && current.slot !== 0
+      ? current.slot
+      : undefined;
+
+  useEffect(() => {
+    if (joined || joining || error) return;
+    void startSession(activeAttendanceSlot);
+  }, [activeAttendanceSlot, error, joined, joining, startSession]);
+
+  useEffect(() => {
+    const video = cameraVideoRef.current;
+    if (!video || !localStream) return;
+    video.srcObject = localStream;
+    void video.play().catch(() => undefined);
+
+    return () => {
+      if (video.srcObject === localStream) video.srcObject = null;
+    };
+  }, [localStream]);
+
   return (
     <div className="sl">
       <header className="sl-head">
@@ -226,6 +250,44 @@ export default function StudyLine() {
       </header>
 
       <main className="sl-body">
+        <section className="sl-camera-session" aria-live="polite">
+          <div className="sl-camera-preview">
+            {localStream ? (
+              <video ref={cameraVideoRef} autoPlay muted playsInline />
+            ) : (
+              <VideocamOutlinedIcon />
+            )}
+          </div>
+          <div>
+            <strong>
+              {joined
+                ? "카메라 송출 중"
+                : joining
+                  ? "카메라 연결 중"
+                  : "카메라 연결 준비"}
+            </strong>
+            <p>
+              {joined
+                ? "단체작업장으로 이동해도 같은 카메라 세션이 유지됩니다."
+                : "개인작업실 입장과 함께 카메라를 연결합니다."}
+            </p>
+          </div>
+          <span className={cameraReady ? "is-live" : ""}>
+            {cameraReady ? "ON" : "..."}
+          </span>
+        </section>
+        {error && (
+          <div className="sl-camera-error" role="alert">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void startSession(activeAttendanceSlot)}
+            >
+              다시 연결
+            </button>
+          </div>
+        )}
+
         <section className="sl-bottom">
           <div className="sl-metric sl-progress-card">
             <span>오늘 나의 진행률</span>
@@ -266,7 +328,9 @@ export default function StudyLine() {
                     <NotificationsOutlinedIcon />
                   )}
                   <strong>{slot.label}</strong>
-                  <span>{slot.startTime} - {slot.endTime}</span>
+                  <span>
+                    {slot.startTime} - {slot.endTime}
+                  </span>
                   <em>{state}</em>
                 </div>
               );

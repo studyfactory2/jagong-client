@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
@@ -12,24 +12,17 @@ import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftR
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
 import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
-import type { Room } from "livekit-client";
-import {
-  getCamRoomMembers,
-  issueCamToken,
-  joinCam,
-  leaveCam,
-  logCamAlert,
-  resolveCamAlert,
-} from "../../services/cam.service";
+import { logCamAlert, resolveCamAlert } from "../../services/cam.service";
 import { syncCamAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
-import type {
-  CamRoomMember,
-  CamTokenDto,
-  TimetableSlot,
-} from "../../../lib/types";
+import type { TimetableSlot } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
+import {
+  useWorkroomSession,
+  type RemoteVideo,
+  type RemoteVideoTrack,
+} from "../../context/WorkroomSessionContext";
 import {
   getScheduleSoundEnabled,
   playScheduleTone,
@@ -151,17 +144,6 @@ type SmartAlertState = {
   resolving: boolean;
 };
 
-type RemoteVideoTrack = {
-  attach: (element?: HTMLMediaElement) => HTMLMediaElement;
-  detach: (element?: HTMLMediaElement) => HTMLMediaElement[];
-};
-
-type RemoteVideo = {
-  trackSid: string;
-  userId: string;
-  track: RemoteVideoTrack;
-};
-
 const toMin = (time: string) => {
   const [hour, minute] = time.split(":").map(Number);
   return hour * 60 + minute;
@@ -224,24 +206,32 @@ export default function StudyRoom() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { socket } = useSocket();
+  const {
+    joined,
+    joining,
+    cameraReady,
+    error,
+    localStream,
+    devices,
+    selectedDeviceId,
+    roomMembers,
+    remoteVideos,
+    previewCamera,
+    selectCamera,
+    startSession,
+    leaveSession,
+    setVisibleRemoteUserIds,
+  } = useWorkroomSession();
   const [compactWall, setCompactWall] = useState(true);
   const [cameraOnly, setCameraOnly] = useState(false);
   const [cameraPage, setCameraPage] = useState(0);
   const [cameraPageSize, setCameraPageSize] = useState(getCameraPageSize);
-  const [joined, setJoined] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [cameraReady, setCameraReady] = useState(false);
   const [smartStatus, setSmartStatus] = useState<
     "idle" | "checking" | "ok" | "warning" | "unsupported"
   >("idle");
-  const [smartMessage, setSmartMessage] =
-    useState("입장 후 스마트 출석 확인이 시작됩니다.");
-  const [error, setError] = useState("");
-  const [camToken, setCamToken] = useState<CamTokenDto | null>(null);
-  const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
-  const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [smartMessage, setSmartMessage] = useState(
+    "입장 후 스마트 출석 확인이 시작됩니다.",
+  );
   const [timetable, setTimetable] =
     useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
@@ -251,10 +241,6 @@ export default function StudyRoom() {
   );
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const publishedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
-  const roomRef = useRef<Room | null>(null);
-  const visibleCameraIdsRef = useRef<string[]>([]);
   const faceDetectorRef = useRef<FaceDetectorRuntime | null>(null);
   const smartTimerRef = useRef<number | null>(null);
   const smartAlertRef = useRef<SmartAlertState>({
@@ -264,8 +250,6 @@ export default function StudyRoom() {
     sending: false,
     resolving: false,
   });
-  const joinedRef = useRef(false);
-  const joinedSlotRef = useRef<number | null>(null);
   const syncedAttendanceSlotRef = useRef<number | null>(null);
   const bellTimerRef = useRef<number | null>(null);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
@@ -285,35 +269,12 @@ export default function StudyRoom() {
     return () => window.removeEventListener("resize", updatePageSize);
   }, []);
 
-  const refreshRoomMembers = useCallback(async () => {
-    try {
-      const members = await getCamRoomMembers();
-      setRoomMembers(members);
-    } catch {
-      setRoomMembers([]);
-    }
-  }, []);
-
   useEffect(() => {
     scheduleSoundEnabledRef.current = scheduleSoundEnabled;
   }, [scheduleSoundEnabled]);
 
   useEffect(() => {
-    const initialTimer = window.setTimeout(() => {
-      void refreshRoomMembers();
-    }, 0);
-    const timer = window.setInterval(() => void refreshRoomMembers(), 15000);
-    return () => {
-      window.clearTimeout(initialTimer);
-      window.clearInterval(timer);
-    };
-  }, [refreshRoomMembers]);
-
-  useEffect(() => {
     if (!socket) return;
-
-    socket.on("cam:join", refreshRoomMembers);
-    socket.on("cam:leave", refreshRoomMembers);
 
     const onBell = (data: {
       type: string;
@@ -334,15 +295,13 @@ export default function StudyRoom() {
     socket.on("bell", onBell);
 
     return () => {
-      socket.off("cam:join", refreshRoomMembers);
-      socket.off("cam:leave", refreshRoomMembers);
       socket.off("bell", onBell);
       if (bellTimerRef.current) {
         window.clearTimeout(bellTimerRef.current);
         bellTimerRef.current = null;
       }
     };
-  }, [refreshRoomMembers, socket]);
+  }, [socket]);
 
   useEffect(() => {
     getTimetable()
@@ -374,21 +333,27 @@ export default function StudyRoom() {
 
   useEffect(() => {
     const element = selfTileVideoRef.current;
-    if (!element || !joined) return;
-    element.srcObject = streamRef.current;
+    if (!element || !joined || !localStream) return;
+    element.srcObject = localStream;
     void element.play().catch(() => undefined);
-  }, [cameraReady, joined, selectedDeviceId]);
+    return () => {
+      if (element.srcObject === localStream) element.srcObject = null;
+    };
+  }, [cameraReady, joined, localStream]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element || !localStream) return;
+    element.srcObject = localStream;
+    void element.play().catch(() => undefined);
+    return () => {
+      if (element.srcObject === localStream) element.srcObject = null;
+    };
+  }, [localStream]);
 
   useEffect(() => {
     return () => {
-      if (joinedRef.current) {
-        void leaveCam();
-      }
       stopSmartMonitor();
-      roomRef.current?.disconnect();
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-      publishedVideoTrackRef.current = null;
     };
   }, []);
 
@@ -489,45 +454,18 @@ export default function StudyRoom() {
     remoteVideos.forEach((video) => videos.set(video.userId, video));
     return videos;
   }, [remoteVideos]);
-  const syncRemoteCameraSubscriptions = useCallback(
-    (room = roomRef.current) => {
-      if (!room) return;
-      const visible = new Set(visibleCameraIdsRef.current);
-
-      room.remoteParticipants.forEach((participant) => {
-        const shouldSubscribe = visible.has(participant.identity);
-
-        participant.trackPublications.forEach((publication) => {
-          const isVideo =
-            String(publication.kind) === "video" ||
-            String(publication.source) === "camera";
-          if (!isVideo) return;
-          publication.setSubscribed(shouldSubscribe);
-        });
-      });
-    },
-    [],
-  );
 
   useEffect(() => {
-    visibleCameraIdsRef.current = visibleCameraIds;
-    syncRemoteCameraSubscriptions();
-  }, [syncRemoteCameraSubscriptions, visibleCameraIds]);
-
-  function stopLocalCamera() {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setCameraReady(false);
-    if (videoRef.current) videoRef.current.srcObject = null;
-  }
+    setVisibleRemoteUserIds(visibleCameraIds);
+    return () => setVisibleRemoteUserIds([]);
+  }, [setVisibleRemoteUserIds, visibleCameraIds]);
 
   async function ensureFaceDetector(): Promise<FaceDetectorRuntime | null> {
     if (faceDetectorRef.current) return faceDetectorRef.current;
 
     try {
-      const { FaceDetector, FilesetResolver } = await import(
-        "@mediapipe/tasks-vision"
-      );
+      const { FaceDetector, FilesetResolver } =
+        await import("@mediapipe/tasks-vision");
       const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
       const detector = await FaceDetector.createFromOptions(vision, {
         baseOptions: {
@@ -580,7 +518,7 @@ export default function StudyRoom() {
     state.lastSentAt = nowMs;
     try {
       await logCamAlert({
-        slot: currentSlot(timetable) ?? joinedSlotRef.current ?? undefined,
+        slot: currentSlot(timetable) ?? undefined,
         alertType,
         duration,
       });
@@ -611,15 +549,12 @@ export default function StudyRoom() {
   }
 
   async function evaluateSmartAttendance(detector: FaceDetectorRuntime) {
-    if (!joinedRef.current) return;
+    if (!joined) return;
 
     const video = selfTileVideoRef.current;
-    const track = streamRef.current?.getVideoTracks()[0];
+    const track = localStream?.getVideoTracks()[0];
     const trackLive =
-      track &&
-      track.readyState === "live" &&
-      track.enabled &&
-      !track.muted;
+      track && track.readyState === "live" && track.enabled && !track.muted;
 
     if (!video || !trackLive) {
       setSmartStatus("warning");
@@ -685,215 +620,39 @@ export default function StudyRoom() {
     void evaluateSmartAttendance(detector);
   }
 
-  function disconnectLiveKit() {
-    roomRef.current?.disconnect();
-    roomRef.current = null;
-    publishedVideoTrackRef.current = null;
-    setRemoteVideos([]);
-  }
-
-  async function unpublishCameraTrack() {
-    const room = roomRef.current;
-    const publishedTrack = publishedVideoTrackRef.current;
-    if (!room || !publishedTrack) {
-      publishedVideoTrackRef.current = null;
-      return;
-    }
-
-    await room.localParticipant.unpublishTrack(publishedTrack);
-    publishedVideoTrackRef.current = null;
-  }
-
-  async function refreshDevices() {
-    if (!navigator.mediaDevices?.enumerateDevices) return;
-    const allDevices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = allDevices.filter((device) => device.kind === "videoinput");
-    setDevices(cameras);
-    if (!selectedDeviceId && cameras[0]?.deviceId) {
-      setSelectedDeviceId(cameras[0].deviceId);
-    }
-  }
-
-  async function startLocalCamera(deviceId?: string) {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error("이 브라우저에서는 카메라를 사용할 수 없습니다.");
-    }
-
-    stopLocalCamera();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: deviceId ? { deviceId: { exact: deviceId } } : true,
-      audio: false,
-    });
-
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play().catch(() => undefined);
-    }
-    setCameraReady(true);
-    await refreshDevices();
-  }
-
-  async function republishCameraTrack(token = camToken) {
-    const room = roomRef.current;
-    const newTrack = streamRef.current?.getVideoTracks()[0];
-    if (!room || !token?.canPublish || !newTrack) return;
-
-    const { Track } = await import("livekit-client");
-    await unpublishCameraTrack();
-    await room.localParticipant.publishTrack(newTrack, {
-      source: Track.Source.Camera,
-    });
-    publishedVideoTrackRef.current = newTrack;
-  }
-
-  async function connectLiveKit(token: CamTokenDto) {
-    if (!token.url || token.token.startsWith("stub.")) return;
-
-    const { Room, RoomEvent, Track } = await import("livekit-client");
-    const room = new Room({
-      adaptiveStream: true,
-      dynacast: true,
-    });
-
-    try {
-      room.on(
-        RoomEvent.TrackSubscribed,
-        (track, publication, participant) => {
-          if (String(track.kind) !== "video") return;
-
-          setRemoteVideos((current) => {
-            const next = current.filter(
-              (video) => video.trackSid !== publication.trackSid,
-            );
-            return [
-              ...next,
-              {
-                trackSid: publication.trackSid,
-                userId: participant.identity,
-                track: track as RemoteVideoTrack,
-              },
-            ];
-          });
-        },
-      );
-
-      room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
-        setRemoteVideos((current) =>
-          current.filter((video) => video.trackSid !== publication.trackSid),
-        );
-      });
-
-      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        setRemoteVideos((current) =>
-          current.filter((video) => video.userId !== participant.identity),
-        );
-      });
-
-      room.on(RoomEvent.TrackPublished, () => {
-        syncRemoteCameraSubscriptions(room);
-      });
-
-      await room.connect(token.url, token.token, { autoSubscribe: false });
-      roomRef.current = room;
-      syncRemoteCameraSubscriptions(room);
-
-      if (token.canPublish) {
-        const videoTrack = streamRef.current?.getVideoTracks()[0];
-        if (videoTrack) {
-          await room.localParticipant.publishTrack(videoTrack, {
-            source: Track.Source.Camera,
-          });
-          publishedVideoTrackRef.current = videoTrack;
-        }
-      }
-    } catch (err) {
-      room.disconnect();
-      if (roomRef.current === room) roomRef.current = null;
-      throw err;
-    }
-  }
+  useEffect(() => {
+    if (!joined) return;
+    const startTimer = window.setTimeout(() => {
+      void startSmartMonitor();
+    }, 0);
+    return () => {
+      window.clearTimeout(startTimer);
+      stopSmartMonitor();
+    };
+    // The monitor is intentionally attached only while this page is visible.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [joined]);
 
   async function handleDeviceChange(deviceId: string) {
-    setSelectedDeviceId(deviceId);
-    setError("");
-    try {
-      if (joined) {
-        await unpublishCameraTrack();
-      }
-      await startLocalCamera(deviceId || undefined);
-      if (joined) {
-        await republishCameraTrack();
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.",
-      );
-    }
+    await selectCamera(deviceId);
   }
 
   async function handlePreviewCamera() {
-    setError("");
-    setJoining(true);
-    try {
-      await startLocalCamera(selectedDeviceId || undefined);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "카메라 미리보기를 시작하지 못했습니다.",
-      );
-    } finally {
-      setJoining(false);
-    }
+    await previewCamera(selectedDeviceId || undefined);
   }
 
   async function toggleJoin() {
     if (joined && !window.confirm("작업실에서 퇴장하시겠습니까?")) return;
 
-    setError("");
-    setJoining(true);
-    try {
-      if (joined) {
-        stopSmartMonitor();
-        await leaveCam();
-        disconnectLiveKit();
-        stopLocalCamera();
-        joinedRef.current = false;
-        joinedSlotRef.current = null;
-        syncedAttendanceSlotRef.current = null;
-        setJoined(false);
-        setCamToken(null);
-        await refreshRoomMembers();
-      } else {
-        const slot = currentSlot(timetable);
-        const token = await issueCamToken();
-        await startLocalCamera(selectedDeviceId || undefined);
-        await connectLiveKit(token);
-        await joinCam(slot ?? undefined);
-        joinedRef.current = true;
-        joinedSlotRef.current = slot;
-        syncedAttendanceSlotRef.current = slot;
-        setCamToken(token);
-        setJoined(true);
-        void startSmartMonitor();
-        await refreshRoomMembers();
-      }
-    } catch (err) {
+    if (joined) {
       stopSmartMonitor();
-      disconnectLiveKit();
-      stopLocalCamera();
-      joinedRef.current = false;
-      joinedSlotRef.current = null;
       syncedAttendanceSlotRef.current = null;
-      setError(
-        err instanceof Error
-          ? err.message
-          : "작업장 입장 상태를 변경하지 못했습니다.",
-      );
-    } finally {
-      setJoining(false);
+      await leaveSession();
+      return;
     }
+
+    const started = await startSession(currentSlot(timetable) ?? undefined);
+    if (started) void startSmartMonitor();
   }
 
   function goWaitingRoom() {
@@ -954,10 +713,22 @@ export default function StudyRoom() {
               className={`sr-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
               type="button"
               onClick={toggleScheduleSound}
-              aria-label={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
-              title={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+              aria-label={
+                scheduleSoundEnabled
+                  ? "일정 알림 소리 끄기"
+                  : "일정 알림 소리 켜기"
+              }
+              title={
+                scheduleSoundEnabled
+                  ? "일정 알림 소리 끄기"
+                  : "일정 알림 소리 켜기"
+              }
             >
-              {scheduleSoundEnabled ? <VolumeUpRoundedIcon /> : <VolumeOffRoundedIcon />}
+              {scheduleSoundEnabled ? (
+                <VolumeUpRoundedIcon />
+              ) : (
+                <VolumeOffRoundedIcon />
+              )}
             </button>
 
             {joined && (
@@ -987,8 +758,8 @@ export default function StudyRoom() {
               <div className="sr-setup-info">
                 <strong>작업실 입장 준비</strong>
                 <em>
-                  입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께 확인할 수
-                  있습니다.
+                  입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께
+                  확인할 수 있습니다.
                 </em>
 
                 <label>
@@ -1192,7 +963,13 @@ export default function StudyRoom() {
             </div>
 
             <div className="sr-status-item">
-              <span>{current?.isBreak ? "현재 휴식" : current ? "현재 교시" : "다음 교시"}</span>
+              <span>
+                {current?.isBreak
+                  ? "현재 휴식"
+                  : current
+                    ? "현재 교시"
+                    : "다음 교시"}
+              </span>
               <strong>{current?.label ?? nextSlot?.label ?? "종료"}</strong>
               <p>
                 <NotificationsOutlinedIcon /> {periodWindow}
@@ -1213,7 +990,6 @@ export default function StudyRoom() {
             </div>
           </section>
         )}
-
       </main>
 
       <footer className="sr-footer">

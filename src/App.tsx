@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import ProtectedRoute from "./app/components/ProtectedRoute";
 import MembershipRoute from "./app/components/MembershipRoute";
 import Login from "./app/screens/Login";
@@ -12,6 +12,7 @@ import PaymentSuccess from "./app/screens/PaymentSuccess";
 import PaymentFail from "./app/screens/PaymentFail";
 import MyPage from "./app/screens/MyPage";
 import { useAuth } from "./app/context/AuthContext";
+import { WorkroomSessionProvider } from "./app/context/WorkroomSessionContext";
 import { memberHomePath } from "./app/utils/access";
 import AppLoading from "./app/components/ui/AppLoading";
 
@@ -41,6 +42,14 @@ function ScrollToTop() {
   return null;
 }
 
+function WorkroomSessionLayout() {
+  return (
+    <WorkroomSessionProvider>
+      <Outlet />
+    </WorkroomSessionProvider>
+  );
+}
+
 export default function App() {
   return (
     <Suspense fallback={<AppLoading message="화면을 불러오는 중입니다." />}>
@@ -65,8 +74,10 @@ export default function App() {
 
           <Route element={<MembershipRoute />}>
             <Route path="/waiting-room/*" element={<WaitingRoom />} />
-            <Route path="/study-line" element={<StudyLine />} />
-            <Route path="/study-room" element={<StudyRoom />} />
+            <Route element={<WorkroomSessionLayout />}>
+              <Route path="/study-line" element={<StudyLine />} />
+              <Route path="/study-room" element={<StudyRoom />} />
+            </Route>
             <Route path="/weekly-plan" element={<WeeklyPlan />} />
             <Route path="/leaves" element={<LeaveRequest />} />
             <Route path="/attendance" element={<Attendance />} />
