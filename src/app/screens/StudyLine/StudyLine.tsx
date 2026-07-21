@@ -5,9 +5,18 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
+import {
+  getScheduleSoundEnabled,
+  playScheduleTone,
+  scheduleBellMessage,
+  setScheduleSoundEnabled,
+  type ScheduleBellEvent,
+} from "../../utils/schedule-bell";
 import type { TimetableSlot } from "../../../lib/types";
 import "./study-line.css";
 
@@ -124,13 +133,16 @@ function slotState(
 export default function StudyLine() {
   const navigate = useNavigate();
   const { socket } = useSocket();
-  const { joined, joining, cameraReady, error, localStream, startSession } =
+  const { joined, joining, cameraReady, error, startSession } =
     useWorkroomSession();
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
+  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
+    getScheduleSoundEnabled,
+  );
   const bellTimerRef = useRef<number | null>(null);
-  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
 
   useEffect(() => {
     getTimetable()
@@ -149,19 +161,17 @@ export default function StudyLine() {
   }, []);
 
   useEffect(() => {
+    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
+  }, [scheduleSoundEnabled]);
+
+  useEffect(() => {
     if (!socket) return;
 
-    const onBell = (data: { type: string; label?: string }) => {
-      const message =
-        data.type === "countdown"
-          ? `곧 ${data.label ?? "다음 교시"} 시작돼요.`
-          : data.type === "periodStart"
-            ? `${data.label ?? "교시"} 시작! 화면과 카메라 상태를 유지해 주세요.`
-            : data.type === "breakStart"
-              ? "쉬는시간입니다. 다음 교시 전까지 준비해 주세요."
-              : "";
+    const onBell = (data: ScheduleBellEvent) => {
+      const message = scheduleBellMessage(data);
 
       if (!message) return;
+      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
       if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       setBellMsg(message);
       bellTimerRef.current = window.setTimeout(() => {
@@ -225,16 +235,14 @@ export default function StudyLine() {
     void startSession(activeAttendanceSlot);
   }, [activeAttendanceSlot, error, joined, joining, startSession]);
 
-  useEffect(() => {
-    const video = cameraVideoRef.current;
-    if (!video || !localStream) return;
-    video.srcObject = localStream;
-    void video.play().catch(() => undefined);
-
-    return () => {
-      if (video.srcObject === localStream) video.srcObject = null;
-    };
-  }, [localStream]);
+  const toggleScheduleSound = () => {
+    const next = !scheduleSoundEnabled;
+    setScheduleSoundPreference(next);
+    void setScheduleSoundEnabled(next).then((enabled) => {
+      if (next && enabled) playScheduleTone("preview");
+      if (!enabled) setScheduleSoundPreference(false);
+    });
+  };
 
   return (
     <div className="sl">
@@ -251,30 +259,31 @@ export default function StudyLine() {
 
       <main className="sl-body">
         <section className="sl-camera-session" aria-live="polite">
-          <div className="sl-camera-preview">
-            {localStream ? (
-              <video ref={cameraVideoRef} autoPlay muted playsInline />
+          <div className="sl-camera-status">
+            <VideocamOutlinedIcon />
+            <strong>{cameraReady ? "ON" : joining ? "..." : "OFF"}</strong>
+          </div>
+          <button
+            className={`sl-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
+            type="button"
+            onClick={toggleScheduleSound}
+            aria-label={
+              scheduleSoundEnabled
+                ? "일정 알림 소리 끄기"
+                : "일정 알림 소리 켜기"
+            }
+            title={
+              scheduleSoundEnabled
+                ? "일정 알림 소리 끄기"
+                : "일정 알림 소리 켜기"
+            }
+          >
+            {scheduleSoundEnabled ? (
+              <VolumeUpRoundedIcon />
             ) : (
-              <VideocamOutlinedIcon />
+              <VolumeOffRoundedIcon />
             )}
-          </div>
-          <div>
-            <strong>
-              {joined
-                ? "카메라 송출 중"
-                : joining
-                  ? "카메라 연결 중"
-                  : "카메라 연결 준비"}
-            </strong>
-            <p>
-              {joined
-                ? "단체작업장으로 이동해도 같은 카메라 세션이 유지됩니다."
-                : "개인작업실 입장과 함께 카메라를 연결합니다."}
-            </p>
-          </div>
-          <span className={cameraReady ? "is-live" : ""}>
-            {cameraReady ? "ON" : "..."}
-          </span>
+          </button>
         </section>
         {error && (
           <div className="sl-camera-error" role="alert">
