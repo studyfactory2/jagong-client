@@ -3,24 +3,6 @@ import type { AdminUser, Branch, PageMeta } from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import { dDayText, userDetail } from "./admin.utils";
 
-type MemberForm = {
-  name: string;
-  branchId: string;
-  phone: string;
-  residenceArea: string;
-  age: string;
-  examType: string;
-  prepDuration: string;
-  notes: string;
-};
-
-type StaffForm = {
-  name: string;
-  password: string;
-  branchId: string;
-  phone: string;
-};
-
 type MemberEditForm = {
   phone: string;
   residenceArea: string;
@@ -36,12 +18,6 @@ type MembersProps = {
   branches: Branch[];
   searchText: string;
   onSearchChange: (value: string) => void;
-  preRegister: MemberForm;
-  staffForm: StaffForm;
-  onPreRegisterChange: (field: keyof MemberForm, value: string) => void;
-  onPreRegisterSubmit: () => void;
-  onStaffChange: (field: keyof StaffForm, value: string) => void;
-  onStaffSubmit: () => void;
   onUserUpdate: (userId: string, input: Partial<AdminUser>) => Promise<void>;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
@@ -59,12 +35,6 @@ export default function Members(props: MembersProps) {
     branches,
     searchText,
     onSearchChange,
-    preRegister,
-    staffForm,
-    onPreRegisterChange,
-    onPreRegisterSubmit,
-    onStaffChange,
-    onStaffSubmit,
     onUserUpdate,
     pageMeta,
     onPageChange,
@@ -73,11 +43,7 @@ export default function Members(props: MembersProps) {
   const [editingId, setEditingId] = useState("");
   const [editForm, setEditForm] = useState<MemberEditForm | null>(null);
   const [savingId, setSavingId] = useState("");
-
   const members = users.filter((user) => user.role === "MEMBER");
-  const staff = users.filter(
-    (user) => user.role === "STAFF" || user.role === "ADMIN",
-  );
 
   function startEdit(user: AdminUser) {
     setEditingId(user.id);
@@ -133,170 +99,6 @@ export default function Members(props: MembersProps) {
           placeholder="이름, 연락처, 자격증, 지역 검색"
         />
       </label>
-
-      <section className="admin-pre-register">
-        <div>
-          <strong>회원 사전등록</strong>
-          <p>상담 후 관리자가 회원 이름과 지점을 먼저 연결합니다.</p>
-        </div>
-
-        <div className="admin-pre-grid">
-          <label>
-            이름
-            <input
-              value={preRegister.name}
-              onChange={(event) =>
-                onPreRegisterChange("name", event.target.value)
-              }
-              placeholder="회원 이름"
-            />
-          </label>
-
-          <label>
-            지점
-            <select
-              value={preRegister.branchId}
-              onChange={(event) =>
-                onPreRegisterChange("branchId", event.target.value)
-              }
-            >
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            연락처
-            <input
-              value={preRegister.phone}
-              onChange={(event) =>
-                onPreRegisterChange("phone", event.target.value)
-              }
-              placeholder="010-0000-0000"
-            />
-          </label>
-
-          <label>
-            거주지역
-            <input
-              value={preRegister.residenceArea}
-              onChange={(event) =>
-                onPreRegisterChange("residenceArea", event.target.value)
-              }
-              placeholder="예) 서울 / 수원"
-            />
-          </label>
-
-          <label>
-            나이
-            <input
-              inputMode="numeric"
-              value={preRegister.age}
-              onChange={(event) =>
-                onPreRegisterChange("age", event.target.value)
-              }
-              placeholder="선택"
-            />
-          </label>
-
-          <label>
-            준비자격증
-            <input
-              value={preRegister.examType}
-              onChange={(event) =>
-                onPreRegisterChange("examType", event.target.value)
-              }
-              placeholder="예) 세무사"
-            />
-          </label>
-
-          <label>
-            준비한기간
-            <input
-              value={preRegister.prepDuration}
-              onChange={(event) =>
-                onPreRegisterChange("prepDuration", event.target.value)
-              }
-              placeholder="예) 6개월"
-            />
-          </label>
-
-          <label className="admin-pre-wide">
-            메모
-            <input
-              value={preRegister.notes}
-              onChange={(event) =>
-                onPreRegisterChange("notes", event.target.value)
-              }
-              placeholder="관리자 메모"
-            />
-          </label>
-        </div>
-
-        <button onClick={onPreRegisterSubmit} type="button">
-          사전등록 저장
-        </button>
-      </section>
-
-      <section className="admin-staff-register">
-        <div>
-          <strong>직원 등록</strong>
-          <p>직원은 캠 모니터와 문의 답변만 사용할 수 있습니다.</p>
-        </div>
-
-        <div className="admin-pre-grid">
-          <label>
-            이름
-            <input
-              value={staffForm.name}
-              onChange={(event) => onStaffChange("name", event.target.value)}
-              placeholder="직원 이름"
-            />
-          </label>
-          <label>
-            비밀번호 4자리
-            <input
-              inputMode="numeric"
-              maxLength={4}
-              value={staffForm.password}
-              onChange={(event) =>
-                onStaffChange("password", event.target.value)
-              }
-              placeholder="0000"
-            />
-          </label>
-          <label>
-            지점
-            <select
-              value={staffForm.branchId}
-              onChange={(event) =>
-                onStaffChange("branchId", event.target.value)
-              }
-            >
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            연락처
-            <input
-              value={staffForm.phone}
-              onChange={(event) => onStaffChange("phone", event.target.value)}
-              placeholder="선택"
-            />
-          </label>
-        </div>
-
-        <button onClick={onStaffSubmit} type="button">
-          직원 등록
-        </button>
-      </section>
 
       <div className="admin-member-list">
         {members.length === 0 && (
@@ -444,15 +246,6 @@ export default function Members(props: MembersProps) {
       </div>
 
       <AdminPager meta={pageMeta} onPageChange={onPageChange} />
-
-      <div className="admin-staff-list">
-        <strong>관리 계정</strong>
-        {staff.map((user) => (
-          <span key={user.id}>
-            {user.name} · {user.role} · {branchLabel(branches, user.branchId)}
-          </span>
-        ))}
-      </div>
     </section>
   );
 }

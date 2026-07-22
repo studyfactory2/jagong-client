@@ -111,7 +111,6 @@
     gap: 14px;
   }
 
-  .admin-pre-grid,
   .admin-member-fields {
     grid-template-columns: 1fr;
   }
@@ -385,10 +384,6 @@
     gap: 12px;
   }
 
-  .admin-pre-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .admin-member-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -443,7 +438,6 @@
     white-space: nowrap;
   }
 
-  .admin-pre-grid,
   .admin-member-list,
   .admin-member-fields {
     grid-template-columns: 1fr;

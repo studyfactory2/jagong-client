@@ -1546,18 +1546,6 @@
     padding: 10px;
   }
 
-  .admin-pre-register,
-  .admin-staff-register {
-    gap: 10px;
-    border-radius: 16px;
-    padding: 12px;
-  }
-
-  .admin-pre-register p,
-  .admin-staff-register p {
-    line-height: 1.35;
-  }
-
   .admin-member-list {
     grid-template-columns: 1fr;
     gap: 10px;

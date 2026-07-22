@@ -64,6 +64,7 @@ import {
   type AdminData,
   type AdminStats,
   type AdminTabKey,
+  type MemberRegistrationTarget,
 } from "./admin.types";
 import { todayDateInputValue } from "./admin.utils";
 import "./admin-dashboard.css";
@@ -175,6 +176,8 @@ export default function AdminDashboard() {
     branchId: "",
     phone: "",
   });
+  const [memberRegistrationTarget, setMemberRegistrationTarget] =
+    useState<MemberRegistrationTarget | null>(null);
 
   /** DERIVED **/
   const role = session?.user.role;
@@ -527,7 +530,8 @@ export default function AdminDashboard() {
       prepDuration: item.prepDuration ?? item.studyPeriod ?? "",
       notes: current.notes,
     }));
-    setTab("members");
+    setMemberRegistrationTarget("member");
+    setTab("profile");
   }
 
   async function completeConsultation(id: string) {
@@ -557,6 +561,10 @@ export default function AdminDashboard() {
   function updateStaffForm(field: keyof typeof staffForm, value: string) {
     setStaffForm((current) => ({ ...current, [field]: value }));
   }
+
+  const clearMemberRegistrationTarget = useCallback(() => {
+    setMemberRegistrationTarget(null);
+  }, []);
 
   async function saveStaff() {
     if (!isAdmin || !staffForm.name.trim() || staffForm.password.length !== 4)
@@ -784,6 +792,20 @@ export default function AdminDashboard() {
                 user={profileUser}
                 branches={branches}
                 onSave={saveMyProfile}
+                preRegister={isAdmin ? preRegister : undefined}
+                staffForm={isAdmin ? staffForm : undefined}
+                onPreRegisterChange={
+                  isAdmin ? updatePreRegister : undefined
+                }
+                onPreRegisterSubmit={isAdmin ? savePreRegister : undefined}
+                onStaffChange={isAdmin ? updateStaffForm : undefined}
+                onStaffSubmit={isAdmin ? saveStaff : undefined}
+                pendingRegistrationTarget={
+                  isAdmin ? memberRegistrationTarget : null
+                }
+                onRegistrationTargetHandled={
+                  isAdmin ? clearMemberRegistrationTarget : undefined
+                }
               />
             )}
 
@@ -831,12 +853,6 @@ export default function AdminDashboard() {
                 branches={branches}
                 searchText={search.users}
                 onSearchChange={(value) => changeSearch("users", value)}
-                preRegister={preRegister}
-                onPreRegisterChange={updatePreRegister}
-                onPreRegisterSubmit={savePreRegister}
-                staffForm={staffForm}
-                onStaffChange={updateStaffForm}
-                onStaffSubmit={saveStaff}
                 onUserUpdate={saveUserProfile}
                 pageMeta={pageMeta.users}
                 onPageChange={(page) => changePage("users", page)}

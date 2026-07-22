@@ -43,6 +43,8 @@ export type AdminPageMeta = Record<AdminPageKey, PageMeta>;
 
 export type AdminTabItem = { key: AdminTabKey; label: string };
 
+export type MemberRegistrationTarget = "member" | "staff";
+
 export type AdminStats = {
   activeMembers: number;
   totalMembers: number;

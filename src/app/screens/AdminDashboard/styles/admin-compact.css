@@ -334,40 +334,6 @@
   font-weight: 800;
 }
 
-.admin-pre-register {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--mint-soft);
-  padding: 12px;
-  margin-bottom: 12px;
-  display: grid;
-  gap: 10px;
-}
-
-.admin-pre-register strong {
-  font-size: 15px;
-}
-
-.admin-pre-register p {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.admin-pre-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.admin-pre-grid label {
-  display: grid;
-  gap: 5px;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .admin-receipt-actions span {
   color: var(--muted);
   font-size: 11px;
@@ -377,13 +343,6 @@
 .admin-branch-cell b {
   color: var(--ink);
   font-size: 12px;
-}
-
-.admin-pre-register > button {
-  width: fit-content;
-  min-width: 140px;
-  background: var(--ink);
-  color: #ffffff;
 }
 
 .admin-row.is-member {
@@ -604,10 +563,6 @@
 }
 
 @media (max-width: 900px) {
-  .admin-pre-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .admin-row.is-member,
   .admin-row.is-payment {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -615,7 +570,6 @@
 }
 
 @media (max-width: 520px) {
-  .admin-pre-grid,
   .admin-payment-date-grid,
   .admin-row.is-member,
   .admin-row.is-payment {
