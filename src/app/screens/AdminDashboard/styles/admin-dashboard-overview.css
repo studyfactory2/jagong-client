@@ -1,0 +1,201 @@
+/* Dashboard navigation actions. Kept separate from the payment and notice forms below. */
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 8px;
+  background: #fffefa;
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.04);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action:hover {
+  border-color: rgba(20, 63, 86, 0.3);
+  box-shadow: 0 12px 24px rgba(20, 63, 86, 0.09);
+  transform: translateY(-1px);
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action:focus-visible {
+  outline: 3px solid rgba(247, 132, 120, 0.3);
+  outline-offset: 2px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-icon svg {
+  font-size: 22px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action-copy
+  strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-stat {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  min-width: max-content;
+  color: var(--ink);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action-stat small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action-stat
+  strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-overview-quick-action > svg {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action.is-mint
+  .admin-overview-quick-action-icon {
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action.is-gold
+  .admin-overview-quick-action-icon {
+  background: var(--gold-soft);
+  color: #8a6a1f;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action.is-coral
+  .admin-overview-quick-action-icon {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-quick-action.is-navy
+  .admin-overview-quick-action-icon {
+  background: color-mix(in srgb, var(--ink) 9%, white);
+  color: var(--ink);
+}
+
+@media (max-width: 1199px) {
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 719px) {
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-actions {
+    gap: 8px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-action {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    min-height: 62px;
+    padding: 10px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-action-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-action-icon svg {
+    font-size: 20px;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-quick-action-copy
+    strong {
+    font-size: 13px;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-quick-action-copy
+    small,
+  .app-shell.admin-shell .admin-redesign .admin-overview-quick-action > svg {
+    display: none;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-quick-action-stat
+    small {
+    display: none;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-quick-action-stat
+    strong {
+    font-size: 18px;
+  }
+}

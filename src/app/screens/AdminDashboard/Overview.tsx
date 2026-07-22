@@ -67,37 +67,47 @@ const FREE_TRIAL_DAYS = [1, 3, 5, 7] as const;
 
 type StatTone = "mint" | "gold" | "coral" | "navy";
 
-const STAT_ITEMS: Array<{
+const QUICK_ACTIONS: Array<{
   key: keyof AdminStats;
   label: string;
+  countLabel: string;
+  description: string;
   icon: ReactNode;
   tone: StatTone;
   target: AdminTabKey;
 }> = [
   {
     key: "activeMembers",
-    label: "회원",
+    label: "회원 관리",
+    countLabel: "활성 회원",
+    description: "회원 정보와 이용권을 관리합니다.",
     icon: <GroupsOutlinedIcon />,
     tone: "mint",
     target: "members",
   },
   {
     key: "pendingConsultations",
-    label: "상담 대기",
+    label: "상담 관리",
+    countLabel: "상담 대기",
+    description: "신규 상담을 확인하고 등록합니다.",
     icon: <AssignmentTurnedInOutlinedIcon />,
     tone: "gold",
     target: "consultations",
   },
   {
     key: "paid",
-    label: "완료 결제",
+    label: "결제 관리",
+    countLabel: "완료 결제",
+    description: "결제 내역과 수동 결제를 관리합니다.",
     icon: <CreditCardOutlinedIcon />,
     tone: "coral",
     target: "payments",
   },
   {
     key: "unanswered",
-    label: "미답변 문의",
+    label: "1:1 문의",
+    countLabel: "미답변 문의",
+    description: "회원 문의에 답변합니다.",
     icon: <ChatBubbleOutlineOutlinedIcon />,
     tone: "navy",
     target: "chat",
@@ -310,20 +320,27 @@ export default function Overview(props: OverviewProps) {
 
   return (
     <section className="admin-dashboard-home admin-overview">
-      <div className="admin-overview-metrics">
-        {STAT_ITEMS.map((item) => (
+      <nav className="admin-overview-quick-actions" aria-label="주요 관리 메뉴">
+        {QUICK_ACTIONS.map((action) => (
           <button
             type="button"
-            className={`admin-overview-stat is-${item.tone}`}
-            key={item.key}
-            onClick={() => onNavigate(item.target)}
+            className={`admin-overview-quick-action is-${action.tone}`}
+            key={action.target}
+            onClick={() => onNavigate(action.target)}
           >
-            <span className="admin-overview-stat-icon">{item.icon}</span>
-            <span className="admin-overview-stat-label">{item.label}</span>
-            <strong>{stats[item.key]}</strong>
+            <span className="admin-overview-quick-action-icon">{action.icon}</span>
+            <span className="admin-overview-quick-action-copy">
+              <strong>{action.label}</strong>
+              <small>{action.description}</small>
+            </span>
+            <span className="admin-overview-quick-action-stat">
+              <small>{action.countLabel}</small>
+              <strong>{stats[action.key]}</strong>
+            </span>
+            <ChevronRightIcon aria-hidden="true" />
           </button>
         ))}
-      </div>
+      </nav>
 
       <div className="admin-overview-workspace">
         <section className="admin-card admin-overview-notice">
