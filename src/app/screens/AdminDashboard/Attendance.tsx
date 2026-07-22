@@ -200,13 +200,17 @@ function coverageAppliesToSlot(
     : slotIndex >= morningLength;
 }
 
-function calendarTag(item: MemberLeaveCalendarItem) {
+function calendarFallbackLabel(item: MemberLeaveCalendarItem) {
   if (item.source === "FIXED") return "고정";
   if (item.source === "SPECIAL") return "일정";
   if (item.type === "FULL") return "월차";
   if (item.type === "MORNING") return "오전";
   if (item.type === "AFTERNOON") return "오후";
   return "휴가";
+}
+
+function calendarReasonLabel(item: MemberLeaveCalendarItem) {
+  return item.reason?.trim() || calendarFallbackLabel(item);
 }
 
 export default function Attendance({ users, timetable }: AttendanceProps) {
@@ -600,8 +604,13 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
                       <b>{day}</b>
                       <div>
                         {items.slice(0, 2).map((item) => (
-                          <em className={`is-${item.source.toLowerCase()} is-${String(item.type ?? "other").toLowerCase()}`} key={`${item.source}-${item.id}`} title={item.reason ?? calendarTag(item)}>
-                            {calendarTag(item)}
+                          <em
+                            aria-label={calendarReasonLabel(item)}
+                            className={`is-${item.source.toLowerCase()} is-${String(item.type ?? "other").toLowerCase()}`}
+                            key={`${item.source}-${item.id}`}
+                            title={calendarReasonLabel(item)}
+                          >
+                            {calendarReasonLabel(item)}
                           </em>
                         ))}
                       </div>
@@ -786,7 +795,7 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
               <label className="attendance-form-field">종료일<input onChange={(event) => setFixedForm((current) => current ? { ...current, endDate: event.target.value } : current)} type="date" value={fixedForm.endDate} /></label>
             </div>
             <section className="attendance-form-section"><span>반복 요일</span><div className="attendance-weekday-grid">{WEEKDAYS.map((weekday) => <button className={fixedForm.dayOfWeek === weekday.key ? "is-active" : ""} key={weekday.key} onClick={() => setFixedForm((current) => current ? { ...current, dayOfWeek: weekday.key } : current)} type="button">{weekday.short}</button>)}</div></section>
-            <section className="attendance-form-section"><span>적용 교시</span><div className="attendance-option-grid">{workSlots.map((slot) => <button className={fixedForm.slots.includes(slot.slot) ? "is-active" : ""} key={slot.slot} onClick={() => toggleFixedSlot(slot.slot)} type="button">{slot.label}</button>)}</div></section>
+            <section className="attendance-form-section"><span>적용 교시</span><div className="attendance-period-picker">{workSlots.map((slot) => <button aria-label={slot.label} className={fixedForm.slots.includes(slot.slot) ? "is-active" : ""} key={slot.slot} onClick={() => toggleFixedSlot(slot.slot)} type="button">{compactSlotLabel(slot)}</button>)}</div></section>
             <label className="attendance-form-field">사유<input onChange={(event) => setFixedForm((current) => current ? { ...current, reason: event.target.value } : current)} placeholder="예: 학원 일정, 정기 근무" value={fixedForm.reason} /></label>
             <div className="attendance-modal-actions"><button onClick={() => setFixedForm(null)} type="button">닫기</button><button disabled={fixedSaving} onClick={() => void saveFixedLeave()} type="button">{fixedSaving ? "등록 중" : "고정 휴무 등록"}</button></div>
           </section>
