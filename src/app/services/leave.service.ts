@@ -11,16 +11,10 @@ import type {
 
 /** MEMBER LEAVE API **/
 
-export async function getLeaveCalendar(month: string): Promise<{
-  month: string;
-  leaves: LeaveRecord[];
-  specialLeaves: SpecialLeaveRecord[];
-}> {
-  const { data } = await http.get<{
-    month: string;
-    leaves: LeaveRecord[];
-    specialLeaves: SpecialLeaveRecord[];
-  }>("/leaves/calendar", { params: { month } });
+export async function getLeaveCalendar(month: string): Promise<MemberLeaveCalendar> {
+  const { data } = await http.get<MemberLeaveCalendar>("/leaves/calendar", {
+    params: { month },
+  });
   return data;
 }
 
