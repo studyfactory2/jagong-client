@@ -54,10 +54,12 @@ import Payments from "./Payments";
 import Profile from "./Profile";
 import type { AdminUser, Branch, TimetableSlot } from "../../../lib/types";
 import {
+  adminPrimaryTabs,
   adminTabs,
   emptyAdminData,
   emptyAdminPageMeta,
   emptyAdminStats,
+  staffPrimaryTabs,
   staffTabs,
   type AdminData,
   type AdminStats,
@@ -87,6 +89,13 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   chat: "회원과의 1:1 문의를 확인하고 답변합니다.",
   camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
 };
+
+const dashboardDestinationTabs: AdminTabKey[] = [
+  "members",
+  "consultations",
+  "payments",
+  "chat",
+];
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -172,12 +181,19 @@ export default function AdminDashboard() {
   const isAdmin = role === "ADMIN";
   const isStaff = role === "STAFF";
   const allowed = isAdmin || isStaff;
-  const visibleTabs = isAdmin ? adminTabs : staffTabs;
-  const activeTab: AdminTabKey = visibleTabs.some((item) => item.key === tab)
+  const workspaceTabs = isAdmin ? adminTabs : staffTabs;
+  const primaryTabs = isAdmin ? adminPrimaryTabs : staffPrimaryTabs;
+  const fallbackTab =
+    primaryTabs.find((item) => item.key === "camera")?.key ??
+    primaryTabs[0]?.key ??
+    "camera";
+  const activeTab: AdminTabKey = workspaceTabs.some((item) => item.key === tab)
     ? tab
-    : (visibleTabs[0]?.key ?? "camera");
+    : fallbackTab;
   const activeTabLabel =
-    visibleTabs.find((item) => item.key === activeTab)?.label ?? "관리";
+    workspaceTabs.find((item) => item.key === activeTab)?.label ?? "관리";
+  const showDashboardReturn =
+    isAdmin && dashboardDestinationTabs.includes(activeTab);
 
   /** DATA LOADERS **/
   const load = useCallback(async () => {
@@ -706,7 +722,7 @@ export default function AdminDashboard() {
             </div>
             <span className="admin-menu-label">메뉴</span>
             <nav className="admin-tabs" aria-label="관리자 메뉴">
-              {visibleTabs.map((item) => (
+              {primaryTabs.map((item) => (
                 <button
                   className={activeTab === item.key ? "is-active" : ""}
                   key={item.key}
@@ -721,16 +737,30 @@ export default function AdminDashboard() {
           </aside>
 
           <main className="admin-workspace">
-            <div className="admin-workspace-head">
+            <div
+              className={`admin-workspace-head${
+                showDashboardReturn ? " has-dashboard-return" : ""
+              }`}
+            >
               <div className="admin-breadcrumb">
                 <span>관리자 작업실</span>
                 <i aria-hidden="true">›</i>
                 <b>{activeTabLabel}</b>
               </div>
-              <div>
+              <div className="admin-workspace-heading">
                 <strong>{activeTabLabel}</strong>
                 <p>{adminPageDescriptions[activeTab]}</p>
               </div>
+              {showDashboardReturn && (
+                <button
+                  className="admin-dashboard-return"
+                  onClick={() => setTab("overview")}
+                  type="button"
+                >
+                  <DashboardOutlinedIcon />
+                  <span>대시보드로</span>
+                </button>
+              )}
             </div>
 
             {error && <p className="admin-error">{error}</p>}
@@ -791,6 +821,7 @@ export default function AdminDashboard() {
                 onSaveNotice={saveNotice}
                 onSaveManualPayment={saveManualPayment}
                 onSaveFreeTrial={saveFreeTrial}
+                onNavigate={setTab}
               />
             )}
 

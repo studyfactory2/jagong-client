@@ -1,17 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import CardGiftcardOutlinedIcon from "@mui/icons-material/CardGiftcardOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import type { AdminUser, NoticeRecord } from "../../../lib/types";
-import type { AdminStats } from "./admin.types";
+import type { AdminStats, AdminTabKey } from "./admin.types";
 import {
   addCalendarMonthsDateOnly,
   addDaysDateOnly,
@@ -56,6 +54,7 @@ type OverviewProps = {
   onSaveNotice: () => void;
   onSaveManualPayment: () => void;
   onSaveFreeTrial: () => void;
+  onNavigate: (tab: AdminTabKey) => void;
 };
 
 const MANUAL_PAYMENT_PLANS = [
@@ -73,42 +72,35 @@ const STAT_ITEMS: Array<{
   label: string;
   icon: ReactNode;
   tone: StatTone;
+  target: AdminTabKey;
 }> = [
   {
     key: "activeMembers",
-    label: "활성 회원",
+    label: "회원",
     icon: <GroupsOutlinedIcon />,
     tone: "mint",
+    target: "members",
   },
   {
     key: "pendingConsultations",
     label: "상담 대기",
     icon: <AssignmentTurnedInOutlinedIcon />,
     tone: "gold",
+    target: "consultations",
   },
   {
     key: "paid",
     label: "완료 결제",
     icon: <CreditCardOutlinedIcon />,
     tone: "coral",
-  },
-  {
-    key: "pendingLeaves",
-    label: "휴가 대기",
-    icon: <CalendarMonthOutlinedIcon />,
-    tone: "navy",
+    target: "payments",
   },
   {
     key: "unanswered",
     label: "미답변 문의",
     icon: <ChatBubbleOutlineOutlinedIcon />,
-    tone: "mint",
-  },
-  {
-    key: "working",
-    label: "캠 입장",
-    icon: <VideocamOutlinedIcon />,
-    tone: "gold",
+    tone: "navy",
+    target: "chat",
   },
 ];
 
@@ -148,6 +140,7 @@ export default function Overview(props: OverviewProps) {
     onSaveNotice,
     onSaveManualPayment,
     onSaveFreeTrial,
+    onNavigate,
   } = props;
 
   const [manualUserSearch, setManualUserSearch] = useState("");
@@ -319,14 +312,16 @@ export default function Overview(props: OverviewProps) {
     <section className="admin-dashboard-home admin-overview">
       <div className="admin-overview-metrics">
         {STAT_ITEMS.map((item) => (
-          <article
+          <button
+            type="button"
             className={`admin-overview-stat is-${item.tone}`}
             key={item.key}
+            onClick={() => onNavigate(item.target)}
           >
             <span className="admin-overview-stat-icon">{item.icon}</span>
             <span className="admin-overview-stat-label">{item.label}</span>
             <strong>{stats[item.key]}</strong>
-          </article>
+          </button>
         ))}
       </div>
 

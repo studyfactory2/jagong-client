@@ -7,7 +7,7 @@
 
 .admin-overview-metrics {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -23,7 +23,25 @@
   border: 1px solid rgba(20, 63, 86, 0.09);
   border-radius: 10px;
   background: rgba(255, 254, 250, 0.96);
+  appearance: none;
   box-shadow: 0 10px 24px rgba(20, 63, 86, 0.045);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-overview-stat:hover {
+  border-color: rgba(20, 63, 86, 0.28);
+  box-shadow: 0 12px 26px rgba(20, 63, 86, 0.09);
+  transform: translateY(-1px);
+}
+
+.admin-overview-stat:focus-visible {
+  outline: 3px solid rgba(247, 132, 120, 0.28);
+  outline-offset: 2px;
 }
 
 .admin-overview-stat-icon {
@@ -866,10 +884,6 @@
 }
 
 @media (max-width: 1480px) {
-  .admin-overview-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .admin-overview-workspace {
     grid-template-columns: minmax(300px, 0.64fr) minmax(590px, 1.36fr);
   }
@@ -900,6 +914,10 @@
 }
 
 @media (max-width: 980px) {
+  .admin-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-overview-access-layout {
     grid-template-columns: 1fr;
   }

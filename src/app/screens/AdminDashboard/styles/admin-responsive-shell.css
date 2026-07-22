@@ -1,0 +1,277 @@
+/* Shared admin shell rules. Keep layout ownership in one place below desktop. */
+@media (max-width: 1199px) {
+  .app-shell.admin-shell {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    background: #f4f7f6;
+    box-shadow: none;
+    display: block;
+    overflow: visible;
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: grid;
+    grid-column: auto;
+    grid-row: auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 64px;
+    padding: 10px clamp(14px, 3vw, 28px);
+    border-bottom: 1px solid rgba(20, 63, 86, 0.09);
+    background: rgba(255, 254, 250, 0.96);
+    box-shadow: 0 8px 20px rgba(20, 63, 86, 0.04);
+    backdrop-filter: blur(14px);
+  }
+
+  .app-shell.admin-shell .app-shell-center-spacer {
+    display: none;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap {
+    justify-self: start;
+    display: grid;
+    gap: 2px;
+    text-align: left;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: clamp(20px, 3vw, 25px);
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p {
+    display: block;
+    margin: 0;
+    font-size: 11px;
+  }
+
+  .app-shell.admin-shell .app-shell-actions {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button {
+    min-width: 42px;
+    min-height: 40px;
+    padding: 0 12px;
+  }
+
+  .app-shell.admin-shell .app-shell-body {
+    display: block;
+    grid-column: auto;
+    grid-row: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .app-shell.admin-shell .app-foot {
+    display: none;
+  }
+
+  .admin {
+    min-height: 0;
+  }
+
+  .admin-layout {
+    display: block;
+    min-height: 0;
+    background: #f4f7f6;
+  }
+
+  .admin-menu-shell {
+    position: sticky;
+    top: 64px;
+    z-index: 35;
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 10px clamp(14px, 3vw, 28px);
+    border: 0;
+    border-bottom: 1px solid rgba(20, 63, 86, 0.09);
+    border-radius: 0;
+    background: rgba(255, 254, 250, 0.96);
+    box-shadow: 0 8px 18px rgba(20, 63, 86, 0.035);
+    overflow: visible;
+  }
+
+  .admin-menu-head,
+  .admin-menu-label {
+    display: none;
+  }
+
+  .admin-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 0 0 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .admin-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-tabs button {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 13px;
+    white-space: nowrap;
+  }
+
+  .admin-workspace {
+    box-sizing: border-box;
+    width: min(100%, 1080px);
+    min-width: 0;
+    min-height: 0;
+    margin: 0 auto;
+    padding: 24px clamp(14px, 3vw, 28px) 46px;
+    background: #f4f7f6;
+  }
+
+  .admin-workspace-head {
+    margin: 0 0 16px;
+  }
+}
+
+@media (max-width: 719px) {
+  .app-shell.admin-shell .app-shell-head {
+    min-height: 60px;
+    padding-inline: 14px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: 20px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p,
+  .app-shell.admin-shell .app-shell-actions button span {
+    display: none;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button {
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0 9px;
+  }
+
+  .admin-menu-shell {
+    top: 60px;
+    padding: 8px 12px;
+  }
+
+  .admin-tabs {
+    gap: 7px;
+  }
+
+  .admin-tabs button {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 12px;
+  }
+
+  .admin-tabs button svg {
+    font-size: 16px;
+  }
+
+  .admin-workspace {
+    width: 100%;
+    padding: 18px 12px 36px;
+  }
+
+  .admin-workspace-head {
+    display: none;
+  }
+}
+
+.admin-dashboard-return {
+  appearance: none;
+  min-height: 40px;
+  border: 1px solid rgba(20, 63, 86, 0.16);
+  border-radius: 10px;
+  background: #fffefa;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.05);
+  transition: border-color 160ms ease, background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.admin-dashboard-return svg {
+  font-size: 18px;
+}
+
+.admin-dashboard-return:hover {
+  border-color: rgba(20, 63, 86, 0.34);
+  background: #f2f8f6;
+  transform: translateY(-1px);
+}
+
+.admin-dashboard-return:focus-visible {
+  outline: 3px solid rgba(247, 132, 120, 0.3);
+  outline-offset: 2px;
+}
+
+@media (min-width: 980px) {
+  .admin-workspace-head.has-dashboard-return {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "breadcrumb return"
+      "heading return";
+    align-items: end;
+    column-gap: 18px;
+    row-gap: 10px;
+  }
+
+  .admin-workspace-head.has-dashboard-return .admin-breadcrumb {
+    grid-area: breadcrumb;
+  }
+
+  .admin-workspace-heading {
+    grid-area: heading;
+    min-width: 0;
+  }
+
+  .admin-dashboard-return {
+    grid-area: return;
+    align-self: center;
+  }
+}
+
+@media (max-width: 979px) {
+  .admin-workspace-head.has-dashboard-return {
+    display: flex;
+    min-height: 40px;
+    margin: 0 0 4px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .admin-workspace-head.has-dashboard-return .admin-breadcrumb,
+  .admin-workspace-head.has-dashboard-return .admin-workspace-heading {
+    display: none;
+  }
+}

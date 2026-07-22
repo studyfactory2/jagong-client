@@ -1,12 +1,13 @@
 @import "./styles/admin-base.css";
 @import "./styles/admin-compact.css";
 @import "./styles/admin-members-camera.css";
-@import "./styles/admin-chat.css";
 @import "./styles/admin-profile-search.css";
 @import "./styles/admin-shell.css";
 @import "./styles/admin-members.css";
-@import "./styles/admin-consultations-payments.css";
 @import "./styles/admin-camera-chat-workspace.css";
 @import "./styles/admin-mobile.css";
 @import "./styles/admin-overview.css";
 @import "./styles/admin-attendance-workspace.css";
+@import "./styles/admin-consultations-payments.css";
+@import "./styles/admin-chat.css";
+@import "./styles/admin-responsive-shell.css";

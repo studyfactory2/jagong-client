@@ -41,6 +41,8 @@ export type AdminPageKey =
 
 export type AdminPageMeta = Record<AdminPageKey, PageMeta>;
 
+export type AdminTabItem = { key: AdminTabKey; label: string };
+
 export type AdminStats = {
   activeMembers: number;
   totalMembers: number;
@@ -88,7 +90,9 @@ export const emptyAdminData: AdminData = {
   notices: [],
 };
 
-export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
+// Workspace tabs define every page an administrator can open. Some are reached
+// from dashboard actions instead of the primary navigation.
+export const adminTabs: AdminTabItem[] = [
   { key: "profile", label: "내 정보" },
   { key: "overview", label: "대시보드" },
   { key: "members", label: "회원" },
@@ -99,9 +103,27 @@ export const adminTabs: Array<{ key: AdminTabKey; label: string }> = [
   { key: "camera", label: "캠" },
 ];
 
-export const staffTabs: Array<{ key: AdminTabKey; label: string }> = [
+export const staffTabs: AdminTabItem[] = [
   { key: "profile", label: "내 정보" },
   { key: "camera", label: "캠" },
   { key: "attendance", label: "출석" },
   { key: "chat", label: "문의" },
+];
+
+// Keep the day-to-day navigation intentionally small. Attendance and camera
+// stay first because they are the manager's most frequent workflows.
+export const adminPrimaryTabs: AdminTabItem[] = [
+  { key: "attendance", label: "출석" },
+  { key: "camera", label: "캠" },
+  { key: "overview", label: "대시보드" },
+  { key: "profile", label: "내 정보" },
+];
+
+// Staff does not have the administrator dashboard, so inquiry remains their
+// third primary workspace while preserving the same compact four-item shell.
+export const staffPrimaryTabs: AdminTabItem[] = [
+  { key: "attendance", label: "출석" },
+  { key: "camera", label: "캠" },
+  { key: "chat", label: "문의" },
+  { key: "profile", label: "내 정보" },
 ];

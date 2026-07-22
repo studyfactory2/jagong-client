@@ -19,6 +19,7 @@
   background: var(--attendance-panel);
   box-shadow: 0 14px 30px rgba(20, 63, 86, 0.06);
   padding: 12px;
+  align-self: start;
 }
 
 .attendance-workspace *,
@@ -935,7 +936,7 @@
 
   .attendance-directory,
   .attendance-member-detail {
-    width: min(100%, 800px);
+    width: min(100%, 940px);
     margin: 0 auto;
   }
 
