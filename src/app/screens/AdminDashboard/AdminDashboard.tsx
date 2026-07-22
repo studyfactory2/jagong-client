@@ -83,7 +83,7 @@ function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
 const adminPageDescriptions: Record<AdminTabKey, string> = {
   profile: "관리자 프로필 및 계정 설정",
   overview: "오늘의 운영 현황을 한눈에 확인합니다.",
-  members: "사전등록, 직원 등록, 회원 정보를 관리합니다.",
+  members: "회원 정보와 이용권 상태를 관리합니다.",
   consultations: "상담 예약, 결제 링크, 사전등록 준비를 처리합니다.",
   payments: "온라인 결제와 수동 결제 내역을 확인합니다.",
   attendance: "교시별 출석 상태를 확인하고 조정합니다.",
@@ -706,7 +706,7 @@ export default function AdminDashboard() {
       className="admin-shell"
       actions={actions}
     >
-      <div className="admin">
+      <div className="admin admin-redesign">
         <div className="admin-layout">
           <aside className="admin-menu-shell">
             <div className="admin-menu-head">
