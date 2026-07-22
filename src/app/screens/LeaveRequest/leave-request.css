@@ -61,6 +61,12 @@
   padding: 12px;
 }
 
+.lv-side-stack {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
 .lv-calendar,
 .lv-apply,
 .lv-regular,
@@ -491,35 +497,41 @@
   }
 
   .lv-body {
-    grid-template-columns: minmax(0, 1.08fr) minmax(300px, 0.92fr);
-    grid-template-areas:
-      "calendar apply"
-      "calendar regular"
-      "list list";
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.98fr);
+    grid-template-areas: "calendar side";
     align-items: start;
-    gap: 14px;
-    padding: 18px;
+    gap: 12px;
+    padding: 16px;
   }
 
   .lv-error { grid-column: 1 / -1; }
   .lv-calendar { grid-area: calendar; }
-  .lv-apply { grid-area: apply; }
-  .lv-regular { grid-area: regular; }
-  .lv-list { grid-area: list; }
+  .lv-side-stack { grid-area: side; }
 
   .lv-calendar,
   .lv-apply,
   .lv-regular,
-  .lv-list { padding: 16px; }
+  .lv-list { padding: 14px; }
 
-  .lv-days { gap: 4px; }
-  .lv-days button { font-size: 14px; }
+  .lv-section-title { margin-bottom: 10px; }
+  .lv-cal-head { margin-bottom: 8px; }
+  .lv-days {
+    grid-auto-rows: 42px;
+    gap: 4px;
+  }
+  .lv-days button,
+  .lv-day-spacer {
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+  .lv-days button { font-size: 13px; }
   .lv-days em { font-size: 9px; }
+  .lv-list-scroll { max-height: 250px; }
 }
 
 @media (min-width: 1100px) {
   .lv {
-    width: min(calc(100vw - 64px), 1160px);
+    width: min(calc(100vw - 64px), 1080px);
     margin-top: 28px;
   }
 
@@ -527,18 +539,21 @@
   .lv-head h1 { font-size: 25px; }
 
   .lv-body {
-    grid-template-columns: minmax(520px, 1.1fr) minmax(360px, 0.78fr);
-    gap: 16px;
-    padding: 22px;
+    grid-template-columns: minmax(500px, 1fr) minmax(390px, 0.9fr);
+    gap: 14px;
+    padding: 18px;
   }
 
   .lv-calendar,
   .lv-apply,
   .lv-regular,
-  .lv-list { padding: 18px; }
+  .lv-list { padding: 16px; }
 
-  .lv-days { gap: 5px; }
-  .lv-days button { font-size: 15px; }
+  .lv-days {
+    grid-auto-rows: 44px;
+    gap: 5px;
+  }
+  .lv-days button { font-size: 14px; }
   .lv-days em { font-size: 10px; }
-  .lv-list-scroll { max-height: 290px; }
+  .lv-list-scroll { max-height: 248px; }
 }

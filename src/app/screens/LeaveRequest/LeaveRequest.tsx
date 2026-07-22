@@ -381,91 +381,93 @@ export default function LeaveRequest() {
           </div>
         </section>
 
-        <section className="lv-apply" aria-label="휴가 신청">
-          <div className="lv-section-title">
-            <EventAvailableOutlinedIcon />
-            <div><span>휴가 신청</span><p>선택한 날짜 {formatDate(selectedDate)}</p></div>
-          </div>
-
-          {selectedItems.length > 0 ? (
-            <div className="lv-applied-list">
-              {selectedItems.map((item) => {
-                const canCancel = item.source === "LEAVE" && isFutureDate(selectedDate);
-                return (
-                  <div className="lv-applied-item" key={`${item.source}-${item.id}`}>
-                    <span className={itemClassName(item)}>{itemLabel(item)}</span>
-                    <div><strong>{item.source === "FIXED" ? "정기 휴무 적용됨" : "휴가 적용됨"}</strong><p>{itemDescription(item, timetable)}</p></div>
-                    {canCancel ? <button onClick={() => void cancel(item.id)} type="button">취소</button> : <em>{item.source === "FIXED" ? "관리자 설정" : "적용됨"}</em>}
-                  </div>
-                );
-              })}
-              {!selectedRequest && <small><InfoOutlinedIcon /> 정기 휴무는 관리자만 변경할 수 있습니다.</small>}
+        <aside className="lv-side-stack">
+          <section className="lv-apply" aria-label="휴가 신청">
+            <div className="lv-section-title">
+              <EventAvailableOutlinedIcon />
+              <div><span>휴가 신청</span><p>선택한 날짜 {formatDate(selectedDate)}</p></div>
             </div>
-          ) : (
-            <div className="lv-request-controls">
-              <div className="lv-type-choice" role="group" aria-label="휴가 유형">
-                {TYPE_VALUE.map((type) => (
-                  <button
-                    className={[
-                      "lv-type",
-                      `is-${type.key.toLowerCase()}`,
-                      leaveType === type.key ? "is-active" : "",
-                    ].join(" ")}
-                    key={type.key}
-                    onClick={() => setLeaveType(type.key)}
-                    type="button"
-                  >
-                    {type.label}
-                  </button>
+
+            {selectedItems.length > 0 ? (
+              <div className="lv-applied-list">
+                {selectedItems.map((item) => {
+                  const canCancel = item.source === "LEAVE" && isFutureDate(selectedDate);
+                  return (
+                    <div className="lv-applied-item" key={`${item.source}-${item.id}`}>
+                      <span className={itemClassName(item)}>{itemLabel(item)}</span>
+                      <div><strong>{item.source === "FIXED" ? "정기 휴무 적용됨" : "휴가 적용됨"}</strong><p>{itemDescription(item, timetable)}</p></div>
+                      {canCancel ? <button onClick={() => void cancel(item.id)} type="button">취소</button> : <em>{item.source === "FIXED" ? "관리자 설정" : "적용됨"}</em>}
+                    </div>
+                  );
+                })}
+                {!selectedRequest && <small><InfoOutlinedIcon /> 정기 휴무는 관리자만 변경할 수 있습니다.</small>}
+              </div>
+            ) : (
+              <div className="lv-request-controls">
+                <div className="lv-type-choice" role="group" aria-label="휴가 유형">
+                  {TYPE_VALUE.map((type) => (
+                    <button
+                      className={[
+                        "lv-type",
+                        `is-${type.key.toLowerCase()}`,
+                        leaveType === type.key ? "is-active" : "",
+                      ].join(" ")}
+                      key={type.key}
+                      onClick={() => setLeaveType(type.key)}
+                      type="button"
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+                <button className="lv-submit" disabled={saving || membershipLocked || !canRequestSelectedDate} onClick={() => void submit()} type="button">
+                  {saving ? "신청 중" : "휴가 신청"}
+                </button>
+                {!isFutureDate(selectedDate) && <small>휴가는 내일 이후 날짜부터 신청할 수 있습니다.</small>}
+              </div>
+            )}
+          </section>
+
+          <section className="lv-regular" aria-label="정기 휴무">
+            <div className="lv-section-title">
+              <EventRepeatOutlinedIcon />
+              <div><span>정기 휴무</span><p>관리자가 설정한 반복 일정입니다.</p></div>
+            </div>
+            {regularLeaveRules.length > 0 ? (
+              <div className="lv-regular-scroll">
+                {regularLeaveRules.map((rule) => (
+                  <article key={rule.id}>
+                    <span>{rule.weekday}</span>
+                    <strong>{rule.reason}</strong>
+                    <em>{formatSlots(rule.slots, timetable)}</em>
+                  </article>
                 ))}
               </div>
-              <button className="lv-submit" disabled={saving || membershipLocked || !canRequestSelectedDate} onClick={() => void submit()} type="button">
-                {saving ? "신청 중" : "휴가 신청"}
-              </button>
-              {!isFutureDate(selectedDate) && <small>휴가는 내일 이후 날짜부터 신청할 수 있습니다.</small>}
-            </div>
-          )}
-        </section>
+            ) : <p className="lv-regular-empty">등록된 정기 휴무가 없습니다.</p>}
+          </section>
 
-        <section className="lv-regular" aria-label="정기 휴무">
-          <div className="lv-section-title">
-            <EventRepeatOutlinedIcon />
-            <div><span>정기 휴무</span><p>관리자가 설정한 반복 일정입니다.</p></div>
-          </div>
-          {regularLeaveRules.length > 0 ? (
-            <div className="lv-regular-scroll">
-              {regularLeaveRules.map((rule) => (
-                <article key={rule.id}>
-                  <span>{rule.weekday}</span>
-                  <strong>{rule.reason}</strong>
-                  <em>{formatSlots(rule.slots, timetable)}</em>
-                </article>
-              ))}
+          <section className="lv-list" aria-label="이번 달 휴가 신청 내역">
+            <div className="lv-list-head">
+              <div><span>이번 달</span><strong>신청 내역</strong></div>
+              <em>{leaves.length}건</em>
             </div>
-          ) : <p className="lv-regular-empty">등록된 정기 휴무가 없습니다.</p>}
-        </section>
-
-        <section className="lv-list" aria-label="이번 달 휴가 신청 내역">
-          <div className="lv-list-head">
-            <div><span>이번 달</span><strong>신청 내역</strong></div>
-            <em>{leaves.length}건</em>
-          </div>
-          {leaves.length === 0 ? <p className="lv-empty">이번 달 신청한 휴가가 없습니다.</p> : (
-            <div className="lv-list-scroll">
-              {leaves.map((leave) => {
-                const canCancel = leave.status !== "CANCELLED" && isFutureDate(apiDateKey(String(leave.date)));
-                return (
-                  <div className="lv-list-row" key={leave.id}>
-                    <CalendarMonthOutlinedIcon />
-                    <div><strong>{formatDate(leave.date)}</strong><span>{leave.reason?.trim() || "직접 신청한 휴가"}</span></div>
-                    <em className={`lv-leave-badge is-${leave.leaveType.toLowerCase()}`}>{TYPE_LABEL[leave.leaveType] ?? leave.leaveType}</em>
-                    {canCancel ? <button onClick={() => void cancel(leave.id)} type="button">취소</button> : <small>{leave.status === "CANCELLED" ? "취소됨" : "적용됨"}</small>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+            {leaves.length === 0 ? <p className="lv-empty">이번 달 신청한 휴가가 없습니다.</p> : (
+              <div className="lv-list-scroll">
+                {leaves.map((leave) => {
+                  const canCancel = leave.status !== "CANCELLED" && isFutureDate(apiDateKey(String(leave.date)));
+                  return (
+                    <div className="lv-list-row" key={leave.id}>
+                      <CalendarMonthOutlinedIcon />
+                      <div><strong>{formatDate(leave.date)}</strong><span>{leave.reason?.trim() || "직접 신청한 휴가"}</span></div>
+                      <em className={`lv-leave-badge is-${leave.leaveType.toLowerCase()}`}>{TYPE_LABEL[leave.leaveType] ?? leave.leaveType}</em>
+                      {canCancel ? <button onClick={() => void cancel(leave.id)} type="button">취소</button> : <small>{leave.status === "CANCELLED" ? "취소됨" : "적용됨"}</small>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </aside>
       </main>
 
       <p className="app-foot">자격증공장 재택근무반</p>
