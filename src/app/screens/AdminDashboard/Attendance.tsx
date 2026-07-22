@@ -77,6 +77,13 @@ const STATUS_CELL_LABEL: Record<AttendanceStatusName, string> = {
   EXCUSED: "기",
 };
 
+const STATUS_TABLE_LABEL: Record<AttendanceStatusName, string> = {
+  PRESENT: "O",
+  LATE: "지각",
+  ABSENT: "X",
+  EXCUSED: "기타",
+};
+
 const STATUS_TITLE: Record<AttendanceStatusName, string> = {
   PRESENT: "출석",
   LATE: "지각",
@@ -720,8 +727,18 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
                       const userCoverage = coverageByUser.get(member.id);
                       const covered = userCoverage && coverageAppliesToSlot(userCoverage, slot.slot, workSlots) ? userCoverage : null;
                       const cellStatus = covered ? "is-leave" : statusClass(record?.status);
-                      const cellLabel = covered ? coverageLabel(covered) : record ? STATUS_CELL_LABEL[record.status as AttendanceStatusName] ?? "기" : "–";
-                      const cellTitle = covered ? `${member.name} · ${coverageReason(covered)} · 취소` : `${member.name} · ${slot.label} · ${record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
+                      const excusedLabel = record?.status === "EXCUSED" ? record.reasonType?.trim() || "기타" : "";
+                      const cellLabel = covered
+                        ? coverageReason(covered)
+                        : record?.status === "EXCUSED"
+                          ? excusedLabel
+                          : record
+                            ? STATUS_TABLE_LABEL[record.status as AttendanceStatusName] ?? "기타"
+                            : "–";
+                      const excusedDetail = [record?.reasonType, record?.reason].filter(Boolean).join(" · ");
+                      const cellTitle = covered
+                        ? `${member.name} · ${coverageReason(covered)} · 취소`
+                        : `${member.name} · ${slot.label} · ${record?.status === "EXCUSED" ? excusedDetail || "기타" : record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
                       const key = recordKey(member.id, slot.slot);
                       return (
                         <td key={slot.slot}>
@@ -766,8 +783,8 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
             <label className="attendance-form-field">날짜<input onChange={(event) => setReasonDialog((current) => current ? { ...current, date: event.target.value } : current)} type="date" value={reasonDialog.date} /></label>
             <section className="attendance-form-section">
               <span>교시</span>
-              <div className="attendance-option-grid">
-                {workSlots.map((slot) => <button className={reasonDialog.slots.includes(slot.slot) ? "is-active" : ""} key={slot.slot} onClick={() => toggleReasonSlot(slot.slot)} type="button">{slot.label}</button>)}
+              <div className="attendance-period-picker">
+                {workSlots.map((slot) => <button aria-label={slot.label} className={reasonDialog.slots.includes(slot.slot) ? "is-active" : ""} key={slot.slot} onClick={() => toggleReasonSlot(slot.slot)} type="button">{compactSlotLabel(slot)}</button>)}
               </div>
               <button className="attendance-select-all" onClick={() => setReasonDialog((current) => current ? { ...current, slots: workSlots.map((slot) => slot.slot) } : current)} type="button">전체 선택</button>
             </section>

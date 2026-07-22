@@ -226,7 +226,7 @@
 
 .attendance-table th,
 .attendance-table td {
-  height: 52px;
+  height: 48px;
   border-bottom: 1px solid #edf2f2;
   text-align: center;
 }
@@ -283,16 +283,17 @@
 }
 
 .attendance-table td {
-  min-width: 51px;
-  padding: 4px;
+  min-width: 50px;
+  padding: 3px;
 }
 
 .attendance-cell {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 9px;
   background: #f4f8f8;
   color: #a5b2b8;
+  padding: 0;
   font-size: 15px;
   font-weight: 900;
 }
@@ -316,6 +317,18 @@
 .attendance-cell.is-leave {
   background: var(--attendance-blue);
   color: #3275a3;
+}
+
+.attendance-cell.is-late,
+.attendance-cell.is-excused,
+.attendance-cell.is-leave {
+  width: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  padding: 0 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
 }
 
 .attendance-cell.is-fixed {
@@ -853,8 +866,14 @@
   }
 
   .attendance-cell {
-    width: 44px;
-    height: 42px;
+    width: 40px;
+    height: 38px;
+  }
+
+  .attendance-cell.is-late,
+  .attendance-cell.is-excused,
+  .attendance-cell.is-leave {
+    width: 46px;
   }
 
   .attendance-modal-backdrop {
@@ -885,7 +904,7 @@
 
   .attendance-table th,
   .attendance-table td {
-    height: 58px;
+    height: 54px;
   }
 
   .attendance-table thead th:first-child,
@@ -898,8 +917,15 @@
   }
 
   .attendance-cell {
-    width: 48px;
-    height: 44px;
+    width: 44px;
+    height: 40px;
+  }
+
+  .attendance-cell.is-late,
+  .attendance-cell.is-excused,
+  .attendance-cell.is-leave {
+    width: 52px;
+    font-size: 11px;
   }
 
   .attendance-action-dock {
