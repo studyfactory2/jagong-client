@@ -740,10 +740,6 @@
   font-weight: 700;
 }
 
-.bk .app-foot {
-  display: none;
-}
-
 @keyframes bk-fade-up {
   from {
     opacity: 0;

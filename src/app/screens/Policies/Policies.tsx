@@ -8,6 +8,7 @@ import {
   getCurrentPolicy,
   getPolicyDocument,
 } from "../../services/policy.service";
+import BusinessFooter from "../../components/ui/BusinessFooter";
 import type {
   CurrentPolicy,
   PolicyDocument,
@@ -235,10 +236,7 @@ export default function Policies() {
           </section>
         ))}
 
-      <footer className="policy-foot">
-        <strong>수험생연구소</strong>
-        <span>자격증공장 재택근무반 서비스 정책</span>
-      </footer>
+      <BusinessFooter />
     </main>
   );
 }

@@ -20,6 +20,7 @@ import {
   getConsultationAvailability,
 } from "../../services/consultation.service";
 import { getCurrentPolicyVersion } from "../../services/policy.service";
+import BusinessFooter from "../../components/ui/BusinessFooter";
 import "./booking.css";
 
 const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_ZRvnX/chat";
@@ -563,7 +564,7 @@ export default function ConsultationBooking() {
         </div>
       )}
 
-      <p className="app-foot">자격증공장 재택근무반</p>
+      <BusinessFooter />
     </div>
   );
 }

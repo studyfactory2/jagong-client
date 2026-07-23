@@ -12,6 +12,7 @@ import { getBranches } from "../../services/branch.service";
 import { register as registerApi } from "../../services/auth.service";
 import { useAuth } from "../../context/AuthContext";
 import { memberHomePath } from "../../utils/access";
+import BusinessFooter from "../../components/ui/BusinessFooter";
 import type { Branch } from "../../../lib/types";
 import "./register.css";
 
@@ -262,7 +263,7 @@ export default function Register() {
         </div>
       )}
 
-      <p className="app-foot">자격증공장 재택근무반</p>
+      <BusinessFooter />
     </div>
   );
 }

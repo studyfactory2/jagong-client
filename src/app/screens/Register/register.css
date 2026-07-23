@@ -435,10 +435,6 @@
   cursor: pointer;
 }
 
-.reg .app-foot {
-  display: none;
-}
-
 @keyframes reg-fade-up {
   from {
     opacity: 0;

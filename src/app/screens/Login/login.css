@@ -451,10 +451,6 @@
   outline-offset: 3px;
 }
 
-.login .app-foot {
-  display: none;
-}
-
 @keyframes login-fade-up {
   from {
     opacity: 0;

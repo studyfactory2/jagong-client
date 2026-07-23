@@ -11,6 +11,7 @@ import { getBranches } from "../../services/branch.service";
 import { getMe, login as loginApi } from "../../services/auth.service";
 import { useAuth } from "../../context/AuthContext";
 import { memberHomePath } from "../../utils/access";
+import BusinessFooter from "../../components/ui/BusinessFooter";
 import type { Branch } from "../../../lib/types";
 import "./login.css";
 
@@ -282,7 +283,7 @@ export default function Login() {
         </div>
       </section>
 
-      <p className="app-foot">자격증공장 재택근무반</p>
+      <BusinessFooter />
     </main>
   );
 }

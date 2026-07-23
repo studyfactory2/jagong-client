@@ -7,6 +7,7 @@ import {
   confirmPublicPayment,
   getPublicCheckout,
 } from "../../services/membership.service";
+import BusinessFooter from "../../components/ui/BusinessFooter";
 import { PORTONE_CHANNEL_KEY, PORTONE_STORE_ID } from "../../../lib/config";
 import type { ConsultationCheckoutRecord } from "../../../lib/types";
 import "./consultation-checkout.css";
@@ -261,6 +262,8 @@ export default function ConsultationCheckout() {
           </>
         )}
       </section>
+
+      <BusinessFooter />
     </main>
   );
 }
