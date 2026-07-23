@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import { useSocket } from "../../context/SocketContext";
 import {
@@ -104,6 +107,8 @@ export default function Chat(props: ChatProps) {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [mobileView, setMobileView] = useState<"list" | "thread">("list");
+  const [memberInfoOpen, setMemberInfoOpen] = useState(false);
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const activeRoomRef = useRef<ChatRoom | null>(null);
   const onRoomReadRef = useRef(onRoomRead);
@@ -120,7 +125,9 @@ export default function Chat(props: ChatProps) {
   }, [onRefresh]);
 
   function clearImages() {
-    selectedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+    selectedImagesRef.current.forEach((image) =>
+      URL.revokeObjectURL(image.url),
+    );
     selectedImagesRef.current = [];
     setSelectedImages([]);
   }
@@ -138,6 +145,10 @@ export default function Chat(props: ChatProps) {
     [rooms, selectedUserId],
   );
   const messages = activeRoom?.messages ?? [];
+  const unreadTotal = useMemo(
+    () => rooms.reduce((total, room) => total + (room.unreadCount ?? 0), 0),
+    [rooms],
+  );
   const selectedMember = useMemo(() => {
     const roomUser = selectedSummary?.user;
     return (
@@ -160,6 +171,15 @@ export default function Chat(props: ChatProps) {
   useEffect(() => {
     activeRoomRef.current = activeRoom;
   }, [activeRoom]);
+
+  useEffect(() => {
+    if (!memberInfoOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMemberInfoOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [memberInfoOpen]);
 
   /** HANDLERS **/
   const loadRoom = useCallback(async (userId: string) => {
@@ -206,7 +226,8 @@ export default function Chat(props: ChatProps) {
       const currentRoom = activeRoomRef.current;
       const currentUserId = selectedUserIdRef.current;
       const incoming = payload.message;
-      const eventRoomId = incoming?.roomId ?? payload.roomId ?? payload.room?.id;
+      const eventRoomId =
+        incoming?.roomId ?? payload.roomId ?? payload.room?.id;
       const eventUserId = payload.userId ?? payload.room?.userId;
 
       if (incoming && currentRoom?.id === incoming.roomId) {
@@ -285,8 +306,11 @@ export default function Chat(props: ChatProps) {
   }
 
   function selectRoom(userId: string) {
+    if (userId !== selectedUserId) setActiveRoom(null);
     setPreferredUserId(userId);
     setDraft("");
+    setMobileView("thread");
+    setMemberInfoOpen(false);
     clearImages();
   }
 
@@ -324,224 +348,338 @@ export default function Chat(props: ChatProps) {
 
   /** RENDER **/
   return (
-    <section className="admin-card admin-chat-card">
-      <div className="admin-section-head">
+    <section
+      className={`admin-card admin-inquiry-page${mobileView === "thread" ? " is-mobile-thread" : ""}`}
+    >
+      <header className="admin-inquiry-head">
         <h2>
-          <ChatBubbleOutlineOutlinedIcon /> 1:1 문의
+          <ChatBubbleOutlineOutlinedIcon />
+          1:1 문의
         </h2>
-        <span>{pageMeta.total}개 대화방</span>
-      </div>
-
-      <label className="admin-search">
-        <span>문의 검색</span>
-        <input
-          value={searchText}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="회원명 또는 연락처 검색"
-        />
-      </label>
-
-      {error && <p className="admin-error">{error}</p>}
-
-      {!rooms.length ? (
-        <div className="admin-chat-empty">
-          <strong>아직 열린 문의방이 없습니다.</strong>
-          <span>회원이 게시판에서 메시지를 보내면 이곳에 표시됩니다.</span>
+        <div className="admin-inquiry-head-actions">
+          {!!unreadTotal && (
+            <span className="admin-inquiry-unread-total">
+              미확인 {unreadTotal}
+            </span>
+          )}
+          <span className="admin-inquiry-room-total">
+            {pageMeta.total}개 대화
+          </span>
         </div>
-      ) : (
-        <div className="admin-chat-layout">
-          <aside className="admin-chat-rooms" aria-label="회원 문의방 목록">
-            {rooms.map((room) => (
-              <button
-                className={room.userId === selectedUserId ? "is-active" : ""}
-                key={room.id}
-                onClick={() => selectRoom(room.userId)}
-                type="button"
-              >
-                <span
-                  className={`admin-chat-avatar is-${avatarTone(room.user?.name)}`}
-                >
-                  {initial(room.user?.name)}
-                </span>
-                <span className="admin-chat-room-body">
-                  <strong>{room.user?.name ?? "회원"}</strong>
-                  <span>{latestText(room)}</span>
-                  <em>{roomTime(room)}</em>
-                </span>
-                {!!room.unreadCount && <b>{room.unreadCount}</b>}
-              </button>
-            ))}
-          </aside>
+      </header>
 
-          <div className="admin-chat-thread">
-            <div className="admin-chat-thread-head">
-              <div>
-                <strong>{selectedSummary?.user?.name ?? "회원"}</strong>
-                <span>{selectedSummary?.user?.phone ?? "연락처 없음"}</span>
-              </div>
-              <em>
-                {loadingRoom ? "불러오는 중" : `${messages.length}개 메시지`}
-              </em>
+      {error && <p className="admin-inquiry-error">{error}</p>}
+
+      <div className={`admin-inquiry-layout${rooms.length ? "" : " is-empty"}`}>
+        <aside
+          aria-label="회원 문의방 목록"
+          className="admin-inquiry-directory"
+        >
+          <label className="admin-inquiry-search">
+            <span>문의 검색</span>
+            <div>
+              <SearchOutlinedIcon />
+              <input
+                value={searchText}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="회원명 또는 연락처 검색"
+              />
             </div>
+          </label>
 
-            <div className="admin-chat-messages" ref={messagesRef}>
-              {messages.map((message) => {
-                const fromManager = isManagerMessage(message);
-                return (
-                  <div
-                    className={fromManager ? "is-manager" : ""}
-                    key={message.id}
+          <nav className="admin-inquiry-room-list">
+            {rooms.map((room) => {
+              const selected = room.userId === selectedUserId;
+              return (
+                <button
+                  aria-pressed={selected}
+                  className={selected ? "is-active" : ""}
+                  key={room.id}
+                  onClick={() => selectRoom(room.userId)}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`admin-inquiry-avatar is-${avatarTone(room.user?.name)}`}
                   >
-                    <span
-                      className={`admin-chat-avatar is-message is-${avatarTone(message.sender?.name)}`}
+                    {initial(room.user?.name)}
+                  </span>
+                  <span className="admin-inquiry-room-copy">
+                    <strong>{room.user?.name ?? "회원"}</strong>
+                    <span>{latestText(room)}</span>
+                  </span>
+                  <time>{roomTime(room)}</time>
+                  {!!room.unreadCount && <b>{room.unreadCount}</b>}
+                </button>
+              );
+            })}
+
+            {!rooms.length && (
+              <span className="admin-inquiry-directory-empty">
+                {searchText ? "검색 결과가 없습니다." : "문의방이 없습니다."}
+              </span>
+            )}
+          </nav>
+
+          <AdminPager meta={pageMeta} onPageChange={onPageChange} />
+        </aside>
+
+        {rooms.length ? (
+          <>
+            <article className="admin-inquiry-thread">
+              <header className="admin-inquiry-thread-head">
+                <button
+                  aria-label="문의 목록으로 돌아가기"
+                  className="admin-inquiry-thread-back"
+                  onClick={() => {
+                    setMemberInfoOpen(false);
+                    setMobileView("list");
+                  }}
+                  type="button"
+                >
+                  <ArrowBackOutlinedIcon />
+                </button>
+                <div className="admin-inquiry-thread-person">
+                  <span
+                    aria-hidden="true"
+                    className={`admin-inquiry-avatar is-thread is-${avatarTone(selectedSummary?.user?.name)}`}
+                  >
+                    {initial(selectedSummary?.user?.name)}
+                  </span>
+                  <span>
+                    <strong>{selectedSummary?.user?.name ?? "회원"}</strong>
+                    <small>
+                      {selectedSummary?.user?.phone ?? "연락처 없음"}
+                    </small>
+                  </span>
+                </div>
+                <div className="admin-inquiry-thread-actions">
+                  <em>
+                    {loadingRoom
+                      ? "불러오는 중"
+                      : `${messages.length}개 메시지`}
+                  </em>
+                  <button
+                    aria-expanded={memberInfoOpen}
+                    className="admin-inquiry-info-toggle"
+                    onClick={() => setMemberInfoOpen(true)}
+                    type="button"
+                  >
+                    <InfoOutlinedIcon />
+                    <span>회원정보</span>
+                  </button>
+                </div>
+              </header>
+
+              <div className="admin-inquiry-messages" ref={messagesRef}>
+                {messages.map((message) => {
+                  const fromManager = isManagerMessage(message);
+                  return (
+                    <div
+                      className={`admin-inquiry-message ${fromManager ? "is-manager" : "is-member"}`}
+                      key={message.id}
                     >
-                      {initial(message.sender?.name)}
-                    </span>
-                    <div className="admin-chat-message-body">
-                      <span>{message.sender?.name ?? "회원"}</span>
-                      {message.content && <p>{message.content}</p>}
-                      {!!message.attachments?.length && (
-                        <div className="admin-chat-attachments">
-                          {message.attachments.map((attachment) =>
-                            attachment.signedUrl ? (
-                              <a
-                                href={attachment.signedUrl}
-                                key={attachment.id}
-                                rel="noreferrer"
-                                target="_blank"
-                              >
-                                <img
-                                  alt={
-                                    attachment.fileName ?? "문의 첨부 이미지"
-                                  }
-                                  src={attachment.signedUrl}
-                                />
-                              </a>
-                            ) : null,
+                      <span
+                        aria-hidden="true"
+                        className={`admin-inquiry-avatar is-message is-${avatarTone(message.sender?.name)}`}
+                      >
+                        {initial(message.sender?.name)}
+                      </span>
+                      <div className="admin-inquiry-message-body">
+                        <span>{message.sender?.name ?? "회원"}</span>
+                        <div className="admin-inquiry-bubble">
+                          {message.content && <p>{message.content}</p>}
+                          {!!message.attachments?.length && (
+                            <div className="admin-inquiry-attachments">
+                              {message.attachments.map((attachment) =>
+                                attachment.signedUrl ? (
+                                  <a
+                                    href={attachment.signedUrl}
+                                    key={attachment.id}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                  >
+                                    <img
+                                      alt={
+                                        attachment.fileName ??
+                                        "문의 첨부 이미지"
+                                      }
+                                      src={attachment.signedUrl}
+                                    />
+                                  </a>
+                                ) : null,
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                      <time>
-                        {dateText(message.createdAt)}
-                        {fromManager && (
-                          <i
-                            className={
-                              message.isRead
-                                ? "admin-chat-read is-read"
-                                : "admin-chat-read"
-                            }
-                          >
-                            {message.isRead ? " · 읽음" : " · 전송됨"}
-                          </i>
-                        )}
-                      </time>
+                        <time>
+                          {dateText(message.createdAt)}
+                          {fromManager && (
+                            <i
+                              className={`admin-inquiry-read${message.isRead ? " is-read" : ""}`}
+                            >
+                              {message.isRead ? " · 읽음" : " · 전송됨"}
+                            </i>
+                          )}
+                        </time>
+                      </div>
                     </div>
+                  );
+                })}
+
+                {!messages.length && (
+                  <div className="admin-inquiry-message-empty">
+                    선택한 회원과의 대화가 아직 없습니다.
                   </div>
-                );
-              })}
-
-              {!messages.length && (
-                <div className="admin-chat-placeholder">
-                  선택한 회원과의 대화가 아직 없습니다.
-                </div>
-              )}
-            </div>
-
-            <div className="admin-chat-compose">
-              {!!selectedImages.length && (
-                <div
-                  className="admin-chat-image-preview"
-                  aria-label="첨부 이미지 미리보기"
-                >
-                  {selectedImages.map((image, index) => (
-                    <div key={`${image.file.name}-${index}`}>
-                      <img src={image.url} alt={image.file.name} />
-                      <button onClick={() => removeImage(index)} type="button">
-                        <CloseOutlinedIcon />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <label className="admin-chat-attach">
-                <ImageOutlinedIcon />
-                <input
-                  accept="image/png,image/jpeg,image/webp"
-                  multiple
-                  onChange={(event) => {
-                    addImages(event.target.files);
-                    event.target.value = "";
-                  }}
-                  type="file"
-                />
-              </label>
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-                    sendReply();
-                  }
-                }}
-                placeholder="회원에게 보낼 메시지"
-              />
-              <button
-                disabled={sending || (!draft.trim() && !selectedImages.length)}
-                onClick={sendReply}
-                type="button"
-              >
-                <SendOutlinedIcon />
-                전송
-              </button>
-            </div>
-          </div>
-
-          <aside className="admin-chat-context" aria-label="선택 회원 정보">
-            <section>
-              <div className="admin-chat-context-head">
-                <span
-                  className={`admin-chat-avatar is-context is-${avatarTone(selectedMember?.name)}`}
-                >
-                  {initial(selectedMember?.name)}
-                </span>
-                <div>
-                  <span>회원 정보</span>
-                  <strong>{selectedMember?.name ?? "회원"}</strong>
-                  <em>{selectedMember?.phone ?? "연락처 없음"}</em>
-                </div>
+                )}
               </div>
-              <dl>
-                <div>
-                  <dt>자격증</dt>
-                  <dd>{userDetail(selectedMember?.examType)}</dd>
-                </div>
-                <div>
-                  <dt>지역</dt>
-                  <dd>{userDetail(selectedMember?.residenceArea)}</dd>
-                </div>
-                <div>
-                  <dt>이용권</dt>
-                  <dd>{membershipEndText(selectedMember?.membershipEnd)}</dd>
-                </div>
-                <div>
-                  <dt>미확인</dt>
-                  <dd>{selectedSummary?.unreadCount ?? 0}개</dd>
-                </div>
-              </dl>
-            </section>
+
+              <div className="admin-inquiry-compose">
+                {!!selectedImages.length && (
+                  <div
+                    aria-label="첨부 이미지 미리보기"
+                    className="admin-inquiry-image-preview"
+                  >
+                    {selectedImages.map((image, index) => (
+                      <div key={`${image.file.name}-${index}`}>
+                        <img src={image.url} alt={image.file.name} />
+                        <button
+                          aria-label={`${image.file.name} 첨부 취소`}
+                          onClick={() => removeImage(index)}
+                          type="button"
+                        >
+                          <CloseOutlinedIcon />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="admin-inquiry-attach">
+                  <ImageOutlinedIcon />
+                  <span>이미지 첨부</span>
+                  <input
+                    accept="image/png,image/jpeg,image/webp"
+                    multiple
+                    onChange={(event) => {
+                      addImages(event.target.files);
+                      event.target.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+                <input
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" &&
+                      !event.nativeEvent.isComposing
+                    ) {
+                      sendReply();
+                    }
+                  }}
+                  placeholder="회원에게 보낼 메시지"
+                />
+                <button
+                  disabled={
+                    sending || (!draft.trim() && !selectedImages.length)
+                  }
+                  onClick={sendReply}
+                  type="button"
+                >
+                  <SendOutlinedIcon />
+                  <span>{sending ? "전송 중" : "전송"}</span>
+                </button>
+              </div>
+            </article>
 
             <button
-              className="admin-chat-context-refresh"
-              onClick={onRefresh}
+              aria-label="회원정보 닫기"
+              className={`admin-inquiry-context-backdrop${memberInfoOpen ? " is-open" : ""}`}
+              onClick={() => setMemberInfoOpen(false)}
               type="button"
+            />
+
+            <aside
+              aria-label="선택 회원 정보"
+              className={`admin-inquiry-context${memberInfoOpen ? " is-open" : ""}`}
             >
+              <section>
+                <div className="admin-inquiry-context-head">
+                  <span
+                    aria-hidden="true"
+                    className={`admin-inquiry-avatar is-context is-${avatarTone(selectedMember?.name)}`}
+                  >
+                    {initial(selectedMember?.name)}
+                  </span>
+                  <div>
+                    <small>회원 정보</small>
+                    <strong>{selectedMember?.name ?? "회원"}</strong>
+                    <em>{selectedMember?.phone ?? "연락처 없음"}</em>
+                  </div>
+                  <button
+                    aria-label="회원정보 닫기"
+                    className="admin-inquiry-context-close"
+                    onClick={() => setMemberInfoOpen(false)}
+                    type="button"
+                  >
+                    <CloseOutlinedIcon />
+                  </button>
+                </div>
+                <dl>
+                  <div>
+                    <dt>자격증</dt>
+                    <dd>{userDetail(selectedMember?.examType)}</dd>
+                  </div>
+                  <div>
+                    <dt>지역</dt>
+                    <dd>{userDetail(selectedMember?.residenceArea)}</dd>
+                  </div>
+                  <div>
+                    <dt>만료일</dt>
+                    <dd>{membershipEndText(selectedMember?.membershipEnd)}</dd>
+                  </div>
+                  <div>
+                    <dt>미확인</dt>
+                    <dd>{selectedSummary?.unreadCount ?? 0}개</dd>
+                  </div>
+                  <div>
+                    <dt>상태</dt>
+                    <dd>
+                      {selectedMember?.isActive === false ? "비활성" : "활성"}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              <button
+                className="admin-inquiry-refresh"
+                onClick={onRefresh}
+                type="button"
+              >
+                문의 목록 새로고침
+              </button>
+            </aside>
+          </>
+        ) : (
+          <div className="admin-inquiry-empty">
+            <ChatBubbleOutlineOutlinedIcon />
+            <strong>
+              {searchText
+                ? "조건에 맞는 문의방이 없습니다."
+                : "아직 열린 문의방이 없습니다."}
+            </strong>
+            <span>
+              {searchText
+                ? "검색어를 바꾸거나 초기화해 주세요."
+                : "회원이 메시지를 보내면 이곳에 표시됩니다."}
+            </span>
+            <button onClick={onRefresh} type="button">
               문의 목록 새로고침
             </button>
-          </aside>
-        </div>
-      )}
-
-      <AdminPager meta={pageMeta} onPageChange={onPageChange} />
+          </div>
+        )}
+      </div>
     </section>
   );
 }
