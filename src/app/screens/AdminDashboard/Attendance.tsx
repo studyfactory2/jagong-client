@@ -5,6 +5,7 @@ import ChevronRightOutlinedIcon from "@mui/icons-material/ChevronRightOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import EventRepeatOutlinedIcon from "@mui/icons-material/EventRepeatOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import { useSocket } from "../../context/SocketContext";
 import {
@@ -34,6 +35,8 @@ import type {
 type AttendanceProps = {
   users: AdminUser[];
   timetable: TimetableSlot[];
+  initialMemberId?: string;
+  onViewPayments?: (userId: string, userName: string) => void;
 };
 
 type WorkspaceView = "attendance" | "member-list" | "member-detail";
@@ -220,7 +223,12 @@ function calendarReasonLabel(item: MemberLeaveCalendarItem) {
   return item.reason?.trim() || calendarFallbackLabel(item);
 }
 
-export default function Attendance({ users, timetable }: AttendanceProps) {
+export default function Attendance({
+  users,
+  timetable,
+  initialMemberId = "",
+  onViewPayments,
+}: AttendanceProps) {
   const { socket } = useSocket();
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -229,9 +237,11 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
   const [paintStatus, setPaintStatus] = useState<AttendanceStatusName>("PRESENT");
   const [selected, setSelected] = useState<{ userId: string; slot: number } | null>(null);
   const [savingKey, setSavingKey] = useState("");
-  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("attendance");
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>(
+    initialMemberId ? "member-detail" : "attendance",
+  );
   const [memberPanel, setMemberPanel] = useState<MemberPanel>("calendar");
-  const [activeMemberId, setActiveMemberId] = useState("");
+  const [activeMemberId, setActiveMemberId] = useState(initialMemberId);
   const [memberCalendarMonth, setMemberCalendarMonth] = useState(todayKey().slice(0, 7));
   const [memberCalendarItems, setMemberCalendarItems] = useState<MemberLeaveCalendarItem[]>([]);
   const [fixedRules, setFixedRules] = useState<FixedLeaveRecord[]>([]);
@@ -530,15 +540,6 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
   function renderMemberDirectory() {
     return (
       <section className="attendance-directory">
-        <header className="attendance-subhead">
-          <button aria-label="출석표로 돌아가기" className="attendance-icon-button" onClick={() => setWorkspaceView("attendance")} type="button">
-            <ChevronLeftOutlinedIcon />
-          </button>
-          <div>
-            <span>휴가 및 고정 휴무</span>
-            <p>회원을 선택해 휴가 현황과 반복 휴무를 관리합니다.</p>
-          </div>
-        </header>
         <label className="attendance-search-field">
           <SearchOutlinedIcon />
           <input onChange={(event) => setSearch(event.target.value)} placeholder="이름 검색" value={search} />
@@ -546,7 +547,12 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
         <div className="attendance-member-list">
           {members.map((member) => (
             <button key={member.id} onClick={() => openMemberDetail(member.id)} type="button">
-              <strong>{member.name}</strong>
+              <span aria-hidden="true" className="attendance-member-avatar">
+                {member.name.trim().charAt(0) || "회"}
+              </span>
+              <span className="attendance-member-copy">
+                <strong>{member.name}</strong>
+              </span>
               <ChevronRightOutlinedIcon />
             </button>
           ))}
@@ -567,16 +573,6 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
 
     return (
       <section className="attendance-member-detail">
-        <header className="attendance-subhead">
-          <button aria-label="회원 목록으로 돌아가기" className="attendance-icon-button" onClick={() => setWorkspaceView("member-list")} type="button">
-            <ChevronLeftOutlinedIcon />
-          </button>
-          <div>
-            <span>{activeMember.name}</span>
-            <p>휴가 및 고정 휴무 현황</p>
-          </div>
-        </header>
-
         <div className="attendance-member-tabs" role="tablist">
           <button aria-selected={memberPanel === "calendar"} className={memberPanel === "calendar" ? "is-active" : ""} onClick={() => setMemberPanel("calendar")} role="tab" type="button">
             휴가 현황
@@ -673,11 +669,63 @@ export default function Attendance({ users, timetable }: AttendanceProps) {
   return (
     <section className="admin-card attendance-workspace">
       <header className="attendance-workspace-head">
-        <div>
-          <FactCheckOutlinedIcon />
-          <span>{workspaceView === "attendance" ? "출석 및 휴가 관리" : "출석부"}</span>
+        <div className="attendance-workspace-title">
+          {workspaceView === "attendance" ? (
+            <FactCheckOutlinedIcon />
+          ) : (
+            <button
+              aria-label={
+                workspaceView === "member-list"
+                  ? "출석표로 돌아가기"
+                  : "회원 목록으로 돌아가기"
+              }
+              className="attendance-header-back"
+              onClick={() =>
+                setWorkspaceView(
+                  workspaceView === "member-list"
+                    ? "attendance"
+                    : "member-list",
+                )
+              }
+              type="button"
+            >
+              <ChevronLeftOutlinedIcon />
+            </button>
+          )}
+          <div>
+            <span>
+              {workspaceView === "attendance"
+                ? "출석부"
+                : workspaceView === "member-list"
+                  ? "휴가 및 고정 휴무"
+                  : activeMember?.name ?? "회원 휴가 관리"}
+            </span>
+            <p>
+              {workspaceView === "attendance"
+                ? "교시별 출석과 휴가를 바로 반영합니다."
+                : workspaceView === "member-list"
+                  ? "회원을 선택해 휴가 현황과 반복 휴무를 관리합니다."
+                  : "휴가 및 고정 휴무 현황"}
+            </p>
+          </div>
         </div>
-        {workspaceView === "attendance" && <p>교시별 출석과 휴가를 바로 반영합니다.</p>}
+        {workspaceView === "member-list" && (
+          <strong className="attendance-member-count">{members.length}명</strong>
+        )}
+        {workspaceView === "member-detail" &&
+          activeMember &&
+          onViewPayments && (
+            <button
+              className="attendance-payment-link"
+              onClick={() =>
+                onViewPayments(activeMember.id, activeMember.name)
+              }
+              type="button"
+            >
+              <PaymentsOutlinedIcon />
+              결제 내역
+            </button>
+          )}
       </header>
 
       {error && <p className="admin-error">{error}</p>}

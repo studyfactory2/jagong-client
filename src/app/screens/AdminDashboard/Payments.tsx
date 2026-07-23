@@ -21,6 +21,9 @@ type PaymentsProps = {
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
   onRefundRecorded: () => Promise<void> | void;
+  focusedMember: { id: string; name: string } | null;
+  onClearFocusedMember: () => void;
+  onReturnToAttendance: () => void;
 };
 
 type RefundPreviewState = {
@@ -89,6 +92,9 @@ export default function Payments(props: PaymentsProps) {
     pageMeta,
     onPageChange,
     onRefundRecorded,
+    focusedMember,
+    onClearFocusedMember,
+    onReturnToAttendance,
   } = props;
   const [selectedPaymentId, setSelectedPaymentId] = useState("");
   const [refundPreview, setRefundPreview] = useState<
@@ -177,6 +183,23 @@ export default function Payments(props: PaymentsProps) {
         <h2>결제 관리</h2>
         <span>{pageMeta.total}건</span>
       </div>
+
+      {focusedMember && (
+        <div className="admin-payment-member-context">
+          <div>
+            <span>출석부에서 선택한 회원</span>
+            <strong>{focusedMember.name} 결제 내역</strong>
+          </div>
+          <div>
+            <button onClick={onReturnToAttendance} type="button">
+              출석 상세로
+            </button>
+            <button onClick={onClearFocusedMember} type="button">
+              전체 결제 보기
+            </button>
+          </div>
+        </div>
+      )}
 
       <label className="admin-payment-directory-search">
         <span>결제 검색</span>

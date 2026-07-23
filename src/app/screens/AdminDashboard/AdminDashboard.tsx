@@ -131,6 +131,12 @@ export default function AdminDashboard() {
     chats: "",
     camera: "",
   });
+  const [paymentMemberFilter, setPaymentMemberFilter] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [attendanceMemberTarget, setAttendanceMemberTarget] = useState("");
+  const paymentMemberId = paymentMemberFilter?.id ?? "";
   // Camera filters client-side, so it stays instant; server-backed searches
   // read from the debounced value to avoid refetching on every keystroke.
   const debouncedSearch = useDebouncedValue(search, 350);
@@ -248,6 +254,7 @@ export default function AdminDashboard() {
               page: pages.payments,
               limit: 10,
               text: debouncedSearch.payments,
+              userId: paymentMemberId || undefined,
             }),
             getAdminLeaves({
               page: pages.leaves,
@@ -316,6 +323,7 @@ export default function AdminDashboard() {
     pages.leaves,
     pages.payments,
     pages.users,
+    paymentMemberId,
   ]);
 
   const refreshLiveData = useCallback(async () => {
@@ -627,6 +635,34 @@ export default function AdminDashboard() {
     }
   }
 
+  function navigateToTab(nextTab: AdminTabKey) {
+    setPaymentMemberFilter(null);
+    setAttendanceMemberTarget("");
+    setTab(nextTab);
+  }
+
+  function openMemberPayments(userId: string, userName: string) {
+    if (!isAdmin) return;
+    setPaymentMemberFilter({ id: userId, name: userName });
+    setSearch((current) => ({ ...current, payments: "" }));
+    setPages((current) => ({ ...current, payments: 1 }));
+    setTab("payments");
+  }
+
+  function clearPaymentMemberFilter() {
+    setPaymentMemberFilter(null);
+    setPages((current) => ({ ...current, payments: 1 }));
+  }
+
+  function returnToAttendanceMember() {
+    if (!paymentMemberFilter) return;
+    setAttendanceMemberTarget(paymentMemberFilter.id);
+    setPaymentMemberFilter(null);
+    setSearch((current) => ({ ...current, payments: "" }));
+    setPages((current) => ({ ...current, payments: 1 }));
+    setTab("attendance");
+  }
+
   function markChatRoomRead(userId: string) {
     const unread =
       data.chats.find((room) => room.userId === userId)?.unreadCount ?? 0;
@@ -735,7 +771,7 @@ export default function AdminDashboard() {
                 <button
                   className={activeTab === item.key ? "is-active" : ""}
                   key={item.key}
-                  onClick={() => setTab(item.key)}
+                  onClick={() => navigateToTab(item.key)}
                   type="button"
                 >
                   <AdminTabIcon tab={item.key} />
@@ -764,7 +800,7 @@ export default function AdminDashboard() {
                 {showDashboardReturn && (
                   <button
                     className="admin-dashboard-return"
-                    onClick={() => setTab("overview")}
+                    onClick={() => navigateToTab("overview")}
                     type="button"
                   >
                     <DashboardOutlinedIcon />
@@ -846,7 +882,7 @@ export default function AdminDashboard() {
                 onSaveNotice={saveNotice}
                 onSaveManualPayment={saveManualPayment}
                 onSaveFreeTrial={saveFreeTrial}
-                onNavigate={setTab}
+                onNavigate={navigateToTab}
               />
             )}
 
@@ -885,11 +921,20 @@ export default function AdminDashboard() {
                 pageMeta={pageMeta.payments}
                 onPageChange={(page) => changePage("payments", page)}
                 onRefundRecorded={load}
+                focusedMember={paymentMemberFilter}
+                onClearFocusedMember={clearPaymentMemberFilter}
+                onReturnToAttendance={returnToAttendanceMember}
               />
             )}
 
             {activeTab === "attendance" && (
-              <Attendance users={data.allMembers} timetable={timetable} />
+              <Attendance
+                key={attendanceMemberTarget || "attendance"}
+                users={data.allMembers}
+                timetable={timetable}
+                initialMemberId={attendanceMemberTarget}
+                onViewPayments={isAdmin ? openMemberPayments : undefined}
+              />
             )}
 
             {activeTab === "chat" && (
