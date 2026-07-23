@@ -4,6 +4,6 @@ export const BUSINESS_INFORMATION = {
   representative: "김지원",
   address: "부산광역시 남구 남동천로 128 BIFC 705",
   registrationNumber: "290-03-03732",
-  phoneDisplay: "+82 10 6563 5134",
+  phoneDisplay: "051 636 5134",
   phoneHref: "+821065635134",
 } as const;
