@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ConsultationRecord, PageMeta } from "../../../lib/types";
 import AdminPager from "./AdminPager";
-import { dateText, money } from "./admin.utils";
+import { dateOnlyText, dateText, money } from "./admin.utils";
 
 type ConsultationsProps = {
   consultations: ConsultationRecord[];
@@ -47,6 +47,24 @@ function maxStartDate(): string {
   return date.toISOString().slice(0, 10);
 }
 
+function consultationDate(item: ConsultationRecord) {
+  return item.desiredDate
+    ? dateOnlyText(item.desiredDate)
+    : dateText(item.createdAt);
+}
+
+function consultationType(item: ConsultationRecord) {
+  return CONSULT_TYPE_LABEL[item.consultType ?? ""] ?? "상담";
+}
+
+function consultationStatus(item: ConsultationRecord) {
+  return STATUS_LABEL[item.status] ?? item.status;
+}
+
+function statusTone(status: string) {
+  return `is-${status.toLowerCase()}`;
+}
+
 export default function Consultations(props: ConsultationsProps) {
   const {
     consultations,
@@ -59,6 +77,7 @@ export default function Consultations(props: ConsultationsProps) {
     pageMeta,
     onPageChange,
   } = props;
+  const [selectedId, setSelectedId] = useState("");
   const [meetingLinks, setMeetingLinks] = useState<Record<string, string>>({});
   const [checkoutForms, setCheckoutForms] = useState<
     Record<string, { months: number; startDate: string }>
@@ -69,6 +88,10 @@ export default function Consultations(props: ConsultationsProps) {
   const [copiedId, setCopiedId] = useState("");
   const startMin = useMemo(() => todayText(), []);
   const startMax = useMemo(() => maxStartDate(), []);
+  const selectedConsultation =
+    consultations.find((item) => item.id === selectedId) ??
+    consultations[0] ??
+    null;
 
   function checkoutForm(id: string) {
     return checkoutForms[id] ?? { months: 1, startDate: startMin };
@@ -100,14 +123,36 @@ export default function Consultations(props: ConsultationsProps) {
     window.setTimeout(() => setCopiedId(""), 1600);
   }
 
+  const selectedPayment = selectedConsultation?.payments?.[0];
+  const selectedMeetingLink = selectedConsultation
+    ? (meetingLinks[selectedConsultation.id] ??
+      selectedConsultation.agoraRoomId ??
+      "")
+    : "";
+  const selectedCheckoutLink = selectedConsultation
+    ? (checkoutLinks[selectedConsultation.id] ??
+      (selectedPayment
+        ? `${window.location.origin}/checkout/${selectedPayment.id}`
+        : ""))
+    : "";
+  const selectedCheckoutForm = selectedConsultation
+    ? checkoutForm(selectedConsultation.id)
+    : { months: 1, startDate: startMin };
+  const isSelectedVideo = selectedConsultation?.consultType === "VIDEO";
+  const selectedPaid = selectedPayment?.status === "PAID";
+  const selectedPaymentPending = selectedPayment?.status === "PENDING";
+  const canConfirmSelected =
+    selectedConsultation?.status === "PENDING" &&
+    (!isSelectedVideo || Boolean(selectedMeetingLink.trim()));
+
   return (
-    <section className="admin-card">
-      <div className="admin-section-head">
-        <h2>상담 예약</h2>
+    <section className="admin-card admin-consultation-directory">
+      <div className="admin-consultation-directory-head">
+        <h2>상담 관리</h2>
         <span>{pageMeta.total}건</span>
       </div>
 
-      <label className="admin-search">
+      <label className="admin-consultation-directory-search">
         <span>상담 검색</span>
         <input
           value={searchText}
@@ -116,78 +161,224 @@ export default function Consultations(props: ConsultationsProps) {
         />
       </label>
 
-      <div className="admin-table">
-        {consultations.length === 0 && (
-          <div className="admin-list-empty">상담 예약이 없습니다.</div>
-        )}
-        {consultations.map((item) => {
-          const isVideo = item.consultType === "VIDEO";
-          const meetingLink = meetingLinks[item.id] ?? item.agoraRoomId ?? "";
-          const canConfirm =
-            item.status === "PENDING" && (!isVideo || meetingLink.trim());
-          const payment = item.payments?.[0];
-          const createdLink = checkoutLinks[item.id];
-          const visibleLink =
-            createdLink ||
-            (payment ? window.location.origin + "/checkout/" + payment.id : "");
-          const paid = payment?.status === "PAID";
-          const pendingPayment = payment?.status === "PENDING";
-          const form = checkoutForm(item.id);
+      <div className="admin-consultation-directory-workspace">
+        <div className="admin-consultation-directory-results">
+          <div className="admin-consultation-directory-list">
+            <div
+              aria-hidden="true"
+              className="admin-consultation-directory-list-head"
+            >
+              <span>상담일</span>
+              <span>회원</span>
+              <span>연락처</span>
+              <span>유형</span>
+              <span>상태</span>
+              <span />
+            </div>
 
-          return (
-            <div className="admin-row is-action is-consultation" key={item.id}>
-              <strong>{item.name}</strong>
-              <span>{item.phone}</span>
-              <span>
-                {CONSULT_TYPE_LABEL[item.consultType ?? ""] ?? "상담"}
-              </span>
-              <span>{STATUS_LABEL[item.status] ?? item.status}</span>
-              <em>
-                {item.desiredDate ?? dateText(item.createdAt)} ·{" "}
-                {item.timeSlot ?? "시간 미정"}
+            {consultations.length === 0 && (
+              <div className="admin-consultation-directory-empty">
+                상담 예약이 없습니다.
+              </div>
+            )}
+
+            {consultations.map((item) => (
+              <button
+                aria-pressed={selectedConsultation?.id === item.id}
+                className={`admin-consultation-directory-row${selectedConsultation?.id === item.id ? " is-selected" : ""}`}
+                key={item.id}
+                onClick={() => setSelectedId(item.id)}
+                type="button"
+              >
+                <span className="admin-consultation-directory-date">
+                  {consultationDate(item)}
+                </span>
+                <span className="admin-consultation-directory-person">
+                  <span
+                    aria-hidden="true"
+                    className="admin-consultation-directory-avatar"
+                  >
+                    {item.name.slice(0, 1)}
+                  </span>
+                  <span>
+                    <strong>{item.name}</strong>
+                    <small>
+                      {consultationDate(item)} · {consultationType(item)}
+                    </small>
+                  </span>
+                </span>
+                <span className="admin-consultation-directory-phone">
+                  {item.phone}
+                </span>
+                <span className="admin-consultation-directory-type">
+                  {consultationType(item)}
+                </span>
+                <em
+                  className={`admin-consultation-directory-status ${statusTone(item.status)}`}
+                >
+                  {consultationStatus(item)}
+                </em>
+                <span
+                  aria-hidden="true"
+                  className="admin-consultation-directory-chevron"
+                >
+                  ›
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <AdminPager meta={pageMeta} onPageChange={onPageChange} />
+        </div>
+
+        {selectedConsultation && (
+          <aside className="admin-consultation-directory-detail">
+            <div className="admin-consultation-detail-head">
+              <div>
+                <span
+                  aria-hidden="true"
+                  className="admin-consultation-directory-avatar"
+                >
+                  {selectedConsultation.name.slice(0, 1)}
+                </span>
+                <div>
+                  <strong>{selectedConsultation.name}</strong>
+                  <span>{selectedConsultation.phone}</span>
+                </div>
+              </div>
+              <em
+                className={`admin-consultation-directory-status ${statusTone(selectedConsultation.status)}`}
+              >
+                {consultationStatus(selectedConsultation)}
               </em>
-              {item.status === "PENDING" && (
+            </div>
+
+            <dl className="admin-consultation-detail-fields">
+              <div>
+                <dt>상담 신청</dt>
+                <dd>{dateText(selectedConsultation.createdAt)}</dd>
+              </div>
+              <div>
+                <dt>희망 일정</dt>
+                <dd>
+                  {consultationDate(selectedConsultation)} ·{" "}
+                  {selectedConsultation.timeSlot ?? "시간 미정"}
+                </dd>
+              </div>
+              <div>
+                <dt>상담 유형</dt>
+                <dd>{consultationType(selectedConsultation)}</dd>
+              </div>
+              <div>
+                <dt>자격증</dt>
+                <dd>{selectedConsultation.examType ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>지역</dt>
+                <dd>{selectedConsultation.residenceArea ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>준비기간</dt>
+                <dd>
+                  {selectedConsultation.prepDuration ??
+                    selectedConsultation.studyPeriod ??
+                    "-"}
+                </dd>
+              </div>
+            </dl>
+
+            {selectedConsultation.adminNotes && (
+              <div className="admin-consultation-detail-note">
+                <span>관리자 메모</span>
+                <p>{selectedConsultation.adminNotes}</p>
+              </div>
+            )}
+
+            {isSelectedVideo && selectedConsultation.status !== "COMPLETED" && (
+              <label className="admin-consultation-video-link">
+                <span>화상 상담 링크</span>
+                <input
+                  value={selectedMeetingLink}
+                  onChange={(event) =>
+                    setMeetingLinks((current) => ({
+                      ...current,
+                      [selectedConsultation.id]: event.target.value,
+                    }))
+                  }
+                  placeholder="Google Meet / Zoom 링크를 붙여넣어 주세요"
+                />
+                {selectedConsultation.agoraRoomId && (
+                  <a
+                    href={selectedConsultation.agoraRoomId}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    저장된 링크 열기
+                  </a>
+                )}
+              </label>
+            )}
+
+            <div className="admin-consultation-status-actions">
+              {selectedConsultation.status === "PENDING" && (
                 <button
-                  disabled={!canConfirm}
+                  disabled={!canConfirmSelected}
                   onClick={() =>
-                    onConfirm(item.id, item.consultType, meetingLink)
+                    onConfirm(
+                      selectedConsultation.id,
+                      selectedConsultation.consultType,
+                      selectedMeetingLink,
+                    )
                   }
                   type="button"
                 >
-                  확정
+                  상담 확정
                 </button>
               )}
-              {item.status === "CONFIRMED" && (
-                <button onClick={() => onComplete(item.id)} type="button">
-                  완료
+              {selectedConsultation.status === "CONFIRMED" && (
+                <button
+                  onClick={() => onComplete(selectedConsultation.id)}
+                  type="button"
+                >
+                  상담 완료
                 </button>
               )}
-              {item.status === "COMPLETED" && (
-                <span className="admin-status-chip">상담완료</span>
+              {selectedConsultation.status === "COMPLETED" && (
+                <span>상담 처리가 완료되었습니다.</span>
               )}
+              {selectedConsultation.status === "CANCELLED" && (
+                <span>취소된 상담입니다.</span>
+              )}
+            </div>
 
-              <div className="admin-consult-payment">
+            <div className="admin-consultation-payment-panel">
+              <div className="admin-consultation-payment-head">
                 <div>
-                  <span>결제</span>
+                  <span>결제 및 등록</span>
                   <strong>
-                    {paid
+                    {selectedPaid
                       ? "결제완료"
-                      : pendingPayment
+                      : selectedPaymentPending
                         ? "결제대기"
                         : "링크 미생성"}
                   </strong>
-                  {payment && (
-                    <small>
-                      {payment.planMonths}개월 · {money(payment.amount)}
-                    </small>
-                  )}
                 </div>
-                {!paid && (
-                  <>
+                {selectedPayment && (
+                  <small>
+                    {selectedPayment.planMonths}개월 ·{" "}
+                    {money(selectedPayment.amount)}
+                  </small>
+                )}
+              </div>
+
+              {!selectedPaid && (
+                <div className="admin-consultation-checkout-form">
+                  <label>
+                    <span>이용권</span>
                     <select
-                      value={form.months}
+                      value={selectedCheckoutForm.months}
                       onChange={(event) =>
-                        updateCheckoutForm(item.id, {
+                        updateCheckoutForm(selectedConsultation.id, {
                           months: Number(event.target.value),
                         })
                       }
@@ -196,66 +387,57 @@ export default function Consultations(props: ConsultationsProps) {
                       <option value={2}>2개월</option>
                       <option value={3}>3개월</option>
                     </select>
+                  </label>
+                  <label>
+                    <span>시작일</span>
                     <input
                       min={startMin}
                       max={startMax}
                       type="date"
-                      value={form.startDate}
+                      value={selectedCheckoutForm.startDate}
                       onChange={(event) =>
-                        updateCheckoutForm(item.id, {
+                        updateCheckoutForm(selectedConsultation.id, {
                           startDate: event.target.value,
                         })
                       }
                     />
-                    <button onClick={() => createLink(item.id)} type="button">
-                      결제링크 생성
-                    </button>
-                  </>
-                )}
-                {visibleLink && (
+                  </label>
                   <button
-                    className="admin-copy-link"
-                    onClick={() => copyLink(item.id, visibleLink)}
+                    onClick={() => createLink(selectedConsultation.id)}
                     type="button"
                   >
-                    {copiedId === item.id ? "복사됨" : "링크 복사"}
+                    결제링크 생성
                   </button>
-                )}
-                {paid && (
-                  <button
-                    onClick={() => onPreparePreRegister(item.id)}
-                    type="button"
-                  >
-                    사전등록 준비
-                  </button>
-                )}
-              </div>
+                </div>
+              )}
 
-              {isVideo && item.status !== "COMPLETED" && (
-                <label className="admin-consult-link">
-                  <span>화상 상담 링크</span>
-                  <input
-                    value={meetingLink}
-                    onChange={(event) =>
-                      setMeetingLinks((current) => ({
-                        ...current,
-                        [item.id]: event.target.value,
-                      }))
-                    }
-                    placeholder="Google Meet / Zoom 링크를 붙여넣어 주세요"
-                  />
-                  {item.agoraRoomId && (
-                    <a href={item.agoraRoomId} target="_blank" rel="noreferrer">
-                      저장된 링크 열기
-                    </a>
-                  )}
-                </label>
+              {selectedCheckoutLink && (
+                <button
+                  className="admin-consultation-copy-link"
+                  onClick={() =>
+                    copyLink(selectedConsultation.id, selectedCheckoutLink)
+                  }
+                  type="button"
+                >
+                  {copiedId === selectedConsultation.id
+                    ? "링크 복사됨"
+                    : "결제링크 복사"}
+                </button>
+              )}
+
+              {selectedPaid && (
+                <button
+                  className="admin-consultation-pre-register"
+                  onClick={() => onPreparePreRegister(selectedConsultation.id)}
+                  type="button"
+                >
+                  사전등록 준비
+                </button>
               )}
             </div>
-          );
-        })}
+          </aside>
+        )}
       </div>
-      <AdminPager meta={pageMeta} onPageChange={onPageChange} />
     </section>
   );
 }
