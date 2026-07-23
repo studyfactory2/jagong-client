@@ -1,0 +1,650 @@
+/* Payment history and refund workspace. All selectors are page-specific. */
+.admin-payment-directory {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(16px, 2vw, 24px);
+}
+
+.admin-payment-directory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-payment-directory-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(19px, 1.5vw, 24px);
+  font-weight: 950;
+}
+
+.admin-payment-directory-head > span {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.admin-payment-directory-search {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.admin-payment-directory-search > span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.admin-payment-directory-search input {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+  outline: none;
+}
+
+.admin-payment-directory-search input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.07);
+}
+
+.admin-payment-directory-workspace,
+.admin-payment-directory-results {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.admin-payment-directory-list {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--admin-panel);
+}
+
+.admin-payment-directory-list-head {
+  display: none;
+}
+
+.admin-payment-directory .admin-payment-directory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
+  grid-template-areas: "person status chevron";
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  border: 0;
+  border-bottom: 1px solid rgba(20, 63, 86, 0.09);
+  border-radius: 0;
+  background: var(--admin-panel);
+  box-shadow: none;
+  color: var(--ink);
+  padding: 8px 10px;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.admin-payment-directory .admin-payment-directory-row:hover {
+  background: #f8fbfa;
+}
+
+.admin-payment-directory .admin-payment-directory-row.is-selected {
+  background: #f4fbf8;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.admin-payment-directory .admin-payment-directory-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-payment-directory-date,
+.admin-payment-directory-plan {
+  display: none;
+}
+
+.admin-payment-directory-person {
+  grid-area: person;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.admin-payment-directory-person > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-payment-directory-person strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-directory-person small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-directory-avatar {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6f4ef;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.admin-payment-directory-amount {
+  grid-area: amount;
+  display: none;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-directory-status {
+  grid-area: status;
+  width: fit-content;
+  justify-self: end;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.admin-payment-directory-status.is-paid {
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.admin-payment-directory-status.is-pending {
+  background: var(--gold-soft);
+  color: #946316;
+}
+
+.admin-payment-directory-status.is-refunded {
+  background: color-mix(in srgb, #7667c9 10%, white);
+  color: #6556b4;
+}
+
+.admin-payment-directory-status.is-failed,
+.admin-payment-directory-status.is-cancelled {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.admin-payment-directory-chevron {
+  grid-area: chevron;
+  color: #91a5aa;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.admin-payment-directory-empty {
+  color: var(--muted);
+  padding: 32px 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.admin-payment-directory .admin-list-pager button {
+  min-width: 52px;
+  border-radius: 8px;
+}
+
+/* Selected payment summary */
+.admin-payment-directory-detail {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px 16px 10px 10px;
+  background: var(--admin-panel);
+  padding: 24px 16px 16px;
+}
+
+.admin-payment-directory-detail::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 52px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.25);
+  transform: translateX(-50%);
+}
+
+.admin-payment-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid rgba(20, 63, 86, 0.1);
+}
+
+.admin-payment-detail-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-payment-detail-head > div > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-payment-detail-head strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-detail-head span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-detail-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 9px;
+  background: var(--admin-panel-muted);
+  padding: 13px 14px;
+}
+
+.admin-payment-detail-total span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.admin-payment-detail-total strong {
+  color: var(--accent-deep);
+  font-size: 21px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.admin-payment-directory-fields {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.admin-payment-directory-fields > div {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(20, 63, 86, 0.07);
+}
+
+.admin-payment-directory-fields dt,
+.admin-payment-directory-fields dd {
+  margin: 0;
+}
+
+.admin-payment-directory-fields dt {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.admin-payment-directory-fields dd {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 850;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-detail-note,
+.admin-payment-refund-record {
+  display: grid;
+  gap: 5px;
+  border-radius: 8px;
+  background: var(--admin-panel-muted);
+  padding: 11px;
+}
+
+.admin-payment-detail-note span,
+.admin-payment-refund-record span,
+.admin-payment-receipt > span {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+.admin-payment-detail-note p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.admin-payment-receipt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-payment-receipt a,
+.admin-payment-receipt em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.admin-payment-receipt a {
+  border-bottom: 1px solid currentColor;
+  color: var(--accent-deep);
+}
+
+.admin-payment-receipt em {
+  color: var(--muted);
+}
+
+.admin-payment-refund-record strong {
+  color: #6556b4;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.admin-payment-refund-record small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+/* Refund calculation remains deliberately explicit and safe. */
+.admin-payment-refund-panel {
+  display: grid;
+  gap: 11px;
+  border: 1px solid rgba(247, 128, 118, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 247, 244, 0.55);
+  padding: 12px;
+}
+
+.admin-payment-refund-panel > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-payment-refund-panel > div:first-child strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.admin-payment-refund-panel > div:first-child span,
+.admin-payment-refund-panel > small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.admin-payment-refund-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(20, 63, 86, 0.08);
+}
+
+.admin-payment-refund-preview > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  background: #ffffff;
+  padding: 9px 8px;
+}
+
+.admin-payment-refund-preview dt,
+.admin-payment-refund-preview dd {
+  margin: 0;
+}
+
+.admin-payment-refund-preview dt {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.admin-payment-refund-preview dd {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-payment-refund-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-payment-refund-actions button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.admin-payment-refund-actions button:first-child {
+  border: 1px solid var(--ink);
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.admin-payment-refund-actions button:last-child {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.admin-payment-refund-actions button:disabled {
+  border-color: var(--line);
+  background: #edf0ef;
+  color: var(--muted);
+  cursor: default;
+}
+
+@media (min-width: 720px) {
+  .admin-payment-directory-list {
+    max-block-size: min(540px, calc(100dvh - 310px));
+    overflow-y: auto;
+    border-radius: 10px;
+  }
+
+  .admin-payment-directory-list-head,
+  .admin-payment-directory .admin-payment-directory-row {
+    grid-template-columns: 84px minmax(110px, 1.3fr) 58px 90px 66px 18px;
+  }
+
+  .admin-payment-directory-list-head {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    display: grid;
+    align-items: center;
+    gap: 10px;
+    min-height: 38px;
+    border-bottom: 1px solid rgba(20, 63, 86, 0.1);
+    background: #f7fbf9;
+    color: #75898e;
+    padding: 0 12px;
+    font-size: 10.5px;
+    font-weight: 850;
+  }
+
+  .admin-payment-directory-list-head > span:not(:nth-child(2)) {
+    text-align: center;
+  }
+
+  .admin-payment-directory .admin-payment-directory-row {
+    grid-template-areas: none;
+    gap: 10px;
+    min-height: 60px;
+    padding: 9px 12px;
+  }
+
+  .admin-payment-directory-date,
+  .admin-payment-directory-person,
+  .admin-payment-directory-plan,
+  .admin-payment-directory-amount,
+  .admin-payment-directory-status,
+  .admin-payment-directory-chevron {
+    grid-area: auto;
+  }
+
+  .admin-payment-directory-date,
+  .admin-payment-directory-plan {
+    display: block;
+    overflow: hidden;
+    color: #617a82;
+    font-size: 11px;
+    font-weight: 750;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-payment-directory-person small {
+    display: none;
+  }
+
+  .admin-payment-directory-amount {
+    display: block;
+    font-size: 11.5px;
+    text-align: right;
+  }
+
+  .admin-payment-directory-status {
+    justify-self: center;
+  }
+
+  .admin-payment-directory-detail {
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .admin-payment-directory-detail::before {
+    display: none;
+  }
+}
+
+@media (min-width: 980px) {
+  .admin-payment-directory-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(350px, 390px);
+    align-items: start;
+  }
+
+  .admin-payment-directory-detail {
+    position: sticky;
+    top: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-payment-directory-workspace {
+    grid-template-columns: minmax(0, 1fr) 410px;
+  }
+}
+
+@media (max-width: 719px) {
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-workspace:has(> .admin-payment-directory)
+    > .admin-workspace-head {
+    display: none;
+  }
+
+  .admin-payment-directory {
+    gap: 13px;
+    padding: 14px;
+  }
+
+  .admin-payment-directory-list {
+    max-block-size: min(360px, 44dvh);
+    overflow-y: auto;
+  }
+
+  .admin-payment-directory-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .admin-payment-directory-search input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-payment-refund-actions {
+    grid-template-columns: 1fr;
+  }
+}
