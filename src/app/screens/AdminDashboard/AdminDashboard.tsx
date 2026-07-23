@@ -745,31 +745,33 @@ export default function AdminDashboard() {
           </aside>
 
           <main className="admin-workspace">
-            <div
-              className={`admin-workspace-head${
-                showDashboardReturn ? " has-dashboard-return" : ""
-              }`}
-            >
-              <div className="admin-breadcrumb">
-                <span>관리자 작업실</span>
-                <i aria-hidden="true">›</i>
-                <b>{activeTabLabel}</b>
+            {activeTab !== "overview" && (
+              <div
+                className={`admin-workspace-head${
+                  showDashboardReturn ? " has-dashboard-return" : ""
+                }`}
+              >
+                <div className="admin-breadcrumb">
+                  <span>관리자 작업실</span>
+                  <i aria-hidden="true">›</i>
+                  <b>{activeTabLabel}</b>
+                </div>
+                <div className="admin-workspace-heading">
+                  <strong>{activeTabLabel}</strong>
+                  <p>{adminPageDescriptions[activeTab]}</p>
+                </div>
+                {showDashboardReturn && (
+                  <button
+                    className="admin-dashboard-return"
+                    onClick={() => setTab("overview")}
+                    type="button"
+                  >
+                    <DashboardOutlinedIcon />
+                    <span>대시보드로</span>
+                  </button>
+                )}
               </div>
-              <div className="admin-workspace-heading">
-                <strong>{activeTabLabel}</strong>
-                <p>{adminPageDescriptions[activeTab]}</p>
-              </div>
-              {showDashboardReturn && (
-                <button
-                  className="admin-dashboard-return"
-                  onClick={() => setTab("overview")}
-                  type="button"
-                >
-                  <DashboardOutlinedIcon />
-                  <span>대시보드로</span>
-                </button>
-              )}
-            </div>
+            )}
 
             {error && <p className="admin-error">{error}</p>}
             {loading && (

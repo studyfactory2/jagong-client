@@ -445,16 +445,20 @@ export default function Overview(props: OverviewProps) {
             </h2>
             <div className="admin-overview-action-tabs" role="tablist">
               <button
+                aria-selected={actionMode === "payment"}
                 className={actionMode === "payment" ? "is-active" : ""}
                 onClick={() => setActionMode("payment")}
+                role="tab"
                 type="button"
               >
                 <CreditCardOutlinedIcon />
                 수동 결제
               </button>
               <button
+                aria-selected={actionMode === "free"}
                 className={actionMode === "free" ? "is-active" : ""}
                 onClick={() => setActionMode("free")}
+                role="tab"
                 type="button"
               >
                 <CardGiftcardOutlinedIcon />
@@ -794,13 +798,6 @@ export default function Overview(props: OverviewProps) {
                     ? `기존 종료일 ${currentMembershipEnd}`
                     : "현재 이용권 없음"}
                 </em>
-              </div>
-
-              <div className="admin-overview-summary-head">
-                <span>등록 요약</span>
-                <strong>
-                  {actionMode === "payment" ? "수동 결제" : "무료 기간"}
-                </strong>
               </div>
 
               {actionMode === "payment" ? (
