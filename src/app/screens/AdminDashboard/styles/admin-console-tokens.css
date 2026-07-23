@@ -1,0 +1,15 @@
+.app-shell.admin-shell {
+  --admin-canvas: #f4f7f6;
+  --admin-panel: #fffefa;
+  --admin-panel-muted: #f7faf9;
+  --admin-sidebar: #123f59;
+  --admin-sidebar-deep: #0d354d;
+  --admin-sidebar-text: #f7fbfa;
+  --admin-sidebar-muted: #b9cbd2;
+  --admin-line: rgba(20, 63, 86, 0.13);
+  --admin-line-strong: rgba(20, 63, 86, 0.22);
+  --admin-shadow: 0 12px 30px rgba(20, 63, 86, 0.055);
+  --admin-header-height: 64px;
+  --admin-sidebar-width: 224px;
+  --admin-content-max: 1440px;
+}

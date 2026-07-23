@@ -1,3 +1,4 @@
+@import "./styles/admin-console-tokens.css";
 @import "./styles/admin-base.css";
 @import "./styles/admin-compact.css";
 @import "./styles/admin-members-camera.css";
@@ -11,6 +12,5 @@
 @import "./styles/admin-attendance-workspace.css";
 @import "./styles/admin-consultations-payments.css";
 @import "./styles/admin-chat.css";
-@import "./styles/admin-responsive-shell.css";
-@import "./styles/admin-foundation.css";
+@import "./styles/admin-console-shell.css";
 @import "./styles/admin-members-workspace.css";

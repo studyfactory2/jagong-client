@@ -69,7 +69,8 @@
   color: #ffffff;
 }
 
-@media (min-width: 980px) {
+/* Legacy wide-screen page surfaces must not activate inside the tablet shell. */
+@media (min-width: 1200px) {
   .app-shell.admin-shell {
     width: 100%;
     max-width: none;

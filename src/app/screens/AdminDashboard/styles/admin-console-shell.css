@@ -1,0 +1,848 @@
+.app-shell.admin-shell {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow-x: clip;
+  overflow-y: visible;
+  border: 0;
+  border-radius: 0;
+  background: var(--admin-canvas);
+  box-shadow: none;
+}
+
+.app-shell.admin-shell,
+.app-shell.admin-shell * {
+  box-sizing: border-box;
+}
+
+.app-shell.admin-shell .app-shell-body {
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.app-shell.admin-shell .app-foot,
+.app-shell.admin-shell .app-shell-back,
+.app-shell.admin-shell .app-shell-back-spacer {
+  display: none;
+}
+
+.app-shell.admin-shell .app-shell-head {
+  border-bottom: 1px solid var(--admin-line);
+  background: rgba(255, 254, 250, 0.97);
+  box-shadow: none;
+  backdrop-filter: blur(14px);
+}
+
+.app-shell.admin-shell .app-shell-title-wrap {
+  display: block;
+  min-width: 0;
+  justify-self: start;
+  text-align: left;
+}
+
+.app-shell.admin-shell .app-shell-title-wrap h1 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .app-shell-title-wrap p {
+  display: block;
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .app-shell-center-spacer {
+  display: none;
+}
+
+.app-shell.admin-shell .app-shell-actions {
+  min-width: 0;
+  justify-self: end;
+  gap: 8px;
+}
+
+.app-shell.admin-shell .app-shell-actions button {
+  min-width: 42px;
+  min-height: 40px;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  background: var(--admin-panel);
+  box-shadow: none;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.app-shell.admin-shell .app-shell-actions button:hover {
+  border-color: var(--admin-line-strong);
+  background: var(--admin-panel-muted);
+}
+
+.app-shell.admin-shell .app-shell-actions .admin-logout {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  color: var(--accent-deep);
+}
+
+.app-shell.admin-shell .admin-redesign {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  color: var(--ink);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-layout {
+  min-width: 0;
+  min-height: 100%;
+  background: var(--admin-canvas);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-shell {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-head,
+.app-shell.admin-shell .admin-redesign .admin-menu-brand,
+.app-shell.admin-shell .admin-redesign .admin-menu-user {
+  min-width: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-brand {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-brand > svg {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  padding: 8px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-brand strong,
+.app-shell.admin-shell .admin-redesign .admin-menu-brand span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-brand strong {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-brand span {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 10px;
+  min-height: 72px;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user i {
+  grid-row: 1 / span 3;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user i svg {
+  font-size: 23px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user span {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user strong,
+.app-shell.admin-shell .admin-redesign .admin-menu-user small {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-user small {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-menu-label {
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-tabs {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-tabs button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font: inherit;
+  font-weight: 850;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-tabs button svg {
+  flex: 0 0 auto;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  margin: 0;
+  background: var(--admin-canvas);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace > * {
+  min-width: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace-head {
+  min-width: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-breadcrumb {
+  min-width: 0;
+  align-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-breadcrumb b {
+  color: var(--ink);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-breadcrumb i {
+  color: #9dacae;
+  font-style: normal;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace-heading {
+  min-width: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace-heading > strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-workspace-heading > p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-dashboard-return {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 8px;
+  background: var(--admin-panel);
+  box-shadow: none;
+  color: var(--ink);
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-dashboard-return svg {
+  font-size: 17px;
+}
+
+/* Wide desktop: persistent full-height sidebar and compact main header. */
+@media (min-width: 1200px) {
+  .app-shell.admin-shell {
+    display: grid;
+    grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
+    grid-template-rows: var(--admin-header-height) minmax(0, 1fr);
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    grid-column: 2;
+    grid-row: 1;
+    min-height: var(--admin-header-height);
+    padding: 0 28px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: 17px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p {
+    font-size: 10px;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button {
+    min-width: 96px;
+  }
+
+  .app-shell.admin-shell .app-shell-body {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .app-shell.admin-shell .admin-redesign,
+  .app-shell.admin-shell .admin-redesign .admin-layout {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-layout {
+    display: grid;
+    grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-shell {
+    position: sticky;
+    top: 0;
+    z-index: 70;
+    align-self: start;
+    width: var(--admin-sidebar-width);
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(
+      180deg,
+      var(--admin-sidebar) 0%,
+      var(--admin-sidebar-deep) 100%
+    );
+    padding: 20px 13px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-brand {
+    padding: 0 5px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-brand > svg {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--admin-sidebar-text);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-brand strong {
+    color: var(--admin-sidebar-text);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-brand span {
+    color: var(--admin-sidebar-muted);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-user {
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-user i {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--admin-sidebar-text);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-user span {
+    background: rgba(247, 128, 118, 0.2);
+    color: #ffd5cf;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-user strong {
+    color: var(--admin-sidebar-text);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-user small,
+  .app-shell.admin-shell .admin-redesign .admin-menu-label {
+    color: var(--admin-sidebar-muted);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-label {
+    display: block;
+    margin: 1px 7px -7px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs {
+    display: grid;
+    gap: 5px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button {
+    width: 100%;
+    min-height: 43px;
+    justify-content: flex-start;
+    gap: 10px;
+    overflow: hidden;
+    border-radius: 8px;
+    color: #d7e3e7;
+    padding: 0 12px;
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button::before {
+    content: "";
+    position: absolute;
+    inset: 7px auto 7px 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: transparent;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button svg {
+    color: #b9cbd2;
+    font-size: 18px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active {
+    background: #eaf7f3;
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active::before {
+    background: var(--accent);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active svg {
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace {
+    grid-column: 2;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 88px clamp(24px, 2.4vw, 38px) 48px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace > * {
+    width: min(100%, var(--admin-content-max));
+    margin-inline: auto;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "breadcrumb return"
+      "heading return";
+    align-items: center;
+    gap: 7px 18px;
+    margin-bottom: 20px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-breadcrumb {
+    grid-area: breadcrumb;
+    display: flex;
+    gap: 7px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-heading {
+    grid-area: heading;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-heading > strong {
+    font-size: 26px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-dashboard-return {
+    grid-area: return;
+  }
+}
+
+/* Tablet: brand header and a centered horizontal primary navigation. */
+@media (min-width: 720px) and (max-width: 1199px) {
+  .app-shell.admin-shell {
+    display: block;
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    min-height: var(--admin-header-height);
+    padding: 0 clamp(20px, 4vw, 36px);
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: 20px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p {
+    font-size: 10px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-layout {
+    display: block;
+    min-height: 0;
+    height: auto;
+    grid-template-columns: none;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-shell {
+    position: sticky;
+    top: var(--admin-header-height);
+    z-index: 50;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    display: block;
+    margin: 0;
+    padding: 8px clamp(20px, 4vw, 36px);
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--admin-line);
+    border-radius: 0;
+    background: rgba(255, 254, 250, 0.97);
+    box-shadow: none;
+    backdrop-filter: blur(14px);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-head,
+  .app-shell.admin-shell .admin-redesign .admin-menu-label {
+    display: none;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 40px;
+    justify-content: center;
+    gap: 7px;
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #61747b;
+    padding: 0 15px;
+    text-align: center;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button::after {
+    content: "";
+    position: absolute;
+    right: 13px;
+    bottom: 0;
+    left: 13px;
+    height: 2px;
+    border-radius: 2px;
+    background: transparent;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button svg {
+    color: #7c8e94;
+    font-size: 17px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button:hover,
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active {
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active::after {
+    background: var(--accent);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active svg {
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace {
+    max-width: none;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 24px clamp(20px, 4vw, 36px) 48px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace > * {
+    width: min(100%, 1080px);
+    margin-inline: auto;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "breadcrumb return"
+      "heading return";
+    align-items: center;
+    gap: 6px 16px;
+    margin-bottom: 18px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-breadcrumb {
+    grid-area: breadcrumb;
+    display: flex;
+    gap: 6px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-heading {
+    grid-area: heading;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-heading > strong {
+    font-size: 23px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-dashboard-return {
+    grid-area: return;
+  }
+}
+
+/* Mobile: compact brand bar, icon actions, and scrollable primary tabs. */
+@media (max-width: 719px) {
+  .app-shell.admin-shell {
+    --admin-header-height: 58px;
+    display: block;
+  }
+
+  .app-shell.admin-shell .app-shell-head {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    min-height: var(--admin-header-height);
+    padding: 0 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap h1 {
+    font-size: 17px;
+  }
+
+  .app-shell.admin-shell .app-shell-title-wrap p,
+  .app-shell.admin-shell .app-shell-actions button span {
+    display: none;
+  }
+
+  .app-shell.admin-shell .app-shell-actions {
+    gap: 5px;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
+  .app-shell.admin-shell .app-shell-actions button svg {
+    font-size: 17px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-layout {
+    display: block;
+    min-height: 0;
+    height: auto;
+    grid-template-columns: none;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-shell {
+    position: sticky;
+    top: var(--admin-header-height);
+    z-index: 50;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    display: block;
+    margin: 0;
+    padding: 7px 10px;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--admin-line);
+    border-radius: 0;
+    background: rgba(255, 254, 250, 0.98);
+    box-shadow: none;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-menu-head,
+  .app-shell.admin-shell .admin-redesign .admin-menu-label {
+    display: none;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 36px;
+    justify-content: center;
+    gap: 5px;
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #65777e;
+    padding: 0 10px;
+    text-align: center;
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    left: 8px;
+    height: 2px;
+    border-radius: 2px;
+    background: transparent;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button svg {
+    color: #809197;
+    font-size: 15px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active {
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active::after {
+    background: var(--accent);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-tabs button.is-active svg {
+    color: var(--ink);
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace {
+    max-width: none;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 16px 10px 36px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-workspace-head {
+    display: flex;
+    min-height: 0;
+    margin: 0 0 8px;
+    justify-content: flex-end;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-workspace-head:not(.has-dashboard-return) {
+    display: none;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-workspace-head
+    .admin-breadcrumb,
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-workspace-head
+    .admin-workspace-heading {
+    display: none;
+  }
+}

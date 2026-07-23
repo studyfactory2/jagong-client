@@ -38,7 +38,8 @@
   font-weight: 700;
 }
 
-@media (min-width: 980px) {
+/* Legacy desktop presentation is constrained to the desktop breakpoint. */
+@media (min-width: 1200px) {
   .app-shell.admin-shell {
     width: 100%;
     max-width: none;
@@ -419,7 +420,7 @@
   --admin-sidebar-width: 236px;
 }
 
-@media (min-width: 980px) {
+@media (min-width: 1200px) {
   .app-shell.admin-shell {
     grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
     grid-template-rows: 64px minmax(0, 1fr);
