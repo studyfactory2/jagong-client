@@ -5,5 +5,5 @@ export const BUSINESS_INFORMATION = {
   address: "부산광역시 남구 남동천로 128 BIFC 705",
   registrationNumber: "290-03-03732",
   phoneDisplay: "051 636 5134",
-  phoneHref: "+821065635134",
+  phoneHref: "0516365134",
 } as const;
