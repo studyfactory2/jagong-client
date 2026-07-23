@@ -811,7 +811,6 @@
   gap: 8px;
 }
 
-.attendance-option-grid,
 .attendance-reason-grid,
 .attendance-weekday-grid {
   display: grid;
@@ -827,7 +826,6 @@
   gap: 5px;
 }
 
-.attendance-option-grid button,
 .attendance-reason-grid button,
 .attendance-weekday-grid button,
 .attendance-select-all {
@@ -840,7 +838,6 @@
   font-weight: 900;
 }
 
-.attendance-option-grid button.is-active,
 .attendance-reason-grid button.is-active,
 .attendance-weekday-grid button.is-active {
   border-color: #61a8d1 !important;

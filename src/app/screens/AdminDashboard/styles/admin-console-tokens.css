@@ -9,6 +9,7 @@
   --admin-line: rgba(20, 63, 86, 0.13);
   --admin-line-strong: rgba(20, 63, 86, 0.22);
   --admin-shadow: 0 12px 30px rgba(20, 63, 86, 0.055);
+  --admin-soft-shadow: 0 14px 34px rgba(20, 63, 86, 0.055);
   --admin-header-height: 64px;
   --admin-sidebar-width: 224px;
   --admin-content-max: 1440px;

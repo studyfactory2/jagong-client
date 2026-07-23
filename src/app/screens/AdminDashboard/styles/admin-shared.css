@@ -1,0 +1,69 @@
+/* Shared Admin primitives used by more than one current workspace. */
+.app-shell.admin-shell .admin-redesign .admin-card {
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  background: var(--admin-panel);
+  box-shadow: var(--admin-shadow);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-error,
+.app-shell.admin-shell .admin-redesign .admin-loading,
+.app-shell.admin-shell .admin-redesign .admin-empty {
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-list-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-list-pager button {
+  min-height: 34px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-list-pager button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-list-pager > span {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-inline-error {
+  margin: 0;
+  border: 1px solid #f3bbb5;
+  border-radius: 10px;
+  background: #fff4f2;
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .app-shell-actions .admin-refresh svg,
+.app-shell.admin-shell .app-shell-actions .admin-logout svg {
+  font-size: 18px;
+}

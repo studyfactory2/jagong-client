@@ -79,6 +79,8 @@
 
 .app-shell.admin-shell .admin-redesign .admin-camera-search {
   grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
   margin: 0;
   border: 0;
   border-top: 1px solid var(--admin-line, var(--line));
@@ -88,9 +90,28 @@
   padding: 13px 0 0;
 }
 
+.app-shell.admin-shell .admin-redesign .admin-camera-search > span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .app-shell.admin-shell .admin-redesign .admin-camera-search input {
+  width: 100%;
   min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-search input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.08);
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-grid,
@@ -108,6 +129,7 @@
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-tile {
+  appearance: none;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -117,6 +139,10 @@
   border-radius: 14px;
   background: var(--admin-panel, #fffefa);
   box-shadow: var(--admin-soft-shadow);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-tile.is-selected {
@@ -131,12 +157,31 @@
   .admin-redesign
   .admin-camera.is-study-time
   .admin-camera-video {
+  position: relative;
   min-height: 0;
   aspect-ratio: 16 / 9;
   border-radius: 0;
+  background:
+    linear-gradient(135deg, rgba(20, 63, 86, 0.92), rgba(63, 138, 91, 0.72)),
+    var(--ink);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--ink);
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-video > svg {
+  position: relative;
+  z-index: 1;
   font-size: clamp(30px, 4vw, 45px);
 }
 
@@ -144,25 +189,37 @@
   .admin-redesign
   .admin-camera-video
   > .admin-camera-video-name {
+  position: absolute;
+  z-index: 2;
   left: 8px;
   bottom: 8px;
   max-width: calc(100% - 70px);
+  overflow: hidden;
+  border-radius: 999px;
   background: rgba(255, 254, 250, 0.94);
   padding: 5px 8px;
   color: var(--ink);
   font-size: 11px;
+  font-weight: 900;
   line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell.admin-shell
   .admin-redesign
   .admin-camera-video
   > .admin-camera-video-state {
+  position: absolute;
+  z-index: 2;
   top: 8px;
   right: 8px;
+  border-radius: 999px;
   background: rgba(13, 53, 77, 0.82);
   padding: 5px 7px;
+  color: #ffffff;
   font-size: 9px;
+  font-weight: 900;
   line-height: 1;
 }
 
@@ -174,9 +231,45 @@
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-expand {
+  position: absolute;
+  z-index: 3;
   left: auto;
   right: 8px;
   bottom: 8px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.78);
+  color: #ffffff;
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-camera-video:hover
+  .admin-camera-expand,
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-camera-tile:focus-within
+  .admin-camera-expand {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-expand svg {
+  font-size: 15px;
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-meta {
@@ -213,29 +306,271 @@
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-meta dl {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+  margin: 0;
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-meta dl div {
   min-width: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 5px 6px;
 }
 
+.app-shell.admin-shell .admin-redesign .admin-camera-meta dt,
 .app-shell.admin-shell .admin-redesign .admin-camera-meta dd {
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.app-shell.admin-shell .admin-redesign .admin-camera-meta dt {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-meta dd {
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-live-status.is-connected {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-live-status.is-error {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-live-status.is-stub {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
 .app-shell.admin-shell .admin-redesign .admin-warning-panel {
   margin: 0;
-  border-color: var(--admin-line, var(--line));
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto minmax(180px, 1.1fr) auto;
+  align-items: end;
+  gap: 9px;
+  border: 1px solid var(--admin-line, var(--line));
+  border-radius: 14px;
   background: var(--admin-panel, #fffefa);
   box-shadow: var(--admin-soft-shadow);
+  padding: 10px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-panel strong {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-panel span,
+.app-shell.admin-shell .admin-redesign .admin-warning-panel label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-presets button,
+.app-shell.admin-shell .admin-redesign .admin-warning-send {
+  min-height: 34px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-panel label {
+  display: grid;
+  gap: 4px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-panel input {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-send:disabled,
+.app-shell.admin-shell .admin-redesign .admin-warning-presets button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-warning-send svg {
+  font-size: 16px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-live-error {
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-empty {
+  grid-column: 1 / -1;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-empty svg {
+  color: var(--ink);
+  font-size: 46px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-empty strong {
+  color: var(--ink);
 }
 
 .app-shell.admin-shell .admin-redesign .admin-camera-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-top: 0;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-pager button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-pager button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-pager span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 31, 40, 0.72);
+  padding: 24px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-card {
+  width: min(1040px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.28);
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-head {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 12px 14px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-head strong {
+  display: block;
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-head button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-head svg {
+  font-size: 18px;
+}
+
+.app-shell.admin-shell .admin-redesign .admin-camera-modal-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--ink);
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-camera-modal-video
+  .admin-camera-stream {
+  position: static;
+  display: block;
 }
 
 @media (min-width: 720px) {
@@ -305,5 +640,17 @@
 
   .app-shell.admin-shell .admin-redesign .admin-camera-meta-summary small {
     font-size: 9px;
+  }
+
+  .app-shell.admin-shell .admin-redesign .admin-camera-expand {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell.admin-shell .admin-redesign .admin-warning-panel {
+    grid-template-columns: 1fr;
   }
 }
