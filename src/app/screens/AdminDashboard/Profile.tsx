@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
@@ -57,6 +57,12 @@ function branchName(branches: Branch[], branchId?: string | null) {
   return branches.find((branch) => branch.id === branchId)?.name ?? "지점 없음";
 }
 
+function roleLabel(role?: string | null) {
+  if (role === "ADMIN") return "관리자";
+  if (role === "STAFF") return "직원";
+  return role ?? "계정";
+}
+
 function profileForm(user: AdminUser | null): ProfileForm {
   return {
     name: user?.name ?? "",
@@ -97,6 +103,18 @@ export default function Profile({
     saving || !form.name.trim() || passwordInvalid || passwordMismatch;
   const activeRegistrationTarget =
     registrationTarget ?? pendingRegistrationTarget ?? null;
+  const canManageRegistrations = Boolean(preRegister && staffForm);
+
+  useEffect(() => {
+    if (!activeRegistrationTarget) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setRegistrationTarget(null);
+      onRegistrationTargetHandled?.();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [activeRegistrationTarget, onRegistrationTargetHandled]);
 
   /** HANDLERS **/
   function update(field: keyof ProfileForm, value: string) {
@@ -141,64 +159,202 @@ export default function Profile({
 
   /** RENDER **/
   return (
-    <section className="admin-card admin-profile-card">
-      <div className="admin-section-head">
+    <section
+      className={`admin-profile-workspace${canManageRegistrations ? " has-operations" : ""}`}
+    >
+      <header className="admin-profile-workspace-head">
         <h2>
-          <AccountCircleOutlinedIcon /> 내 정보
+          <AccountCircleOutlinedIcon />
+          내 정보
         </h2>
-        <span>{user?.role ?? "계정"}</span>
-      </div>
+        <span>{roleLabel(user?.role)}</span>
+      </header>
 
-      <div className="admin-profile-summary">
-        <strong>{user?.name ?? "관리 계정"}</strong>
-        <span>{branchName(branches, user?.branchId)}</span>
-      </div>
-
-      {preRegister && staffForm && (
-        <section className="admin-profile-management">
-          <div className="admin-profile-management-head">
+      <div className="admin-profile-workspace-layout">
+        <section className="admin-profile-account-panel">
+          <div className="admin-profile-identity">
+            <span aria-hidden="true">
+              {(user?.name ?? "관").slice(0, 1)}
+            </span>
             <div>
-              <strong>운영 관리</strong>
-              <span>회원과 직원 등록을 바로 시작할 수 있습니다.</span>
+              <small>{roleLabel(user?.role)} 계정</small>
+              <strong>{user?.name ?? "관리 계정"}</strong>
+              <em>{branchName(branches, user?.branchId)}</em>
             </div>
           </div>
-          <div className="admin-profile-management-actions">
-            <button
-              aria-expanded={activeRegistrationTarget === "member"}
-              onClick={() => openRegistration("member")}
-              type="button"
-            >
-              <PersonAddAlt1OutlinedIcon />
-              <span>
-                <strong>회원 사전등록</strong>
-                <small>회원 정보와 지점을 먼저 연결</small>
-              </span>
-              <ArrowForwardIosOutlinedIcon />
-            </button>
-            <button
-              className="is-staff"
-              aria-expanded={activeRegistrationTarget === "staff"}
-              onClick={() => openRegistration("staff")}
-              type="button"
-            >
+
+          <section className="admin-profile-account-section">
+            <header>
+              <div>
+                <strong>계정 정보</strong>
+                <span>관리자 업무에 사용하는 기본 정보입니다.</span>
+              </div>
+            </header>
+            <div className="admin-profile-account-grid">
+              <label>
+                이름
+                <input
+                  value={form.name}
+                  onChange={(event) => update("name", event.target.value)}
+                />
+              </label>
+              <label>
+                연락처
+                <input
+                  value={form.phone}
+                  onChange={(event) => update("phone", event.target.value)}
+                />
+              </label>
+              <label>
+                거주지역
+                <input
+                  value={form.residenceArea}
+                  onChange={(event) =>
+                    update("residenceArea", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                자격증
+                <input
+                  value={form.examType}
+                  onChange={(event) =>
+                    update("examType", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                준비기간
+                <input
+                  value={form.prepDuration}
+                  onChange={(event) =>
+                    update("prepDuration", event.target.value)
+                  }
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="admin-profile-account-section is-security">
+            <header>
+              <div>
+                <strong>비밀번호 변경</strong>
+                <span>변경할 때만 새로운 4자리 비밀번호를 입력합니다.</span>
+              </div>
+            </header>
+            <div className="admin-profile-account-grid">
+              <label>
+                새 비밀번호 4자리
+                <input
+                  inputMode="numeric"
+                  maxLength={4}
+                  type="password"
+                  value={form.password}
+                  onChange={(event) => update("password", event.target.value)}
+                  placeholder="변경할 때만 입력"
+                />
+                {passwordInvalid && (
+                  <small className="admin-profile-workspace-hint is-error">
+                    비밀번호는 4자리로 입력해주세요.
+                  </small>
+                )}
+              </label>
+              <label>
+                새 비밀번호 확인
+                <input
+                  inputMode="numeric"
+                  maxLength={4}
+                  type="password"
+                  value={form.passwordConfirm}
+                  onChange={(event) =>
+                    update("passwordConfirm", event.target.value)
+                  }
+                  placeholder="한 번 더 입력"
+                />
+                {passwordMismatch && (
+                  <small className="admin-profile-workspace-hint is-error">
+                    비밀번호 확인이 일치하지 않습니다.
+                  </small>
+                )}
+              </label>
+            </div>
+          </section>
+
+          <button
+            className="admin-profile-account-save"
+            disabled={cannotSave}
+            onClick={save}
+            type="button"
+          >
+            {saving ? "저장 중..." : "내 정보 저장"}
+          </button>
+        </section>
+
+        {preRegister && staffForm && (
+          <aside className="admin-profile-operations-panel">
+            <header>
+              <div>
+                <strong>운영 관리</strong>
+                <span>회원과 직원을 빠르게 등록합니다.</span>
+              </div>
+            </header>
+
+            <div className="admin-profile-operation-actions">
+              <button
+                aria-expanded={activeRegistrationTarget === "member"}
+                onClick={() => openRegistration("member")}
+                type="button"
+              >
+                <PersonAddAlt1OutlinedIcon />
+                <span>
+                  <strong>회원 사전등록</strong>
+                  <small>회원 정보와 지점을 먼저 연결</small>
+                </span>
+                <ArrowForwardIosOutlinedIcon />
+              </button>
+              <button
+                className="is-staff"
+                aria-expanded={activeRegistrationTarget === "staff"}
+                onClick={() => openRegistration("staff")}
+                type="button"
+              >
+                <BadgeOutlinedIcon />
+                <span>
+                  <strong>직원 등록</strong>
+                  <small>캠과 문의 업무 담당자 추가</small>
+                </span>
+                <ArrowForwardIosOutlinedIcon />
+              </button>
+            </div>
+
+            <div className="admin-profile-operation-note">
               <BadgeOutlinedIcon />
               <span>
-                <strong>직원 등록</strong>
-                <small>캠과 문의 업무 담당자 추가</small>
+                <strong>직원 권한</strong>
+                <small>등록된 직원은 캠 모니터와 문의 답변을 담당합니다.</small>
               </span>
-              <ArrowForwardIosOutlinedIcon />
-            </button>
-          </div>
-        </section>
+            </div>
+          </aside>
+        )}
+      </div>
+
+      {!!activeRegistrationTarget && (
+        <button
+          aria-label="등록 화면 닫기"
+          className="admin-profile-registration-backdrop"
+          onClick={closeRegistration}
+          type="button"
+        />
       )}
 
       {preRegister &&
         onPreRegisterChange &&
         onPreRegisterSubmit &&
         activeRegistrationTarget === "member" && (
-          <section className="admin-profile-registration">
-            <div className="admin-profile-registration-head">
+          <aside className="admin-profile-registration-sheet is-member">
+            <div className="admin-profile-registration-sheet-head">
               <div>
+                <small>운영 관리</small>
                 <strong>회원 사전등록</strong>
                 <span>상담 후 회원 정보와 지점을 먼저 연결합니다.</span>
               </div>
@@ -211,7 +367,7 @@ export default function Profile({
               </button>
             </div>
 
-            <div className="admin-profile-registration-grid">
+            <div className="admin-profile-registration-sheet-grid">
               <label>
                 이름
                 <input
@@ -288,7 +444,7 @@ export default function Profile({
                   placeholder="예) 6개월"
                 />
               </label>
-              <label className="admin-profile-registration-wide">
+              <label className="is-wide">
                 메모
                 <input
                   value={preRegister.notes}
@@ -301,24 +457,25 @@ export default function Profile({
             </div>
 
             <button
-              className="admin-profile-registration-submit"
+              className="admin-profile-registration-sheet-submit"
               onClick={onPreRegisterSubmit}
               type="button"
             >
               사전등록 저장
             </button>
-          </section>
+          </aside>
         )}
 
       {staffForm &&
         onStaffChange &&
         onStaffSubmit &&
         activeRegistrationTarget === "staff" && (
-          <section className="admin-profile-registration is-staff">
-            <div className="admin-profile-registration-head">
+          <aside className="admin-profile-registration-sheet is-staff">
+            <div className="admin-profile-registration-sheet-head">
               <div>
+                <small>운영 관리</small>
                 <strong>직원 등록</strong>
-                <span>직원은 캠 모니터와 문의 답변만 사용할 수 있습니다.</span>
+                <span>캠과 문의 업무를 담당할 직원을 등록합니다.</span>
               </div>
               <button
                 aria-label="직원 등록 닫기"
@@ -329,7 +486,7 @@ export default function Profile({
               </button>
             </div>
 
-            <div className="admin-profile-registration-grid">
+            <div className="admin-profile-registration-sheet-grid">
               <label>
                 이름
                 <input
@@ -380,93 +537,14 @@ export default function Profile({
             </div>
 
             <button
-              className="admin-profile-registration-submit"
+              className="admin-profile-registration-sheet-submit"
               onClick={onStaffSubmit}
               type="button"
             >
               직원 등록
             </button>
-          </section>
+          </aside>
         )}
-
-      <div className="admin-profile-grid">
-        <label>
-          이름
-          <input
-            value={form.name}
-            onChange={(event) => update("name", event.target.value)}
-          />
-        </label>
-        <label>
-          연락처
-          <input
-            value={form.phone}
-            onChange={(event) => update("phone", event.target.value)}
-          />
-        </label>
-        <label>
-          거주지역
-          <input
-            value={form.residenceArea}
-            onChange={(event) => update("residenceArea", event.target.value)}
-          />
-        </label>
-        <label>
-          자격증
-          <input
-            value={form.examType}
-            onChange={(event) => update("examType", event.target.value)}
-          />
-        </label>
-        <label>
-          준비기간
-          <input
-            value={form.prepDuration}
-            onChange={(event) => update("prepDuration", event.target.value)}
-          />
-        </label>
-        <label>
-          새 비밀번호 4자리
-          <input
-            inputMode="numeric"
-            maxLength={4}
-            type="password"
-            value={form.password}
-            onChange={(event) => update("password", event.target.value)}
-            placeholder="변경할 때만 입력"
-          />
-          {passwordInvalid && (
-            <small className="admin-profile-hint is-error">
-              비밀번호는 4자리로 입력해주세요.
-            </small>
-          )}
-        </label>
-        <label>
-          새 비밀번호 확인
-          <input
-            inputMode="numeric"
-            maxLength={4}
-            type="password"
-            value={form.passwordConfirm}
-            onChange={(event) => update("passwordConfirm", event.target.value)}
-            placeholder="한 번 더 입력"
-          />
-          {passwordMismatch && (
-            <small className="admin-profile-hint is-error">
-              비밀번호 확인이 일치하지 않습니다.
-            </small>
-          )}
-        </label>
-      </div>
-
-      <button
-        className="admin-profile-save"
-        disabled={cannotSave}
-        onClick={save}
-        type="button"
-      >
-        {saving ? "저장중" : "내 정보 저장"}
-      </button>
     </section>
   );
 }
