@@ -220,6 +220,7 @@ export default function AdminDashboard() {
           page: pages.users,
           limit: 12,
           text: debouncedSearch.users,
+          role: "MEMBER",
         }),
         getBranches(),
         getTimetable(),

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import type { AdminUser, Branch, PageMeta } from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import { dDayText, userDetail } from "./admin.utils";
@@ -29,36 +31,68 @@ function branchLabel(branches: Branch[], branchId?: string) {
   return branch ? branch.name : "알 수 없는 지점";
 }
 
-export default function Members(props: MembersProps) {
-  const {
-    users,
-    branches,
-    searchText,
-    onSearchChange,
-    onUserUpdate,
-    pageMeta,
-    onPageChange,
-  } = props;
+function memberEditForm(user: AdminUser): MemberEditForm {
+  return {
+    phone: user.phone ?? "",
+    residenceArea: user.residenceArea ?? "",
+    age: user.age ? String(user.age) : "",
+    examType: user.examType ?? "",
+    prepDuration: user.prepDuration ?? "",
+    notes: user.notes ?? "",
+    isActive: Boolean(user.isActive),
+  };
+}
 
+export default function Members({
+  users,
+  branches,
+  searchText,
+  onSearchChange,
+  onUserUpdate,
+  pageMeta,
+  onPageChange,
+}: MembersProps) {
+  const [selectedId, setSelectedId] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editingId, setEditingId] = useState("");
   const [editForm, setEditForm] = useState<MemberEditForm | null>(null);
   const [savingId, setSavingId] = useState("");
-  const [selectedId, setSelectedId] = useState("");
   const members = users.filter((user) => user.role === "MEMBER");
   const selectedUser =
-    members.find((user) => user.id === selectedId) ?? members[0] ?? null;
+    members.find((user) => user.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!detailOpen) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setDetailOpen(false);
+      setSelectedId("");
+      setEditingId("");
+      setEditForm(null);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [detailOpen]);
+
+  function resetSelection() {
+    setDetailOpen(false);
+    setSelectedId("");
+    setEditingId("");
+    setEditForm(null);
+  }
+
+  function selectMember(user: AdminUser) {
+    setSelectedId(user.id);
+    setDetailOpen(true);
+    setEditingId("");
+    setEditForm(null);
+  }
 
   function startEdit(user: AdminUser) {
     setEditingId(user.id);
-    setEditForm({
-      phone: user.phone ?? "",
-      residenceArea: user.residenceArea ?? "",
-      age: user.age ? String(user.age) : "",
-      examType: user.examType ?? "",
-      prepDuration: user.prepDuration ?? "",
-      notes: user.notes ?? "",
-      isActive: Boolean(user.isActive),
-    });
+    setEditForm(memberEditForm(user));
   }
 
   function updateEdit(field: keyof MemberEditForm, value: string | boolean) {
@@ -87,10 +121,23 @@ export default function Members(props: MembersProps) {
     }
   }
 
+  function changeSearch(value: string) {
+    resetSelection();
+    onSearchChange(value);
+  }
+
+  function changePage(page: number) {
+    resetSelection();
+    onPageChange(page);
+  }
+
   return (
     <section className="admin-card admin-member-directory">
       <div className="admin-member-directory-head">
-        <h2>회원 관리</h2>
+        <div>
+          <h2>회원 관리</h2>
+          <p>회원 정보와 이용권 상태를 빠르게 확인하고 수정합니다.</p>
+        </div>
         <span>{pageMeta.total}명</span>
       </div>
 
@@ -98,7 +145,7 @@ export default function Members(props: MembersProps) {
         <span>회원 검색</span>
         <input
           value={searchText}
-          onChange={(event) => onSearchChange(event.target.value)}
+          onChange={(event) => changeSearch(event.target.value)}
           placeholder="이름, 연락처, 자격증, 지역 검색"
         />
       </label>
@@ -116,196 +163,256 @@ export default function Members(props: MembersProps) {
               <span>상태</span>
               <span />
             </div>
-            {members.length === 0 && (
+
+            {members.length === 0 ? (
               <div className="admin-member-directory-empty">
                 등록된 회원이 없습니다.
               </div>
-            )}
-            {members.map((user) => (
-              <button
-                className={`admin-member-directory-row${selectedUser?.id === user.id ? " is-selected" : ""}`}
-                key={user.id}
-                onClick={() => {
-                  setSelectedId(user.id);
-                  setEditingId("");
-                  setEditForm(null);
-                }}
-                type="button"
-              >
-                <span className="admin-member-directory-main">
+            ) : (
+              members.map((user) => (
+                <button
+                  aria-pressed={selectedUser?.id === user.id}
+                  className={`admin-member-directory-row${
+                    selectedUser?.id === user.id ? " is-selected" : ""
+                  }`}
+                  key={user.id}
+                  onClick={() => selectMember(user)}
+                  type="button"
+                >
+                  <span className="admin-member-directory-main">
+                    <span
+                      className="admin-member-directory-avatar"
+                      aria-hidden="true"
+                    >
+                      {user.name.slice(0, 1)}
+                    </span>
+                    <span className="admin-member-directory-identity">
+                      <strong>{user.name}</strong>
+                      <small>{branchLabel(branches, user.branchId)}</small>
+                    </span>
+                  </span>
+                  <span className="admin-member-directory-plan">
+                    {userDetail(user.prepDuration)}
+                  </span>
+                  <span className="admin-member-directory-expiry">
+                    {dDayText(user.membershipEnd)}
+                  </span>
+                  <em className={user.isActive ? "is-active" : "is-pending"}>
+                    {user.isActive ? "활성" : "대기"}
+                  </em>
                   <span
-                    className="admin-member-directory-avatar"
+                    className="admin-member-directory-chevron"
                     aria-hidden="true"
                   >
-                    {user.name.slice(0, 1)}
+                    ›
                   </span>
-                  <span className="admin-member-directory-identity">
-                    <strong>{user.name}</strong>
-                    <small>{branchLabel(branches, user.branchId)}</small>
-                  </span>
-                </span>
-                <span className="admin-member-directory-plan">
-                  {userDetail(user.prepDuration)}
-                </span>
-                <span className="admin-member-directory-expiry">
-                  {dDayText(user.membershipEnd)}
-                </span>
-                <em className={user.isActive ? "is-active" : "is-pending"}>
-                  {user.isActive ? "활성" : "대기"}
-                </em>
-                <span
-                  className="admin-member-directory-chevron"
-                  aria-hidden="true"
-                >
-                  ›
-                </span>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
-          <AdminPager meta={pageMeta} onPageChange={onPageChange} />
+
+          <AdminPager
+            meta={pageMeta}
+            numbered
+            onPageChange={changePage}
+          />
         </div>
 
-        {selectedUser && (
-          <aside className="admin-member-directory-detail">
-            <div className="admin-member-directory-detail-head">
-              <div>
-                <span
-                  className="admin-member-directory-avatar"
-                  aria-hidden="true"
-                >
-                  {selectedUser.name.slice(0, 1)}
-                </span>
-                <div>
-                  <strong>{selectedUser.name}</strong>
-                  <span>{branchLabel(branches, selectedUser.branchId)}</span>
-                </div>
-              </div>
-              <em
-                className={selectedUser.isActive ? "is-active" : "is-pending"}
-              >
-                {selectedUser.isActive ? "활성" : "대기"}
-              </em>
-            </div>
+        <div
+          className={`admin-member-directory-detail-layer${
+            detailOpen ? " is-open" : ""
+          }`}
+        >
+          <button
+            aria-label="회원 상세 닫기"
+            className="admin-member-directory-backdrop"
+            onClick={resetSelection}
+            type="button"
+          />
 
-            {editingId === selectedUser.id && editForm ? (
-              <div className="admin-member-directory-edit">
-                <label>
-                  연락처
-                  <input
-                    value={editForm.phone}
-                    onChange={(event) =>
-                      updateEdit("phone", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  거주지역
-                  <input
-                    value={editForm.residenceArea}
-                    onChange={(event) =>
-                      updateEdit("residenceArea", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  나이
-                  <input
-                    inputMode="numeric"
-                    value={editForm.age}
-                    onChange={(event) => updateEdit("age", event.target.value)}
-                  />
-                </label>
-                <label>
-                  자격증
-                  <input
-                    value={editForm.examType}
-                    onChange={(event) =>
-                      updateEdit("examType", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  준비기간
-                  <input
-                    value={editForm.prepDuration}
-                    onChange={(event) =>
-                      updateEdit("prepDuration", event.target.value)
-                    }
-                  />
-                </label>
-                <label className="admin-member-directory-edit-note">
-                  메모
-                  <input
-                    value={editForm.notes}
-                    onChange={(event) =>
-                      updateEdit("notes", event.target.value)
-                    }
-                  />
-                </label>
-                <label className="admin-member-directory-check">
-                  <input
-                    checked={editForm.isActive}
-                    onChange={(event) =>
-                      updateEdit("isActive", event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  활성 회원
-                </label>
-                <div className="admin-member-directory-actions">
-                  <button
-                    disabled={savingId === selectedUser.id}
-                    onClick={() => saveEdit(selectedUser.id)}
-                    type="button"
-                  >
-                    {savingId === selectedUser.id ? "저장중" : "저장"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingId("");
-                      setEditForm(null);
-                    }}
-                    type="button"
-                  >
-                    취소
-                  </button>
-                </div>
+          <aside
+            aria-label="선택 회원 상세"
+            className="admin-member-directory-detail"
+          >
+            <span
+              className="admin-member-directory-sheet-handle"
+              aria-hidden="true"
+            />
+
+            {!selectedUser ? (
+              <div className="admin-member-directory-placeholder">
+                <PersonSearchOutlinedIcon />
+                <strong>회원을 선택해 주세요</strong>
+                <span>
+                  목록에서 회원을 선택하면 상세 정보와 수정 메뉴가 표시됩니다.
+                </span>
               </div>
             ) : (
               <>
-                <dl className="admin-member-directory-fields">
+                <header className="admin-member-directory-detail-head">
                   <div>
-                    <dt>나이</dt>
-                    <dd>{userDetail(selectedUser.age)}</dd>
+                    <span
+                      className="admin-member-directory-avatar"
+                      aria-hidden="true"
+                    >
+                      {selectedUser.name.slice(0, 1)}
+                    </span>
+                    <div>
+                      <small>선택 회원</small>
+                      <strong>{selectedUser.name}</strong>
+                      <span>
+                        {branchLabel(branches, selectedUser.branchId)}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <dt>거주지역</dt>
-                    <dd>{userDetail(selectedUser.residenceArea)}</dd>
+                  <div className="admin-member-directory-detail-controls">
+                    <em
+                      className={
+                        selectedUser.isActive ? "is-active" : "is-pending"
+                      }
+                    >
+                      {selectedUser.isActive ? "활성" : "대기"}
+                    </em>
+                    <button
+                      aria-label="회원 상세 닫기"
+                      onClick={resetSelection}
+                      type="button"
+                    >
+                      <CloseOutlinedIcon />
+                    </button>
                   </div>
-                  <div>
-                    <dt>자격증</dt>
-                    <dd>{userDetail(selectedUser.examType)}</dd>
-                  </div>
-                  <div>
-                    <dt>준비기간</dt>
-                    <dd>{userDetail(selectedUser.prepDuration)}</dd>
-                  </div>
-                  <div>
-                    <dt>이용권</dt>
-                    <dd>{dDayText(selectedUser.membershipEnd)}</dd>
-                  </div>
-                </dl>
-                <button
-                  className="admin-member-directory-edit-button"
-                  onClick={() => startEdit(selectedUser)}
-                  type="button"
-                >
-                  회원 정보 수정
-                </button>
+                </header>
+
+                <div className="admin-member-directory-detail-body">
+                  {editingId === selectedUser.id && editForm ? (
+                    <div className="admin-member-directory-edit">
+                      <label>
+                        연락처
+                        <input
+                          value={editForm.phone}
+                          onChange={(event) =>
+                            updateEdit("phone", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        거주지역
+                        <input
+                          value={editForm.residenceArea}
+                          onChange={(event) =>
+                            updateEdit("residenceArea", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        나이
+                        <input
+                          inputMode="numeric"
+                          value={editForm.age}
+                          onChange={(event) =>
+                            updateEdit("age", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        자격증
+                        <input
+                          value={editForm.examType}
+                          onChange={(event) =>
+                            updateEdit("examType", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        준비기간
+                        <input
+                          value={editForm.prepDuration}
+                          onChange={(event) =>
+                            updateEdit("prepDuration", event.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="admin-member-directory-edit-note">
+                        메모
+                        <textarea
+                          value={editForm.notes}
+                          onChange={(event) =>
+                            updateEdit("notes", event.target.value)
+                          }
+                          placeholder="관리자 메모를 입력하세요."
+                        />
+                      </label>
+                      <label className="admin-member-directory-check">
+                        <input
+                          checked={editForm.isActive}
+                          onChange={(event) =>
+                            updateEdit("isActive", event.target.checked)
+                          }
+                          type="checkbox"
+                        />
+                        활성 회원
+                      </label>
+                    </div>
+                  ) : (
+                    <dl className="admin-member-directory-fields">
+                      <div>
+                        <dt>나이</dt>
+                        <dd>{userDetail(selectedUser.age)}</dd>
+                      </div>
+                      <div>
+                        <dt>거주지역</dt>
+                        <dd>{userDetail(selectedUser.residenceArea)}</dd>
+                      </div>
+                      <div>
+                        <dt>자격증</dt>
+                        <dd>{userDetail(selectedUser.examType)}</dd>
+                      </div>
+                      <div>
+                        <dt>준비기간</dt>
+                        <dd>{userDetail(selectedUser.prepDuration)}</dd>
+                      </div>
+                      <div>
+                        <dt>이용권 만료</dt>
+                        <dd>{dDayText(selectedUser.membershipEnd)}</dd>
+                      </div>
+                    </dl>
+                  )}
+                </div>
+
+                <footer className="admin-member-directory-actions">
+                  {editingId === selectedUser.id && editForm ? (
+                    <>
+                      <button
+                        disabled={savingId === selectedUser.id}
+                        onClick={() => saveEdit(selectedUser.id)}
+                        type="button"
+                      >
+                        {savingId === selectedUser.id ? "저장중" : "변경 저장"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId("");
+                          setEditForm(null);
+                        }}
+                        type="button"
+                      >
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="admin-member-directory-edit-button"
+                      onClick={() => startEdit(selectedUser)}
+                      type="button"
+                    >
+                      회원 정보 수정
+                    </button>
+                  )}
+                </footer>
               </>
             )}
           </aside>
-        )}
+        </div>
       </div>
     </section>
   );
