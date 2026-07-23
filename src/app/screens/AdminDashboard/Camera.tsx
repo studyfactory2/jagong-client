@@ -338,8 +338,8 @@ export default function Camera({
         "admin-camera" + (isStudyTime ? " is-study-time" : " is-info-time")
       }
     >
-      <div className="admin-camera-head">
-        <div>
+      <header className="admin-camera-head">
+        <div className="admin-camera-heading">
           <h2>
             <VideocamOutlinedIcon /> 실시간 작업장 모니터
           </h2>
@@ -356,90 +356,92 @@ export default function Camera({
           </span>
           <span>{modeText}</span>
           <span>
-            <i /> {workingCount}명 근무중
+            <i /> {workingCount}/{tiles.length}명 접속
           </span>
-          <span>{tiles.length - workingCount}명 대기/미입장</span>
         </div>
-      </div>
 
-      <label className="admin-search admin-camera-search">
-        <span>캠 회원 검색</span>
-        <input
-          value={searchText}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="이름, 연락처, 자격증, 지역 검색"
-        />
-      </label>
+        <label className="admin-search admin-camera-search">
+          <span>캠 회원 검색</span>
+          <input
+            value={searchText}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="이름, 연락처, 자격증, 지역 검색"
+          />
+        </label>
+      </header>
 
       <div className="admin-camera-grid">
-        {visibleTiles.map((tile, index) => (
-          <article
-            className={
-              "admin-camera-tile" +
-              (selectedTile?.id === tile.id ? " is-selected" : "")
-            }
-            key={tile.id}
-            onClick={() => setSelectedId(tile.id)}
-          >
-            <div className="admin-camera-video">
-              {videoForUser(tile.id) ? (
-                <LiveVideo track={videoForUser(tile.id)!.track} />
-              ) : (
-                <PersonRoundedIcon />
-              )}
-              <strong>{tile.name}</strong>
-              <span className={tile.status === "working" ? "is-live" : ""}>
-                {videoForUser(tile.id)
-                  ? "LIVE"
-                  : tile.status === "working"
-                    ? "입장"
-                    : "OFF"}
-              </span>
-              {videoForUser(tile.id) && (
-                <button
-                  className="admin-camera-expand"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedId(tile.id);
-                    setExpandedId(tile.id);
-                  }}
-                  type="button"
-                >
-                  <OpenInFullOutlinedIcon /> 크게보기
-                </button>
-              )}
-            </div>
+        {visibleTiles.map((tile, index) => {
+          const video = videoForUser(tile.id);
+          const isWorking = tile.status === "working";
 
-            {!isStudyTime && (
-              <div className="admin-camera-meta">
-                <div className="admin-camera-title">
-                  <strong>{tile.name}</strong>
-                  <em>{dDayText(tile.membershipEnd)}</em>
-                </div>
-                <span>
-                  {tile.status === "working"
-                    ? String(tile.slot ?? "-") + "교시 입장중"
-                    : "미입장"}
+          return (
+            <article
+              className={
+                "admin-camera-tile" +
+                (selectedTile?.id === tile.id ? " is-selected" : "")
+              }
+              key={tile.id}
+              onClick={() => setSelectedId(tile.id)}
+            >
+              <div className="admin-camera-video">
+                {video ? (
+                  <LiveVideo track={video.track} />
+                ) : (
+                  <PersonRoundedIcon />
+                )}
+                <strong className="admin-camera-video-name">{tile.name}</strong>
+                <span
+                  className={
+                    "admin-camera-video-state" + (isWorking ? " is-live" : "")
+                  }
+                >
+                  {video ? "LIVE" : isWorking ? "입장" : "OFF"}
                 </span>
-                <small>
-                  {tile.joinedAt
-                    ? dateText(tile.joinedAt)
-                    : "자리 " + String(index + 1)}
-                </small>
-                <dl>
-                  <div>
-                    <dt>나이</dt>
-                    <dd>{userDetail(tile.age)}</dd>
-                  </div>
-                  <div>
-                    <dt>결제</dt>
-                    <dd>{dDayText(tile.membershipEnd)}</dd>
-                  </div>
-                </dl>
+                {video && (
+                  <button
+                    className="admin-camera-expand"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedId(tile.id);
+                      setExpandedId(tile.id);
+                    }}
+                    type="button"
+                  >
+                    <OpenInFullOutlinedIcon /> 크게보기
+                  </button>
+                )}
               </div>
-            )}
-          </article>
-        ))}
+
+              {!isStudyTime && (
+                <div className="admin-camera-meta">
+                  <div className="admin-camera-meta-summary">
+                    <span>
+                      {isWorking
+                        ? String(tile.slot ?? "-") + "교시 입장중"
+                        : "미입장"}
+                    </span>
+                    <small>
+                      {tile.joinedAt
+                        ? dateText(tile.joinedAt)
+                        : "자리 " + String(index + 1)}
+                    </small>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>나이</dt>
+                      <dd>{userDetail(tile.age)}</dd>
+                    </div>
+                    <div>
+                      <dt>이용권</dt>
+                      <dd>{dDayText(tile.membershipEnd)}</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+            </article>
+          );
+        })}
 
         {visibleTiles.length === 0 && (
           <div className="admin-camera-empty">

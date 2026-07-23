@@ -762,7 +762,7 @@ export default function AdminDashboard() {
           </aside>
 
           <main className="admin-workspace">
-            {activeTab !== "overview" && (
+            {activeTab !== "overview" && activeTab !== "camera" && (
               <div
                 className={`admin-workspace-head${
                   showDashboardReturn ? " has-dashboard-return" : ""
