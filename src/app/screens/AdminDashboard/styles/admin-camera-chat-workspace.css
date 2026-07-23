@@ -54,7 +54,6 @@
 
   .admin-camera-head,
   .admin-camera-search,
-  .admin-camera-alert-mark,
   .admin-camera-tools {
     border: 1px solid var(--admin-line);
     border-radius: 16px;
@@ -246,7 +245,6 @@
   .admin-search,
   .admin-camera-head,
   .admin-camera-search,
-  .admin-camera-alert-mark,
   .admin-camera-tools,
   .admin-chat-thread,
   .admin-chat-rooms {

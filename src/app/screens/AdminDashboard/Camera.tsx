@@ -3,7 +3,6 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NavigateBeforeOutlinedIcon from "@mui/icons-material/NavigateBeforeOutlined";
 import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -11,7 +10,6 @@ import OpenInFullOutlinedIcon from "@mui/icons-material/OpenInFullOutlined";
 import type { Room } from "livekit-client";
 import type {
   AdminUser,
-  CamAlertRecord,
   CamSessionRecord,
   TimetableSlot,
 } from "../../../lib/types";
@@ -20,13 +18,11 @@ import { dDayText, dateText, userDetail } from "./admin.utils";
 
 type CameraProps = {
   camSessions: CamSessionRecord[];
-  activeAlerts: CamAlertRecord[];
   timetable: TimetableSlot[];
   users: AdminUser[];
   searchText: string;
   onSearchChange: (value: string) => void;
   onWarn: (userId: string, message: string, type?: string) => Promise<void>;
-  onAcknowledgeAlert: (id: string) => Promise<void>;
 };
 
 type CameraTile = {
@@ -65,24 +61,6 @@ const WARNING_PRESETS = [
     message: "자리비움이 감지되었습니다. 자리로 돌아와 주세요.",
   },
 ];
-
-const ALERT_LABELS: Record<string, string> = {
-  FACE_MISSING: "얼굴 미감지",
-  CAMERA_OFF: "카메라 꺼짐",
-  AWAY: "자리비움",
-  LOOKING_AWAY: "시선 이탈",
-  MULTIPLE_PEOPLE: "다중 인원",
-};
-
-function alertLabel(type: string) {
-  return ALERT_LABELS[type] ?? type;
-}
-
-function alertStatusText(status: string) {
-  if (status === "RETURNED") return "복귀 확인 필요";
-  if (status === "ACKNOWLEDGED") return "확인 완료";
-  return "확인 필요";
-}
 
 function minutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
@@ -129,13 +107,11 @@ function LiveVideo({ track }: { track: RemoteVideoTrack }) {
 
 export default function Camera({
   camSessions,
-  activeAlerts,
   timetable,
   users,
   searchText,
   onSearchChange,
   onWarn,
-  onAcknowledgeAlert,
 }: CameraProps) {
   /** STATE **/
   const [page, setPage] = useState(1);
@@ -154,16 +130,6 @@ export default function Camera({
   /** DERIVED **/
   const activeSlot = useMemo(() => currentSlot(timetable), [timetable]);
   const isStudyTime = Boolean(activeSlot && !activeSlot.isBreak);
-  const alertsByUser = useMemo(() => {
-    const map = new Map<string, CamAlertRecord[]>();
-    activeAlerts.forEach((alert) => {
-      const userId = alert.camSession?.user?.id ?? alert.camSession?.userId;
-      if (!userId) return;
-      map.set(userId, [...(map.get(userId) ?? []), alert]);
-    });
-    return map;
-  }, [activeAlerts]);
-
   const tiles = useMemo<CameraTile[]>(() => {
     const liveByUser = new Map(
       camSessions
@@ -205,9 +171,6 @@ export default function Camera({
   );
   const selectedTile =
     tiles.find((tile) => tile.id === selectedId) ?? visibleTiles[0];
-  const selectedAlerts = selectedTile
-    ? (alertsByUser.get(selectedTile.id) ?? [])
-    : [];
   const expandedTile = tiles.find((tile) => tile.id === expandedId);
   const expandedVideo = expandedTile ? videoForUser(expandedTile.id) : null;
   const workingCount = tiles.filter((tile) => tile.status === "working").length;
@@ -408,57 +371,6 @@ export default function Camera({
         />
       </label>
 
-      <div
-        className={
-          "admin-smart-alerts" + (activeAlerts.length ? " has-alerts" : "")
-        }
-      >
-        <div className="admin-smart-alerts-head">
-          <strong>
-            <ReportProblemOutlinedIcon />
-            스마트 출석 알림
-          </strong>
-          <span>
-            {activeAlerts.length
-              ? `${activeAlerts.length}건 확인 대기`
-              : "현재 확인할 알림이 없습니다."}
-          </span>
-        </div>
-
-        {activeAlerts.length > 0 && (
-          <div className="admin-smart-alert-list">
-            {activeAlerts.slice(0, 4).map((alert) => {
-              const userName = alert.camSession?.user?.name ?? "회원";
-              return (
-                <article
-                  className={
-                    "admin-smart-alert" +
-                    (alert.status === "RETURNED" ? " is-returned" : "")
-                  }
-                  key={alert.id}
-                >
-                  <div>
-                    <strong>{userName}</strong>
-                    <span>{alertLabel(alert.alertType)}</span>
-                  </div>
-                  <em>{alertStatusText(alert.status)}</em>
-                  <small>
-                    {alert.duration ? `${alert.duration}초` : "방금 감지"} ·{" "}
-                    {dateText(alert.detectedAt)}
-                  </small>
-                  <button
-                    type="button"
-                    onClick={() => onAcknowledgeAlert(alert.id)}
-                  >
-                    확인
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <div className="admin-camera-grid">
         {visibleTiles.map((tile, index) => (
           <article
@@ -483,9 +395,6 @@ export default function Camera({
                     ? "입장"
                     : "OFF"}
               </span>
-              {alertsByUser.has(tile.id) && (
-                <em className="admin-camera-alert-mark">확인</em>
-              )}
               {videoForUser(tile.id) && (
                 <button
                   className="admin-camera-expand"
@@ -546,12 +455,6 @@ export default function Camera({
           <div>
             <strong>{selectedTile.name}님에게 알림</strong>
             <span>선택한 문구는 학생 화면에 바로 표시됩니다.</span>
-            {selectedAlerts.length > 0 && (
-              <small>
-                스마트 알림 {selectedAlerts.length}건 ·{" "}
-                {selectedAlerts.map((alert) => alertLabel(alert.alertType)).join(", ")}
-              </small>
-            )}
           </div>
           <div className="admin-warning-presets">
             {WARNING_PRESETS.map((preset) => (

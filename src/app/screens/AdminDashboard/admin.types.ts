@@ -1,6 +1,5 @@
 import type {
   AdminUser,
-  CamAlertRecord,
   CamSessionRecord,
   ChatRoom,
   ConsultationRecord,
@@ -28,7 +27,6 @@ export type AdminData = {
   leaves: LeaveRecord[];
   chats: ChatRoom[];
   camSessions: CamSessionRecord[];
-  camAlerts: CamAlertRecord[];
   notices: NoticeRecord[];
 };
 
@@ -88,7 +86,6 @@ export const emptyAdminData: AdminData = {
   leaves: [],
   chats: [],
   camSessions: [],
-  camAlerts: [],
   notices: [],
 };
 

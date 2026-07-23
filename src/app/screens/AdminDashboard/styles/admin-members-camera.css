@@ -419,10 +419,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .admin-smart-alert-list {
-    grid-template-columns: 1fr;
-  }
-
   .admin-warning-panel {
     grid-template-columns: 1fr;
   }

@@ -36,8 +36,6 @@ import {
 import { getAdminLeaves } from "../../services/leave.service";
 import { getAdminChatRooms } from "../../services/chat.service";
 import {
-  acknowledgeCamAlert,
-  getActiveCamAlerts,
   getCamSessions,
   warnStudent,
 } from "../../services/cam.service";
@@ -216,7 +214,6 @@ export default function AdminDashboard() {
         timetableData,
         chatsResult,
         camSessions,
-        camAlerts,
         me,
         allMembers,
         statsResult,
@@ -236,7 +233,6 @@ export default function AdminDashboard() {
           text: debouncedSearch.chats,
         }),
         getCamSessions(),
-        getActiveCamAlerts(),
         getMe(),
         getAllAdminMembers(),
         getAdminStats(),
@@ -280,7 +276,6 @@ export default function AdminDashboard() {
         leaves: leaves.list ?? [],
         chats: chatsResult.list,
         camSessions,
-        camAlerts,
         notices,
       });
       setPageMeta({
@@ -329,10 +324,9 @@ export default function AdminDashboard() {
   const refreshLiveData = useCallback(async () => {
     if (!allowed) return;
     try {
-      const [camSessions, camAlerts, chatsResult, statsResult] =
+      const [camSessions, chatsResult, statsResult] =
         await Promise.all([
           getCamSessions(),
-          getActiveCamAlerts(),
           getAdminChatRooms({
             page: pages.chats,
             limit: 12,
@@ -344,7 +338,6 @@ export default function AdminDashboard() {
       setData((current) => ({
         ...current,
         camSessions,
-        camAlerts,
         chats: chatsResult.list,
       }));
       setPageMeta((current) => ({ ...current, chats: chatsResult }));
@@ -370,17 +363,11 @@ export default function AdminDashboard() {
     const refreshCamera = () => refreshLiveData();
     socket.on("cam:join", refreshCamera);
     socket.on("cam:leave", refreshCamera);
-    socket.on("cam:alert", refreshCamera);
-    socket.on("cam:alert-returned", refreshCamera);
-    socket.on("cam:alert-acknowledged", refreshCamera);
     socket.on("cam:warning-sent", refreshCamera);
     socket.on("chat:room-updated", refreshCamera);
     return () => {
       socket.off("cam:join", refreshCamera);
       socket.off("cam:leave", refreshCamera);
-      socket.off("cam:alert", refreshCamera);
-      socket.off("cam:alert-returned", refreshCamera);
-      socket.off("cam:alert-acknowledged", refreshCamera);
       socket.off("cam:warning-sent", refreshCamera);
       socket.off("chat:room-updated", refreshCamera);
     };
@@ -690,13 +677,6 @@ export default function AdminDashboard() {
     }, "알림을 전송하지 못했습니다.");
   }
 
-  async function acknowledgeSmartAlert(id: string) {
-    await runAdminAction(async () => {
-      await acknowledgeCamAlert(id);
-      await refreshLiveData();
-    }, "스마트 출석 알림을 확인하지 못했습니다.");
-  }
-
   /** RENDER **/
   function handleLogout() {
     logout();
@@ -953,13 +933,11 @@ export default function AdminDashboard() {
             {activeTab === "camera" && (
               <Camera
                 camSessions={data.camSessions}
-                activeAlerts={data.camAlerts}
                 timetable={timetable}
                 users={data.allMembers}
                 searchText={search.camera}
                 onSearchChange={(value) => changeSearch("camera", value)}
                 onWarn={sendCamWarning}
-                onAcknowledgeAlert={acknowledgeSmartAlert}
               />
             )}
           </main>

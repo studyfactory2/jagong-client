@@ -422,33 +422,6 @@ export interface CamSessionRecord {
   user?: AdminUser;
 }
 
-export type CamAlertStatusName = "OPEN" | "RETURNED" | "ACKNOWLEDGED";
-
-export type CamAlertTypeName =
-  | "FACE_MISSING"
-  | "CAMERA_OFF"
-  | "AWAY"
-  | "LOOKING_AWAY"
-  | "MULTIPLE_PEOPLE"
-  | string;
-
-export interface CamAlertRecord {
-  id: string;
-  camSessionId: string;
-  alertType: CamAlertTypeName;
-  status: CamAlertStatusName | string;
-  slot?: number | null;
-  detectedAt: string;
-  duration: number;
-  returnedAt?: string | null;
-  acknowledgedAt?: string | null;
-  acknowledgedById?: string | null;
-  createdAt: string;
-  camSession?: CamSessionRecord & {
-    user?: Pick<AdminUser, "id" | "name" | "branchId"> | null;
-  };
-}
-
 export interface CamTokenDto {
   token: string;
   url: string;

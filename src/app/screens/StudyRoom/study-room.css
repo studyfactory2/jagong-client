@@ -971,66 +971,6 @@
   font-size: 12px;
 }
 
-.sr-smart-badge {
-  min-height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 254, 250, 0.94);
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 0 11px;
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-.sr-smart-badge span {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--muted);
-}
-
-.sr-smart-badge.is-checking {
-  border-color: var(--gold);
-  background: var(--gold-soft);
-  color: var(--ink);
-}
-
-.sr-smart-badge.is-checking span {
-  background: var(--gold);
-}
-
-.sr-smart-badge.is-ok {
-  border-color: var(--mint-line);
-  background: var(--mint-soft);
-  color: var(--mint-deep);
-}
-
-.sr-smart-badge.is-ok span {
-  background: var(--mint-deep);
-  box-shadow: 0 0 0 4px rgba(88, 164, 104, 0.14);
-}
-
-.sr-smart-badge.is-warning {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-}
-
-.sr-smart-badge.is-warning span {
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgba(244, 134, 120, 0.16);
-}
-
-.sr-smart-badge.is-unsupported {
-  border-color: rgba(20, 63, 86, 0.12);
-  background: #ffffff;
-}
-
 .sr-hint {
   border-radius: 14px;
   border-color: rgba(240, 210, 146, 0.85);
@@ -1296,12 +1236,6 @@
 
   .sr-live-footer {
     grid-template-columns: 1fr;
-  }
-
-  .sr-smart-badge {
-    width: 100%;
-    white-space: normal;
-    text-align: center;
   }
 
   .sr-bottom-status {
@@ -1578,8 +1512,7 @@
     padding-inline: 8px;
   }
 
-  .sr-live-footer .sr-live-badge,
-  .sr-smart-badge {
+  .sr-live-footer .sr-live-badge {
     width: 100%;
     min-height: 28px;
     padding: 0 8px;
@@ -1589,8 +1522,7 @@
     white-space: nowrap;
   }
 
-  .sr-live-dot,
-  .sr-smart-badge span {
+  .sr-live-dot {
     width: 7px;
     height: 7px;
   }
@@ -1789,8 +1721,7 @@
     grid-template-columns: 46px minmax(0, 1fr);
   }
 
-  .sr-live-footer .sr-live-badge,
-  .sr-smart-badge {
+  .sr-live-footer .sr-live-badge {
     min-height: 27px;
     font-size: 10px;
   }
