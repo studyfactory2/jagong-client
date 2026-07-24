@@ -8,12 +8,11 @@ import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
-import BlurOnRoundedIcon from "@mui/icons-material/BlurOnRounded";
-import FilterNoneRoundedIcon from "@mui/icons-material/FilterNoneRounded";
 import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
 import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
+import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import { syncCamAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
@@ -21,7 +20,6 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import {
   useWorkroomSession,
-  type CameraEffect,
   type RemoteVideo,
   type RemoteVideoTrack,
 } from "../../context/WorkroomSessionContext";
@@ -193,15 +191,9 @@ export default function StudyRoom() {
     localVideoTrack,
     devices,
     selectedDeviceId,
-    selectedEffect,
-    effectSupport,
-    effectLoading,
-    effectError,
     roomMembers,
     remoteVideos,
-    previewCamera,
     selectCamera,
-    selectCameraEffect,
     startSession,
     leaveSession,
     setVisibleRemoteUserIds,
@@ -217,7 +209,6 @@ export default function StudyRoom() {
   const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
     getScheduleSoundEnabled,
   );
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
   const syncedAttendanceSlotRef = useRef<number | null>(null);
   const bellTimerRef = useRef<number | null>(null);
@@ -309,16 +300,6 @@ export default function StudyRoom() {
       localVideoTrack.detach(element);
     };
   }, [cameraReady, joined, localVideoTrack]);
-
-  useEffect(() => {
-    const element = videoRef.current;
-    if (!element || !localVideoTrack) return;
-    localVideoTrack.attach(element);
-    void element.play().catch(() => undefined);
-    return () => {
-      localVideoTrack.detach(element);
-    };
-  }, [localVideoTrack]);
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const current = useMemo(
@@ -425,14 +406,6 @@ export default function StudyRoom() {
 
   async function handleDeviceChange(deviceId: string) {
     await selectCamera(deviceId);
-  }
-
-  async function handlePreviewCamera() {
-    await previewCamera(selectedDeviceId || undefined);
-  }
-
-  async function handleEffectChange(effect: CameraEffect) {
-    await selectCameraEffect(effect);
   }
 
   async function toggleJoin() {
@@ -549,144 +522,12 @@ export default function StudyRoom() {
           </div>
 
           {!joined ? (
-            <div className="sr-setup">
-              <div className="sr-setup-video">
-                <video ref={videoRef} muted playsInline />
-                {!cameraReady && (
-                  <span>
-                    <DoorFrontOutlinedIcon />
-                    카메라 각도와 기기를 먼저 확인해 주세요.
-                  </span>
-                )}
-              </div>
-
-              <div className="sr-setup-info">
-                <strong>작업실 입장 준비</strong>
-                <em>
-                  입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께
-                  확인할 수 있습니다.
-                </em>
-
-                <label>
-                  <span>카메라 선택</span>
-                  <select
-                    value={selectedDeviceId}
-                    onChange={(event) =>
-                      void handleDeviceChange(event.target.value)
-                    }
-                    disabled={joining || devices.length === 0}
-                  >
-                    {devices.length === 0 && (
-                      <option value="">미리보기 후 선택 가능</option>
-                    )}
-                    {devices.map((device, index) => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `카메라 ${index + 1}`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="sr-effects">
-                  <div className="sr-effects-head">
-                    <span>화면 효과</span>
-                    <small>선택한 화면이 관리자에게도 동일하게 보입니다.</small>
-                  </div>
-
-                  <div
-                    className="sr-effect-options"
-                    role="group"
-                    aria-label="카메라 화면 효과"
-                  >
-                    <button
-                      className={
-                        "sr-effect-option" +
-                        (selectedEffect === "original" ? " is-selected" : "")
-                      }
-                      type="button"
-                      aria-pressed={selectedEffect === "original"}
-                      onClick={() => void handleEffectChange("original")}
-                      disabled={
-                        !cameraReady ||
-                        joining ||
-                        effectLoading ||
-                        selectedEffect === "original"
-                      }
-                    >
-                      <span className="sr-effect-icon is-original">
-                        <FilterNoneRoundedIcon />
-                      </span>
-                      <span className="sr-effect-copy">
-                        <strong>원본</strong>
-                        <small>가공하지 않은 화면</small>
-                      </span>
-                    </button>
-
-                    <button
-                      className={
-                        "sr-effect-option" +
-                        (selectedEffect === "background-blur"
-                          ? " is-selected"
-                          : "")
-                      }
-                      type="button"
-                      aria-pressed={selectedEffect === "background-blur"}
-                      onClick={() => void handleEffectChange("background-blur")}
-                      disabled={
-                        !cameraReady ||
-                        joining ||
-                        effectLoading ||
-                        effectSupport === "unsupported" ||
-                        selectedEffect === "background-blur"
-                      }
-                    >
-                      <span className="sr-effect-icon is-blur">
-                        <BlurOnRoundedIcon />
-                      </span>
-                      <span className="sr-effect-copy">
-                        <strong>배경 흐림</strong>
-                        <small>주변 공간을 부드럽게</small>
-                      </span>
-                    </button>
-                  </div>
-
-                  <p
-                    className={
-                      "sr-effect-status" + (effectError ? " is-error" : "")
-                    }
-                    role="status"
-                  >
-                    {effectLoading
-                      ? "배경 흐림 효과를 준비하고 있습니다."
-                      : effectError ||
-                        (!cameraReady
-                          ? "카메라 미리보기를 켜면 효과를 선택할 수 있습니다."
-                          : selectedEffect === "background-blur"
-                            ? "현재 배경 흐림 화면으로 입장합니다."
-                            : "현재 원본 화면으로 입장합니다.")}
-                  </p>
-                </div>
-
-                <div className="sr-setup-actions">
-                  <button
-                    className="sr-preview-btn"
-                    type="button"
-                    onClick={handlePreviewCamera}
-                    disabled={joining}
-                  >
-                    카메라 미리보기
-                  </button>
-                  <button
-                    className="sr-join"
-                    onClick={toggleJoin}
-                    type="button"
-                    disabled={joining}
-                  >
-                    {joining ? "카메라 확인 중..." : "하루 작업실 입장"}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <WorkroomCameraSetup
+              title="작업실 입장 준비"
+              description="입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께 확인할 수 있습니다."
+              confirmLabel="하루 작업실 입장"
+              onConfirm={toggleJoin}
+            />
           ) : null}
 
           <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
@@ -795,7 +636,7 @@ export default function StudyRoom() {
             </nav>
           )}
 
-          {error && <p className="sr-error">{error}</p>}
+          {joined && error && <p className="sr-error">{error}</p>}
           {joined && (
             <div className="sr-live-footer">
               <label className="sr-live-device">

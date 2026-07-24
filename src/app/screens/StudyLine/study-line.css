@@ -96,6 +96,10 @@
   padding: 0 2px;
 }
 
+.sl .workroom-camera-setup {
+  margin-bottom: 0;
+}
+
 .sl-camera-status {
   display: inline-flex;
   align-items: center;

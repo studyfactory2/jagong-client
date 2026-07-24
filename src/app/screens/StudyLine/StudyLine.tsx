@@ -7,6 +7,7 @@ import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlin
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
+import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
@@ -230,10 +231,17 @@ export default function StudyLine() {
       ? current.slot
       : undefined;
 
-  useEffect(() => {
-    if (joined || joining || error) return;
-    void startSession(activeAttendanceSlot);
-  }, [activeAttendanceSlot, error, joined, joining, startSession]);
+  const cameraStatus = joined
+    ? "연결됨"
+    : joining
+      ? "준비 중"
+      : cameraReady
+        ? "미리보기"
+        : "설정 필요";
+
+  const handleJoin = async () => {
+    await startSession(activeAttendanceSlot);
+  };
 
   const toggleScheduleSound = () => {
     const next = !scheduleSoundEnabled;
@@ -261,7 +269,7 @@ export default function StudyLine() {
         <section className="sl-camera-session" aria-live="polite">
           <div className="sl-camera-status">
             <VideocamOutlinedIcon />
-            <strong>{cameraReady ? "ON" : joining ? "..." : "OFF"}</strong>
+            <strong>{cameraStatus}</strong>
           </div>
           <button
             className={`sl-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
@@ -285,15 +293,19 @@ export default function StudyLine() {
             )}
           </button>
         </section>
-        {error && (
+
+        {!joined && (
+          <WorkroomCameraSetup
+            title="개인 작업실 입장 준비"
+            description="미리보기에서 카메라와 화면 효과를 확인한 뒤 개인 작업실에 입장해 주세요."
+            confirmLabel="개인 작업실 입장"
+            onConfirm={handleJoin}
+          />
+        )}
+
+        {joined && error && (
           <div className="sl-camera-error" role="alert">
             <span>{error}</span>
-            <button
-              type="button"
-              onClick={() => void startSession(activeAttendanceSlot)}
-            >
-              다시 연결
-            </button>
           </div>
         )}
 
