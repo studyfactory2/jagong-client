@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
@@ -186,7 +186,6 @@ export default function StudyRoom() {
   const {
     joined,
     joining,
-    cameraReady,
     error,
     localVideoTrack,
     devices,
@@ -291,15 +290,22 @@ export default function StudyRoom() {
       .catch(() => undefined);
   }, [joined, now, timetable]);
 
-  useEffect(() => {
-    const element = selfTileVideoRef.current;
-    if (!element || !joined || !localVideoTrack) return;
-    localVideoTrack.attach(element);
-    void element.play().catch(() => undefined);
-    return () => {
-      localVideoTrack.detach(element);
-    };
-  }, [cameraReady, joined, localVideoTrack]);
+  const attachSelfTileVideo = useCallback(
+    (element: HTMLVideoElement | null) => {
+      const previousElement = selfTileVideoRef.current;
+
+      if (previousElement && localVideoTrack) {
+        localVideoTrack.detach(previousElement);
+      }
+
+      selfTileVideoRef.current = element;
+      if (!element || !joined || !localVideoTrack) return;
+
+      localVideoTrack.attach(element);
+      void element.play().catch(() => undefined);
+    },
+    [joined, localVideoTrack],
+  );
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const current = useMemo(
@@ -373,18 +379,41 @@ export default function StudyRoom() {
       return a.name.localeCompare(b.name, "ko");
     });
   }, [joined, myId, myName, roomMembers]);
+  const selfMember = useMemo(
+    () => membersForGrid.find((member) => member.id === myId),
+    [membersForGrid, myId],
+  );
+  const pageableMembers = useMemo(
+    () => membersForGrid.filter((member) => member.id !== myId),
+    [membersForGrid, myId],
+  );
+  const pageableCameraCount = Math.max(
+    1,
+    cameraPageSize - (selfMember ? 1 : 0),
+  );
   const cameraPageCount = Math.max(
     1,
-    Math.ceil(membersForGrid.length / cameraPageSize),
+    Math.ceil(pageableMembers.length / pageableCameraCount),
   );
   const activeCameraPage = Math.min(cameraPage, cameraPageCount - 1);
   const visibleMembers = useMemo(
-    () =>
-      membersForGrid.slice(
-        activeCameraPage * cameraPageSize,
-        activeCameraPage * cameraPageSize + cameraPageSize,
-      ),
-    [activeCameraPage, cameraPageSize, membersForGrid],
+    () => {
+      const pageStart = activeCameraPage * pageableCameraCount;
+      const currentPageMembers = pageableMembers.slice(
+        pageStart,
+        pageStart + pageableCameraCount,
+      );
+
+      return selfMember
+        ? [selfMember, ...currentPageMembers]
+        : currentPageMembers;
+    },
+    [
+      activeCameraPage,
+      pageableCameraCount,
+      pageableMembers,
+      selfMember,
+    ],
   );
   const visibleCameraIds = useMemo(
     () =>
@@ -531,14 +560,14 @@ export default function StudyRoom() {
           ) : null}
 
           <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
-            {visibleMembers.map((member, index) => {
+            {visibleMembers.map((member) => {
               const isMe = member.id === myId;
               const remoteVideo = isMe
                 ? undefined
                 : remoteVideoByUser.get(member.id);
               const isWorking =
                 member.isWorking || (isMe && joined) || Boolean(remoteVideo);
-              const memberIndex = activeCameraPage * cameraPageSize + index;
+              const memberIndex = Math.max(0, membersForGrid.indexOf(member));
               return (
                 <div
                   className={[
@@ -563,7 +592,7 @@ export default function StudyRoom() {
                 >
                   {isMe && joined && (
                     <video
-                      ref={selfTileVideoRef}
+                      ref={attachSelfTileVideo}
                       muted
                       playsInline
                       className="sr-cam-self-video"
