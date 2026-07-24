@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@livekit/track-processors": "^0.5.8",
     "@mui/icons-material": "^9.1.0",
     "@mui/material": "^9.0.1",
     "@portone/browser-sdk": "^0.1.8",

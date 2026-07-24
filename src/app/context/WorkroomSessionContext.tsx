@@ -8,7 +8,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Room } from "livekit-client";
+import type { LocalVideoTrack, Room } from "livekit-client";
+import type {
+  BackgroundOptions,
+  ProcessorWrapper,
+} from "@livekit/track-processors";
 import {
   getCamRoomMembers,
   issueCamToken,
@@ -29,18 +33,27 @@ export type RemoteVideo = {
   track: RemoteVideoTrack;
 };
 
+export type CameraEffect = "original" | "background-blur";
+
+type CameraEffectSupport = "unknown" | "supported" | "unsupported";
+
 type WorkroomSessionValue = {
   joined: boolean;
   joining: boolean;
   cameraReady: boolean;
   error: string;
-  localStream: MediaStream | null;
+  localVideoTrack: LocalVideoTrack | null;
   devices: MediaDeviceInfo[];
   selectedDeviceId: string;
+  selectedEffect: CameraEffect;
+  effectSupport: CameraEffectSupport;
+  effectLoading: boolean;
+  effectError: string;
   roomMembers: CamRoomMember[];
   remoteVideos: RemoteVideo[];
   previewCamera: (deviceId?: string) => Promise<void>;
   selectCamera: (deviceId: string) => Promise<void>;
+  selectCameraEffect: (effect: CameraEffect) => Promise<void>;
   startSession: (slot?: number) => Promise<boolean>;
   leaveSession: () => Promise<void>;
   setVisibleRemoteUserIds: (userIds: string[]) => void;
@@ -54,14 +67,22 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [error, setError] = useState("");
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [localVideoTrack, setLocalVideoTrack] =
+    useState<LocalVideoTrack | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [selectedEffect, setSelectedEffect] =
+    useState<CameraEffect>("original");
+  const [effectSupport, setEffectSupport] =
+    useState<CameraEffectSupport>("unknown");
+  const [effectLoading, setEffectLoading] = useState(false);
+  const [effectError, setEffectError] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
+  const backgroundProcessorRef =
+    useRef<ProcessorWrapper<BackgroundOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
-  const publishedVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const camTokenRef = useRef<CamTokenDto | null>(null);
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
@@ -110,11 +131,25 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setSelectedDeviceId((current) => current || cameras[0]?.deviceId || "");
   }, []);
 
-  const stopLocalCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setLocalStream(null);
+  const stopLocalCamera = useCallback(async () => {
+    const track = localVideoTrackRef.current;
+
+    localVideoTrackRef.current = null;
+    backgroundProcessorRef.current = null;
+    setLocalVideoTrack(null);
     setCameraReady(false);
+    setSelectedEffect("original");
+    setEffectSupport("unknown");
+    setEffectLoading(false);
+    setEffectError("");
+
+    if (!track) return;
+
+    try {
+      if (track.getProcessor()) await track.stopProcessor(false);
+    } finally {
+      track.stop();
+    }
   }, []);
 
   const startLocalCamera = useCallback(
@@ -123,37 +158,106 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         throw new Error("이 브라우저에서는 카메라를 사용할 수 없습니다.");
       }
 
-      stopLocalCamera();
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: deviceId ? { deviceId: { exact: deviceId } } : true,
-        audio: false,
+      const currentTrack = localVideoTrackRef.current;
+      if (currentTrack) {
+        if (deviceId) {
+          const currentDeviceId = await currentTrack.getDeviceId();
+          if (currentDeviceId !== deviceId) {
+            const changed = await currentTrack.setDeviceId(deviceId);
+            if (!changed) {
+              throw new Error("선택한 카메라로 변경하지 못했습니다.");
+            }
+          }
+        }
+
+        setCameraReady(true);
+        await refreshDevices();
+        return currentTrack;
+      }
+
+      const { createLocalVideoTrack } = await import("livekit-client");
+      const isCompact = window.matchMedia("(max-width: 699px)").matches;
+      const track = await createLocalVideoTrack({
+        deviceId: deviceId || undefined,
+        resolution: {
+          width: isCompact ? 640 : 960,
+          height: isCompact ? 360 : 540,
+          frameRate: 24,
+        },
       });
 
-      streamRef.current = stream;
-      setLocalStream(stream);
+      localVideoTrackRef.current = track;
+      setLocalVideoTrack(track);
       setCameraReady(true);
+      setSelectedDeviceId((await track.getDeviceId()) ?? deviceId ?? "");
       await refreshDevices();
+      return track;
     },
-    [refreshDevices, stopLocalCamera],
+    [refreshDevices],
   );
 
   const disconnectLiveKit = useCallback(() => {
     roomRef.current?.disconnect();
     roomRef.current = null;
-    publishedVideoTrackRef.current = null;
     setRemoteVideos([]);
   }, []);
 
-  const unpublishCameraTrack = useCallback(async () => {
-    const room = roomRef.current;
-    const publishedTrack = publishedVideoTrackRef.current;
-    if (!room || !publishedTrack) {
-      publishedVideoTrackRef.current = null;
+  const selectCameraEffect = useCallback(async (effect: CameraEffect) => {
+    const track = localVideoTrackRef.current;
+    setEffectError("");
+
+    if (!track) {
+      setEffectError("카메라 미리보기를 먼저 시작해 주세요.");
       return;
     }
 
-    await room.localParticipant.unpublishTrack(publishedTrack);
-    publishedVideoTrackRef.current = null;
+    if (effect === "original") {
+      setEffectLoading(true);
+      try {
+        if (track.getProcessor()) await track.stopProcessor(false);
+        backgroundProcessorRef.current = null;
+        setSelectedEffect("original");
+      } catch {
+        setEffectError("원본 화면으로 전환하지 못했습니다.");
+      } finally {
+        setEffectLoading(false);
+      }
+      return;
+    }
+
+    setEffectLoading(true);
+    try {
+      const {
+        BackgroundBlur,
+        supportsBackgroundProcessors,
+        supportsModernBackgroundProcessors,
+      } = await import("@livekit/track-processors");
+
+      if (!supportsBackgroundProcessors()) {
+        setEffectSupport("unsupported");
+        setEffectError("이 기기에서는 배경 흐림 효과를 지원하지 않습니다.");
+        return;
+      }
+
+      const processor = BackgroundBlur(10, undefined, undefined, {
+        maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
+      });
+      await track.setProcessor(processor, true);
+      backgroundProcessorRef.current = processor;
+      setEffectSupport("supported");
+      setSelectedEffect("background-blur");
+    } catch {
+      try {
+        if (track.getProcessor()) await track.stopProcessor(false);
+      } catch {
+        // Keep the original camera usable even if processor cleanup fails.
+      }
+      backgroundProcessorRef.current = null;
+      setSelectedEffect("original");
+      setEffectError("배경 흐림 효과를 준비하지 못했습니다.");
+    } finally {
+      setEffectLoading(false);
+    }
   }, []);
 
   const connectLiveKit = useCallback(
@@ -202,12 +306,11 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         syncRemoteCameraSubscriptions(room);
 
         if (token.canPublish) {
-          const videoTrack = streamRef.current?.getVideoTracks()[0];
+          const videoTrack = localVideoTrackRef.current;
           if (videoTrack) {
             await room.localParticipant.publishTrack(videoTrack, {
               source: Track.Source.Camera,
             });
-            publishedVideoTrackRef.current = videoTrack;
           }
         }
       } catch (err) {
@@ -246,32 +349,20 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       setSelectedDeviceId(deviceId);
       setError("");
       try {
-        if (joinedRef.current) await unpublishCameraTrack();
         await startLocalCamera(deviceId || undefined);
-
-        const room = roomRef.current;
-        const token = camTokenRef.current;
-        const newTrack = streamRef.current?.getVideoTracks()[0];
-        if (room && token?.canPublish && newTrack) {
-          const { Track } = await import("livekit-client");
-          await room.localParticipant.publishTrack(newTrack, {
-            source: Track.Source.Camera,
-          });
-          publishedVideoTrackRef.current = newTrack;
-        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.",
         );
       }
     },
-    [startLocalCamera, unpublishCameraTrack],
+    [startLocalCamera],
   );
 
   const leaveSession = useCallback(async () => {
     const wasJoined = joinedRef.current;
     disconnectLiveKit();
-    stopLocalCamera();
+    await stopLocalCamera();
     joinedRef.current = false;
     camTokenRef.current = null;
     setJoined(false);
@@ -297,7 +388,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       setJoining(true);
       try {
         const token = await issueCamToken();
-        await startLocalCamera(selectedDeviceId || undefined);
+        if (!localVideoTrackRef.current) {
+          await startLocalCamera(selectedDeviceId || undefined);
+        }
         await connectLiveKit(token);
         await joinCam(slot);
         joinedRef.current = true;
@@ -307,7 +400,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (err) {
         disconnectLiveKit();
-        stopLocalCamera();
+        await stopLocalCamera();
         joinedRef.current = false;
         camTokenRef.current = null;
         setError(
@@ -365,13 +458,18 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         joining,
         cameraReady,
         error,
-        localStream,
+        localVideoTrack,
         devices,
         selectedDeviceId,
+        selectedEffect,
+        effectSupport,
+        effectLoading,
+        effectError,
         roomMembers,
         remoteVideos,
         previewCamera,
         selectCamera,
+        selectCameraEffect,
         startSession,
         leaveSession,
         setVisibleRemoteUserIds,

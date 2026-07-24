@@ -259,6 +259,143 @@
   font: inherit;
 }
 
+.sr-effects {
+  display: grid;
+  gap: 7px;
+}
+
+.sr-effects-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sr-effects-head > span {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sr-effects-head small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-effect-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sr-effect-option {
+  appearance: none;
+  min-width: 0;
+  min-height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(255, 254, 250, 0.88);
+  color: var(--ink);
+  padding: 7px 9px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.sr-effect-option:hover:not(:disabled),
+.sr-effect-option:focus-visible {
+  border-color: var(--mint-line);
+  box-shadow: 0 7px 18px rgba(20, 63, 86, 0.08);
+  transform: translateY(-1px);
+}
+
+.sr-effect-option.is-selected {
+  border-color: var(--accent);
+  background: rgba(255, 247, 244, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(244, 134, 120, 0.12);
+}
+
+.sr-effect-option:disabled {
+  cursor: default;
+}
+
+.sr-effect-option:disabled:not(.is-selected) {
+  opacity: 0.52;
+}
+
+.sr-effect-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}
+
+.sr-effect-icon.is-original {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(231, 240, 242, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.09);
+}
+
+.sr-effect-icon.is-blur {
+  background:
+    radial-gradient(circle at 30% 25%, #fff 0 8%, transparent 24%),
+    linear-gradient(135deg, rgba(190, 229, 215, 0.96), rgba(111, 171, 157, 0.8));
+}
+
+.sr-effect-icon svg {
+  font-size: 20px;
+}
+
+.sr-effect-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.sr-effect-option .sr-effect-copy strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-effect-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-effect-status {
+  min-height: 15px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.sr-effect-status.is-error {
+  color: var(--accent-deep);
+}
+
 .sr-setup-actions {
   display: grid;
   grid-template-columns: minmax(120px, 0.72fr) minmax(150px, 1fr);
@@ -1431,6 +1568,45 @@
   .sr-setup-info em {
     font-size: 11px;
     line-height: 1.35;
+  }
+
+  .sr-effects {
+    gap: 6px;
+  }
+
+  .sr-effects-head small {
+    display: none;
+  }
+
+  .sr-effect-options {
+    gap: 6px;
+  }
+
+  .sr-effect-option {
+    min-height: 48px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 7px;
+    border-radius: 9px;
+    padding: 6px 7px;
+  }
+
+  .sr-effect-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .sr-effect-icon svg {
+    font-size: 18px;
+  }
+
+  .sr-effect-option .sr-effect-copy strong {
+    font-size: 11px;
+  }
+
+  .sr-effect-copy small,
+  .sr-effect-status {
+    font-size: 9.5px;
   }
 
   .sr-setup-info label {
