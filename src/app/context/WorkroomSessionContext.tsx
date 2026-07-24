@@ -9,10 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import type { LocalVideoTrack, Room } from "livekit-client";
-import type {
-  BackgroundOptions,
-  ProcessorWrapper,
-} from "@livekit/track-processors";
 import {
   getCamRoomMembers,
   issueCamToken,
@@ -33,9 +29,22 @@ export type RemoteVideo = {
   track: RemoteVideoTrack;
 };
 
-export type CameraEffect = "original" | "background-blur";
+export type CameraEffect =
+  | "original"
+  | "background-blur"
+  | "privacy-mask";
 
-type CameraEffectSupport = "unknown" | "supported" | "unsupported";
+type EffectSupportState = "unknown" | "supported" | "unsupported";
+
+type CameraEffectSupport = {
+  "background-blur": EffectSupportState;
+  "privacy-mask": EffectSupportState;
+};
+
+const createInitialEffectSupport = (): CameraEffectSupport => ({
+  "background-blur": "unknown",
+  "privacy-mask": "unknown",
+});
 
 type WorkroomSessionValue = {
   joined: boolean;
@@ -74,14 +83,12 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [selectedEffect, setSelectedEffect] =
     useState<CameraEffect>("original");
   const [effectSupport, setEffectSupport] =
-    useState<CameraEffectSupport>("unknown");
+    useState<CameraEffectSupport>(createInitialEffectSupport);
   const [effectLoading, setEffectLoading] = useState(false);
   const [effectError, setEffectError] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
-  const backgroundProcessorRef =
-    useRef<ProcessorWrapper<BackgroundOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
   const camTokenRef = useRef<CamTokenDto | null>(null);
   const joinedRef = useRef(false);
@@ -135,11 +142,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     const track = localVideoTrackRef.current;
 
     localVideoTrackRef.current = null;
-    backgroundProcessorRef.current = null;
     setLocalVideoTrack(null);
     setCameraReady(false);
     setSelectedEffect("original");
-    setEffectSupport("unknown");
+    setEffectSupport(createInitialEffectSupport());
     setEffectLoading(false);
     setEffectError("");
 
@@ -215,7 +221,6 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       setEffectLoading(true);
       try {
         if (track.getProcessor()) await track.stopProcessor(false);
-        backgroundProcessorRef.current = null;
         setSelectedEffect("original");
       } catch {
         setEffectError("원본 화면으로 전환하지 못했습니다.");
@@ -227,34 +232,67 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
     setEffectLoading(true);
     try {
-      const {
-        BackgroundBlur,
-        supportsBackgroundProcessors,
-        supportsModernBackgroundProcessors,
-      } = await import("@livekit/track-processors");
+      if (effect === "background-blur") {
+        const {
+          BackgroundBlur,
+          supportsBackgroundProcessors,
+          supportsModernBackgroundProcessors,
+        } = await import("@livekit/track-processors");
 
-      if (!supportsBackgroundProcessors()) {
-        setEffectSupport("unsupported");
-        setEffectError("이 기기에서는 배경 흐림 효과를 지원하지 않습니다.");
+        if (!supportsBackgroundProcessors()) {
+          setEffectSupport((current) => ({
+            ...current,
+            "background-blur": "unsupported",
+          }));
+          setEffectError("이 기기에서는 배경 흐림 효과를 지원하지 않습니다.");
+          return;
+        }
+
+        const processor = BackgroundBlur(10, undefined, undefined, {
+          maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
+        });
+        await track.setProcessor(processor, true);
+        setEffectSupport((current) => ({
+          ...current,
+          "background-blur": "supported",
+        }));
+        setSelectedEffect("background-blur");
         return;
       }
 
-      const processor = BackgroundBlur(10, undefined, undefined, {
-        maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
-      });
+      const {
+        createPrivacyMaskProcessor,
+        supportsPrivacyMaskProcessor,
+      } = await import("../utils/privacy-mask-processor");
+
+      if (!supportsPrivacyMaskProcessor()) {
+        setEffectSupport((current) => ({
+          ...current,
+          "privacy-mask": "unsupported",
+        }));
+        setEffectError("이 기기에서는 얼굴 가리기 효과를 지원하지 않습니다.");
+        return;
+      }
+
+      const processor = createPrivacyMaskProcessor();
       await track.setProcessor(processor, true);
-      backgroundProcessorRef.current = processor;
-      setEffectSupport("supported");
-      setSelectedEffect("background-blur");
+      setEffectSupport((current) => ({
+        ...current,
+        "privacy-mask": "supported",
+      }));
+      setSelectedEffect("privacy-mask");
     } catch {
       try {
         if (track.getProcessor()) await track.stopProcessor(false);
       } catch {
         // Keep the original camera usable even if processor cleanup fails.
       }
-      backgroundProcessorRef.current = null;
       setSelectedEffect("original");
-      setEffectError("배경 흐림 효과를 준비하지 못했습니다.");
+      setEffectError(
+        effect === "privacy-mask"
+          ? "얼굴 가리기 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요."
+          : "배경 흐림 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요.",
+      );
     } finally {
       setEffectLoading(false);
     }

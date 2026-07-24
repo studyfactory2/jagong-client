@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import BlurOnRoundedIcon from "@mui/icons-material/BlurOnRounded";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
+import FaceRetouchingNaturalRoundedIcon from "@mui/icons-material/FaceRetouchingNaturalRounded";
 import FilterNoneRoundedIcon from "@mui/icons-material/FilterNoneRounded";
 import {
   useWorkroomSession,
@@ -113,7 +114,7 @@ export default function WorkroomCameraSetup({
                 !cameraReady ||
                 joining ||
                 effectLoading ||
-                selectedEffect === "original"
+                (selectedEffect === "original" && !effectError)
               }
             >
               <span className="workroom-camera-setup__effect-icon is-original">
@@ -137,7 +138,7 @@ export default function WorkroomCameraSetup({
                 !cameraReady ||
                 joining ||
                 effectLoading ||
-                effectSupport === "unsupported" ||
+                effectSupport["background-blur"] === "unsupported" ||
                 selectedEffect === "background-blur"
               }
             >
@@ -147,6 +148,31 @@ export default function WorkroomCameraSetup({
               <span className="workroom-camera-setup__effect-copy">
                 <strong>배경 흐림</strong>
                 <small>주변 공간을 부드럽게</small>
+              </span>
+            </button>
+
+            <button
+              className={
+                "workroom-camera-setup__effect-option is-privacy" +
+                (selectedEffect === "privacy-mask" ? " is-selected" : "")
+              }
+              type="button"
+              aria-pressed={selectedEffect === "privacy-mask"}
+              onClick={() => void handleEffectChange("privacy-mask")}
+              disabled={
+                !cameraReady ||
+                joining ||
+                effectLoading ||
+                effectSupport["privacy-mask"] === "unsupported" ||
+                selectedEffect === "privacy-mask"
+              }
+            >
+              <span className="workroom-camera-setup__effect-icon is-mask">
+                <FaceRetouchingNaturalRoundedIcon />
+              </span>
+              <span className="workroom-camera-setup__effect-copy">
+                <strong>얼굴 가리기</strong>
+                <small>표정을 가리는 보호 마스크</small>
               </span>
             </button>
           </div>
@@ -159,12 +185,14 @@ export default function WorkroomCameraSetup({
             role="status"
           >
             {effectLoading
-              ? "배경 흐림 효과를 준비하고 있습니다."
+              ? "화면 효과를 준비하고 있습니다."
               : effectError ||
                 (!cameraReady
                   ? "카메라 미리보기를 켜면 효과를 선택할 수 있습니다."
                   : selectedEffect === "background-blur"
                     ? "현재 배경 흐림 화면으로 입장합니다."
+                    : selectedEffect === "privacy-mask"
+                      ? "현재 얼굴 가리기 화면으로 입장합니다."
                     : "현재 원본 화면으로 입장합니다.")}
           </p>
         </div>
@@ -188,7 +216,9 @@ export default function WorkroomCameraSetup({
             className="workroom-camera-setup__confirm"
             onClick={() => void onConfirm()}
             type="button"
-            disabled={joining || effectLoading || !cameraReady}
+            disabled={
+              joining || effectLoading || !cameraReady || Boolean(effectError)
+            }
           >
             {joining
               ? busyLabel
