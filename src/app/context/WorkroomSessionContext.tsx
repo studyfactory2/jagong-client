@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LocalVideoTrack, Room } from "livekit-client";
+import type { ProcessorWrapper } from "@livekit/track-processors";
 import {
   getCamRoomMembers,
   issueCamToken,
@@ -17,6 +18,10 @@ import {
 } from "../services/cam.service";
 import type { CamRoomMember, CamTokenDto } from "../../lib/types";
 import { useSocket } from "./SocketContext";
+import type {
+  AnimalEffectOptions,
+  AnimalEffectVariant,
+} from "../utils/landmarker-effect-processor";
 
 export type RemoteVideoTrack = {
   attach: (element?: HTMLMediaElement) => HTMLMediaElement;
@@ -32,18 +37,42 @@ export type RemoteVideo = {
 export type CameraEffect =
   | "original"
   | "background-blur"
-  | "privacy-mask";
+  | AnimalEffectVariant;
 
 type EffectSupportState = "unknown" | "supported" | "unsupported";
 
 type CameraEffectSupport = {
   "background-blur": EffectSupportState;
-  "privacy-mask": EffectSupportState;
+} & Record<AnimalEffectVariant, EffectSupportState>;
+
+const ANIMAL_EFFECTS: AnimalEffectVariant[] = [
+  "cat",
+  "dog",
+  "bear",
+  "bunny",
+  "fox",
+];
+
+const isAnimalEffect = (
+  effect: CameraEffect,
+): effect is AnimalEffectVariant =>
+  ANIMAL_EFFECTS.includes(effect as AnimalEffectVariant);
+
+const ANIMAL_EFFECT_LABELS: Record<AnimalEffectVariant, string> = {
+  cat: "고양이",
+  dog: "강아지",
+  bear: "곰",
+  bunny: "토끼",
+  fox: "여우",
 };
 
 const createInitialEffectSupport = (): CameraEffectSupport => ({
   "background-blur": "unknown",
-  "privacy-mask": "unknown",
+  cat: "unknown",
+  dog: "unknown",
+  bear: "unknown",
+  bunny: "unknown",
+  fox: "unknown",
 });
 
 type WorkroomSessionValue = {
@@ -82,13 +111,17 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [selectedEffect, setSelectedEffect] =
     useState<CameraEffect>("original");
-  const [effectSupport, setEffectSupport] =
-    useState<CameraEffectSupport>(createInitialEffectSupport);
+  const [effectSupport, setEffectSupport] = useState<CameraEffectSupport>(
+    createInitialEffectSupport,
+  );
   const [effectLoading, setEffectLoading] = useState(false);
   const [effectError, setEffectError] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
+  const animalEffectProcessorRef = useRef<ProcessorWrapper<
+    AnimalEffectOptions
+  > | null>(null);
   const roomRef = useRef<Room | null>(null);
   const camTokenRef = useRef<CamTokenDto | null>(null);
   const joinedRef = useRef(false);
@@ -148,6 +181,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setEffectSupport(createInitialEffectSupport());
     setEffectLoading(false);
     setEffectError("");
+    animalEffectProcessorRef.current = null;
 
     if (!track) return;
 
@@ -221,6 +255,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       setEffectLoading(true);
       try {
         if (track.getProcessor()) await track.stopProcessor(false);
+        animalEffectProcessorRef.current = null;
         setSelectedEffect("original");
       } catch {
         setEffectError("원본 화면으로 전환하지 못했습니다.");
@@ -252,6 +287,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
         });
         await track.setProcessor(processor, true);
+        animalEffectProcessorRef.current = null;
         setEffectSupport((current) => ({
           ...current,
           "background-blur": "supported",
@@ -260,38 +296,55 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const {
-        createPrivacyMaskProcessor,
-        supportsPrivacyMaskProcessor,
-      } = await import("../utils/privacy-mask-processor");
+      if (isAnimalEffect(effect)) {
+        const { createAnimalEffectProcessor, supportsAnimalEffect } =
+          await import("../utils/landmarker-effect-processor");
 
-      if (!supportsPrivacyMaskProcessor()) {
+        if (!supportsAnimalEffect()) {
+          setEffectSupport((current) => ({
+            ...current,
+            [effect]: "unsupported",
+          }));
+          setEffectError("이 기기에서는 이 화면 효과를 지원하지 않습니다.");
+          return;
+        }
+
+        const currentProcessor = track.getProcessor();
+        const reusableProcessor = animalEffectProcessorRef.current;
+
+        if (reusableProcessor && currentProcessor === reusableProcessor) {
+          await reusableProcessor.updateTransformerOptions({
+            variant: effect,
+          });
+        } else {
+          const processor = createAnimalEffectProcessor(effect);
+          await track.setProcessor(processor, true);
+          animalEffectProcessorRef.current = processor;
+        }
+
         setEffectSupport((current) => ({
           ...current,
-          "privacy-mask": "unsupported",
+          [effect]: "supported",
         }));
-        setEffectError("이 기기에서는 얼굴 가리기 효과를 지원하지 않습니다.");
+        setSelectedEffect(effect);
         return;
       }
-
-      const processor = createPrivacyMaskProcessor();
-      await track.setProcessor(processor, true);
-      setEffectSupport((current) => ({
-        ...current,
-        "privacy-mask": "supported",
-      }));
-      setSelectedEffect("privacy-mask");
     } catch {
       try {
         if (track.getProcessor()) await track.stopProcessor(false);
       } catch {
         // Keep the original camera usable even if processor cleanup fails.
       }
+      animalEffectProcessorRef.current = null;
       setSelectedEffect("original");
+      const label =
+        effect === "background-blur"
+          ? "배경 흐림"
+          : isAnimalEffect(effect)
+            ? ANIMAL_EFFECT_LABELS[effect]
+            : "화면";
       setEffectError(
-        effect === "privacy-mask"
-          ? "얼굴 가리기 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요."
-          : "배경 흐림 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요.",
+        `${label} 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요.`,
       );
     } finally {
       setEffectLoading(false);

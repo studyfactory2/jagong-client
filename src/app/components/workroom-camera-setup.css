@@ -118,6 +118,24 @@
   white-space: nowrap;
 }
 
+.workroom-camera-setup__effect-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.workroom-camera-setup__effect-group {
+  display: grid;
+  gap: 5px;
+}
+
+.workroom-camera-setup__effect-group-label {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .workroom-camera-setup__effect-options {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -196,19 +214,34 @@
     );
 }
 
-.workroom-camera-setup__effect-icon.is-mask {
-  background:
-    radial-gradient(
-      circle at 50% 42%,
-      rgba(255, 255, 255, 0.95) 0 9%,
-      transparent 10%
-    ),
-    linear-gradient(
-      135deg,
-      rgba(23, 73, 92, 0.96),
-      rgba(47, 128, 106, 0.86)
-    );
-  color: #ffffff;
+.workroom-camera-setup__effect-icon.is-character {
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.07);
+}
+
+.workroom-camera-setup__effect-icon.is-character > span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.workroom-camera-setup__effect-icon.is-cat {
+  background: linear-gradient(135deg, #e7f1f3, #d9ece7);
+}
+
+.workroom-camera-setup__effect-icon.is-dog {
+  background: linear-gradient(135deg, #f3e7dc, #ead7c5);
+}
+
+.workroom-camera-setup__effect-icon.is-bear {
+  background: linear-gradient(135deg, #efe2d7, #dfc7b3);
+}
+
+.workroom-camera-setup__effect-icon.is-bunny {
+  background: linear-gradient(135deg, #fff5f7, #f6dfe6);
+}
+
+.workroom-camera-setup__effect-icon.is-fox {
+  background: linear-gradient(135deg, #fff0df, #f5d0ac);
 }
 
 .workroom-camera-setup__effect-icon svg {
@@ -353,10 +386,6 @@
   .workroom-camera-setup__effect-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-  }
-
-  .workroom-camera-setup__effect-option.is-privacy {
-    grid-column: 1 / -1;
   }
 
   .workroom-camera-setup__effect-option {

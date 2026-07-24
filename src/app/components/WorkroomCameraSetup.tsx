@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import BlurOnRoundedIcon from "@mui/icons-material/BlurOnRounded";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
-import FaceRetouchingNaturalRoundedIcon from "@mui/icons-material/FaceRetouchingNaturalRounded";
 import FilterNoneRoundedIcon from "@mui/icons-material/FilterNoneRounded";
 import {
   useWorkroomSession,
@@ -57,8 +56,61 @@ export default function WorkroomCameraSetup({
     await selectCameraEffect(effect);
   };
 
+  const renderEffect = (
+    id: CameraEffect,
+    title: string,
+    desc: string,
+    icon: ReactNode,
+    iconClass: string,
+  ) => {
+    const isOriginal = id === "original";
+    const selected = selectedEffect === id;
+    const unsupported =
+      !isOriginal &&
+      effectSupport[id as Exclude<CameraEffect, "original">] === "unsupported";
+    const disabled =
+      !cameraReady ||
+      joining ||
+      effectLoading ||
+      (isOriginal ? selected && !effectError : unsupported || selected);
+    return (
+      <button
+        key={id}
+        className={
+          "workroom-camera-setup__effect-option" +
+          (selected ? " is-selected" : "")
+        }
+        type="button"
+        aria-pressed={selected}
+        onClick={() => void handleEffectChange(id)}
+        disabled={disabled}
+      >
+        <span className={"workroom-camera-setup__effect-icon " + iconClass}>
+          {icon}
+        </span>
+        <span className="workroom-camera-setup__effect-copy">
+          <strong>{title}</strong>
+          <small>{desc}</small>
+        </span>
+      </button>
+    );
+  };
+
+  const enteringMessages: Record<CameraEffect, string> = {
+    original: "현재 원본 화면으로 입장합니다.",
+    "background-blur": "현재 배경 흐림 화면으로 입장합니다.",
+    cat: "고양이 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    dog: "강아지 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    bear: "곰 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    bunny: "토끼 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    fox: "여우 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+  };
+
   return (
-    <section className="workroom-camera-setup" aria-labelledby="camera-setup-title">
+    <section
+      className="workroom-camera-setup"
+      aria-labelledby="camera-setup-title"
+    >
       <div className="workroom-camera-setup__video">
         <video ref={videoRef} muted playsInline />
         {!cameraReady && (
@@ -97,84 +149,79 @@ export default function WorkroomCameraSetup({
             <small>선택한 화면이 관리자에게도 동일하게 보입니다.</small>
           </div>
 
-          <div
-            className="workroom-camera-setup__effect-options"
-            role="group"
-            aria-label="카메라 화면 효과"
-          >
-            <button
-              className={
-                "workroom-camera-setup__effect-option" +
-                (selectedEffect === "original" ? " is-selected" : "")
-              }
-              type="button"
-              aria-pressed={selectedEffect === "original"}
-              onClick={() => void handleEffectChange("original")}
-              disabled={
-                !cameraReady ||
-                joining ||
-                effectLoading ||
-                (selectedEffect === "original" && !effectError)
-              }
-            >
-              <span className="workroom-camera-setup__effect-icon is-original">
-                <FilterNoneRoundedIcon />
+          <div className="workroom-camera-setup__effect-groups">
+            <div className="workroom-camera-setup__effect-group">
+              <span className="workroom-camera-setup__effect-group-label">
+                기본 화면
               </span>
-              <span className="workroom-camera-setup__effect-copy">
-                <strong>원본</strong>
-                <small>가공하지 않은 화면</small>
-              </span>
-            </button>
+              <div
+                className="workroom-camera-setup__effect-options"
+                role="group"
+                aria-label="기본 화면"
+              >
+                {renderEffect(
+                  "original",
+                  "원본",
+                  "가공하지 않은 화면",
+                  <FilterNoneRoundedIcon />,
+                  "is-original",
+                )}
+                {renderEffect(
+                  "background-blur",
+                  "배경 흐림",
+                  "주변 공간을 부드럽게",
+                  <BlurOnRoundedIcon />,
+                  "is-blur",
+                )}
+              </div>
+            </div>
 
-            <button
-              className={
-                "workroom-camera-setup__effect-option" +
-                (selectedEffect === "background-blur" ? " is-selected" : "")
-              }
-              type="button"
-              aria-pressed={selectedEffect === "background-blur"}
-              onClick={() => void handleEffectChange("background-blur")}
-              disabled={
-                !cameraReady ||
-                joining ||
-                effectLoading ||
-                effectSupport["background-blur"] === "unsupported" ||
-                selectedEffect === "background-blur"
-              }
-            >
-              <span className="workroom-camera-setup__effect-icon is-blur">
-                <BlurOnRoundedIcon />
+            <div className="workroom-camera-setup__effect-group">
+              <span className="workroom-camera-setup__effect-group-label">
+                캐릭터 · 눈은 항상 보임
               </span>
-              <span className="workroom-camera-setup__effect-copy">
-                <strong>배경 흐림</strong>
-                <small>주변 공간을 부드럽게</small>
-              </span>
-            </button>
-
-            <button
-              className={
-                "workroom-camera-setup__effect-option is-privacy" +
-                (selectedEffect === "privacy-mask" ? " is-selected" : "")
-              }
-              type="button"
-              aria-pressed={selectedEffect === "privacy-mask"}
-              onClick={() => void handleEffectChange("privacy-mask")}
-              disabled={
-                !cameraReady ||
-                joining ||
-                effectLoading ||
-                effectSupport["privacy-mask"] === "unsupported" ||
-                selectedEffect === "privacy-mask"
-              }
-            >
-              <span className="workroom-camera-setup__effect-icon is-mask">
-                <FaceRetouchingNaturalRoundedIcon />
-              </span>
-              <span className="workroom-camera-setup__effect-copy">
-                <strong>얼굴 가리기</strong>
-                <small>표정을 가리는 보호 마스크</small>
-              </span>
-            </button>
+              <div
+                className="workroom-camera-setup__effect-options"
+                role="group"
+                aria-label="캐릭터 화면"
+              >
+                {renderEffect(
+                  "cat",
+                  "고양이",
+                  "뾰족한 귀와 수염",
+                  <span aria-hidden="true">🐱</span>,
+                  "is-character is-cat",
+                )}
+                {renderEffect(
+                  "dog",
+                  "강아지",
+                  "축 늘어진 귀",
+                  <span aria-hidden="true">🐶</span>,
+                  "is-character is-dog",
+                )}
+                {renderEffect(
+                  "bear",
+                  "곰",
+                  "동그란 귀",
+                  <span aria-hidden="true">🐻</span>,
+                  "is-character is-bear",
+                )}
+                {renderEffect(
+                  "bunny",
+                  "토끼",
+                  "길쭉한 귀",
+                  <span aria-hidden="true">🐰</span>,
+                  "is-character is-bunny",
+                )}
+                {renderEffect(
+                  "fox",
+                  "여우",
+                  "뾰족한 귀",
+                  <span aria-hidden="true">🦊</span>,
+                  "is-character is-fox",
+                )}
+              </div>
+            </div>
           </div>
 
           <p
@@ -189,11 +236,7 @@ export default function WorkroomCameraSetup({
               : effectError ||
                 (!cameraReady
                   ? "카메라 미리보기를 켜면 효과를 선택할 수 있습니다."
-                  : selectedEffect === "background-blur"
-                    ? "현재 배경 흐림 화면으로 입장합니다."
-                    : selectedEffect === "privacy-mask"
-                      ? "현재 얼굴 가리기 화면으로 입장합니다."
-                    : "현재 원본 화면으로 입장합니다.")}
+                  : enteringMessages[selectedEffect])}
           </p>
         </div>
 
