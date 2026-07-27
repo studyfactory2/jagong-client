@@ -188,14 +188,14 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "cat",
                   "고양이",
-                  "뾰족한 귀와 수염",
+                  "귀·코·수염과 반짝임",
                   <span aria-hidden="true">🐱</span>,
                   "is-character is-cat",
                 )}
                 {renderEffect(
                   "dog",
                   "강아지",
-                  "축 늘어진 귀",
+                  "리얼 귀·코와 피부 톤",
                   <span aria-hidden="true">🐶</span>,
                   "is-character is-dog",
                 )}

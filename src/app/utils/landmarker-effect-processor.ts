@@ -8,6 +8,11 @@ import {
   FilesetResolver,
   type NormalizedLandmark,
 } from "@mediapipe/tasks-vision";
+import { DogEffectRenderer, type DogEffectPose } from "./dog-effect-renderer";
+import {
+  WebGlBeautyRenderer,
+  type BeautyFaceMask,
+} from "./webgl-beauty-renderer";
 
 const TASKS_VISION_WASM_ROOT =
   "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
@@ -34,17 +39,7 @@ type Point = {
   y: number;
 };
 
-type FacePose = {
-  foreheadX: number;
-  foreheadY: number;
-  noseX: number;
-  noseY: number;
-  width: number;
-  height: number;
-  roll: number;
-  yaw: number;
-  pitch: number;
-};
+type FacePose = DogEffectPose;
 
 type TrackingResult = {
   landmarks: NormalizedLandmark[];
@@ -75,16 +70,16 @@ const ANIMALS: Record<AnimalEffectVariant, AnimalConfig> = {
   cat: {
     ear: "pointed",
     noseKind: "triangle",
-    outer: "#17495c",
-    inner: "#f48678",
-    nose: "#ef7f77",
-    muzzle: "rgba(255, 254, 249, 0.72)",
-    accent: "#fffef9",
-    earScale: 0.28,
-    earSpread: 0.34,
-    earLift: 0.14,
-    earTilt: 0.12,
-    noseScale: 0.052,
+    outer: "#e7a66e",
+    inner: "#f4b5b6",
+    nose: "#4c3033",
+    muzzle: "rgba(255, 247, 239, 0.92)",
+    accent: "#5c403b",
+    earScale: 0.31,
+    earSpread: 0.36,
+    earLift: 0.16,
+    earTilt: 0.08,
+    noseScale: 0.058,
     whiskers: true,
     cheekMarks: false,
   },
@@ -165,6 +160,8 @@ const RIGHT_CHEEK = 454;
 const FOREHEAD = 10;
 const CHIN = 152;
 const NOSE_TIP = 1;
+const UPPER_LIP = 13;
+const LOWER_LIP = 14;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -177,9 +174,7 @@ const angleDelta = (from: number, to: number) =>
 const mix = (from: number, to: number, amount: number) =>
   from + (to - from) * amount;
 
-class AnimalEffectTransformer
-  implements VideoTrackTransformer<AnimalEffectOptions>
-{
+class AnimalEffectTransformer implements VideoTrackTransformer<AnimalEffectOptions> {
   transformer?: TransformStream<VideoFrame, VideoFrame>;
 
   private variant: AnimalEffectVariant;
@@ -190,6 +185,9 @@ class AnimalEffectTransformer
   private detectionContext: DrawingContext | null = null;
   private overlayCanvas: OffscreenCanvas | HTMLCanvasElement | null = null;
   private overlayContext: DrawingContext | null = null;
+  private readonly dogRenderer = new DogEffectRenderer();
+  private beautyRenderer: WebGlBeautyRenderer | null = null;
+  private beautyUnavailable = false;
   private lastLandmarks: NormalizedLandmark[] | null = null;
   private smoothedPose: FacePose | null = null;
   private lastDetectionRun = 0;
@@ -204,6 +202,7 @@ class AnimalEffectTransformer
     this.setOutputCanvas(options.outputCanvas);
     const vision = await FilesetResolver.forVisionTasks(TASKS_VISION_WASM_ROOT);
     this.detector = await this.createDetector(vision);
+    await this.dogRenderer.init().catch(() => undefined);
     this.transformer = new TransformStream<VideoFrame, VideoFrame>({
       transform: (frame, controller) => this.transform(frame, controller),
     });
@@ -227,6 +226,10 @@ class AnimalEffectTransformer
     this.detectionContext = null;
     this.overlayCanvas = null;
     this.overlayContext = null;
+    this.dogRenderer.destroy();
+    this.beautyRenderer?.destroy();
+    this.beautyRenderer = null;
+    this.beautyUnavailable = false;
     this.resetTracking();
     this.transformer = undefined;
   }
@@ -293,9 +296,7 @@ class AnimalEffectTransformer
     }
   }
 
-  private setOutputCanvas(
-    outputCanvas: OffscreenCanvas | HTMLCanvasElement,
-  ) {
+  private setOutputCanvas(outputCanvas: OffscreenCanvas | HTMLCanvasElement) {
     const context = outputCanvas.getContext("2d", {
       alpha: false,
     }) as DrawingContext | null;
@@ -325,10 +326,7 @@ class AnimalEffectTransformer
     );
 
     if (!this.detectionCanvas) {
-      this.detectionCanvas = this.createCanvas(
-        detectionWidth,
-        detectionHeight,
-      );
+      this.detectionCanvas = this.createCanvas(detectionWidth, detectionHeight);
       this.detectionContext = this.detectionCanvas.getContext(
         "2d",
       ) as DrawingContext | null;
@@ -403,10 +401,7 @@ class AnimalEffectTransformer
 
         const timestamp = Math.max(now, this.lastTimestamp + 1);
         this.lastTimestamp = timestamp;
-        const result = this.detector.detectForVideo(
-          detectionCanvas,
-          timestamp,
-        );
+        const result = this.detector.detectForVideo(detectionCanvas, timestamp);
         const face = result.faceLandmarks?.[0];
 
         if (face?.length) {
@@ -444,10 +439,7 @@ class AnimalEffectTransformer
     const rightEye = this.averagePoint(landmarks, RIGHT_EYE);
     const width = Math.max(1, distance(leftCheek, rightCheek));
     const height = Math.max(1, distance(forehead, chin));
-    const roll = Math.atan2(
-      rightEye.y - leftEye.y,
-      rightEye.x - leftEye.x,
-    );
+    const roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
     const leftNoseSpan = distance(leftCheek, nose);
     const rightNoseSpan = distance(nose, rightCheek);
     const yaw = clamp(
@@ -468,6 +460,8 @@ class AnimalEffectTransformer
     return {
       foreheadX: forehead.x,
       foreheadY: forehead.y,
+      centerX: (forehead.x + chin.x) / 2,
+      centerY: (forehead.y + chin.y) / 2,
       noseX: nose.x,
       noseY: nose.y,
       width,
@@ -489,21 +483,21 @@ class AnimalEffectTransformer
       ) / Math.max(1, previous.width);
     const scaleMotion =
       Math.abs(current.width - previous.width) / Math.max(1, previous.width);
-    const rotationMotion = Math.abs(
-      angleDelta(previous.roll, current.roll),
-    );
-    const motion = centerMotion * 2.4 + scaleMotion * 1.8 + rotationMotion * 1.2;
+    const rotationMotion = Math.abs(angleDelta(previous.roll, current.roll));
+    const motion =
+      centerMotion * 2.4 + scaleMotion * 1.8 + rotationMotion * 1.2;
     const amount = clamp(0.34 + motion, 0.34, 0.82);
 
     return {
       foreheadX: mix(previous.foreheadX, current.foreheadX, amount),
       foreheadY: mix(previous.foreheadY, current.foreheadY, amount),
+      centerX: mix(previous.centerX, current.centerX, amount),
+      centerY: mix(previous.centerY, current.centerY, amount),
       noseX: mix(previous.noseX, current.noseX, amount),
       noseY: mix(previous.noseY, current.noseY, amount),
       width: mix(previous.width, current.width, amount),
       height: mix(previous.height, current.height, amount),
-      roll:
-        previous.roll + angleDelta(previous.roll, current.roll) * amount,
+      roll: previous.roll + angleDelta(previous.roll, current.roll) * amount,
       yaw: mix(previous.yaw, current.yaw, amount),
       pitch: mix(previous.pitch, current.pitch, amount),
     };
@@ -515,12 +509,12 @@ class AnimalEffectTransformer
     const overlayContext = this.overlayContext;
     if (!overlayCanvas || !overlayContext) return;
 
-    overlayContext.clearRect(
-      0,
-      0,
-      overlayCanvas.width,
-      overlayCanvas.height,
-    );
+    const useDogRenderer = this.variant === "dog" && this.dogRenderer.isReady();
+    if (useDogRenderer) {
+      this.applyDogBeauty({ landmarks, pose });
+    }
+
+    overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     const config = ANIMALS[this.variant];
     const right = {
       x: Math.cos(pose.roll),
@@ -532,31 +526,49 @@ class AnimalEffectTransformer
     };
     const pitchOffset = pose.pitch * pose.width * 0.045;
 
-    for (const side of [-1, 1] as const) {
-      const perspective = clamp(1 + side * pose.yaw * 0.28, 0.76, 1.24);
-      const x =
-        pose.foreheadX +
-        right.x * side * config.earSpread * pose.width +
-        up.x * (config.earLift * pose.width - pitchOffset);
-      const y =
-        pose.foreheadY +
-        right.y * side * config.earSpread * pose.width +
-        up.y * (config.earLift * pose.width - pitchOffset);
+    if (useDogRenderer) {
+      this.dogRenderer.draw(overlayContext, pose);
+    } else {
+      for (const side of [-1, 1] as const) {
+        const perspective = clamp(1 + side * pose.yaw * 0.28, 0.76, 1.24);
+        const x =
+          pose.foreheadX +
+          right.x * side * config.earSpread * pose.width +
+          up.x * (config.earLift * pose.width - pitchOffset);
+        const y =
+          pose.foreheadY +
+          right.y * side * config.earSpread * pose.width +
+          up.y * (config.earLift * pose.width - pitchOffset);
 
-      this.drawEar(
-        overlayContext,
-        config,
-        side,
-        x,
-        y,
-        pose.width * config.earScale,
-        perspective,
-        pose.roll,
-      );
+        const earArgs = [
+          overlayContext,
+          config,
+          side,
+          x,
+          y,
+          pose.width * config.earScale,
+          perspective,
+          pose.roll,
+        ] as const;
+
+        if (this.variant === "cat") {
+          this.drawCatEar(...earArgs);
+        } else {
+          this.drawEar(...earArgs);
+        }
+      }
+
+      if (this.variant === "cat") {
+        this.drawCatFaceDetails(overlayContext, config, pose);
+      } else {
+        this.drawFaceDetails(overlayContext, config, pose);
+      }
     }
-
-    this.drawFaceDetails(overlayContext, config, pose);
     this.clearEyeWindows(overlayContext, landmarks, pose.roll);
+    if (this.variant === "cat") {
+      this.drawCatEyeAccents(overlayContext, landmarks, pose.roll);
+      this.drawCatSparkle(overlayContext, pose);
+    }
     outputContext.drawImage(
       overlayCanvas as CanvasImageSource,
       0,
@@ -564,6 +576,134 @@ class AnimalEffectTransformer
       outputCanvas.width,
       outputCanvas.height,
     );
+  }
+
+  private applyDogBeauty(tracking: TrackingResult) {
+    if (this.beautyUnavailable) return;
+    const { outputCanvas, outputContext } = this.requireOutput();
+
+    if (
+      this.beautyRenderer &&
+      !this.beautyRenderer.matchesSize(outputCanvas.width, outputCanvas.height)
+    ) {
+      this.beautyRenderer.destroy();
+      this.beautyRenderer = null;
+    }
+
+    if (!this.beautyRenderer) {
+      try {
+        this.beautyRenderer = new WebGlBeautyRenderer(
+          outputCanvas.width,
+          outputCanvas.height,
+        );
+      } catch {
+        this.beautyUnavailable = true;
+        return;
+      }
+    }
+
+    const { landmarks, pose } = tracking;
+    const leftEyeBounds = this.landmarkBounds(landmarks, LEFT_EYE);
+    const rightEyeBounds = this.landmarkBounds(landmarks, RIGHT_EYE);
+    const leftEye = this.averagePoint(landmarks, LEFT_EYE);
+    const rightEye = this.averagePoint(landmarks, RIGHT_EYE);
+    const mouth = this.averagePoint(landmarks, [UPPER_LIP, LOWER_LIP]);
+    const eyeWidth = Math.max(
+      leftEyeBounds.maxX - leftEyeBounds.minX,
+      rightEyeBounds.maxX - rightEyeBounds.minX,
+    );
+    const eyeHeight = Math.max(
+      leftEyeBounds.maxY - leftEyeBounds.minY,
+      rightEyeBounds.maxY - rightEyeBounds.minY,
+    );
+    const mask: BeautyFaceMask = {
+      center: { x: pose.centerX, y: pose.centerY },
+      radiusX: pose.width * 0.56,
+      radiusY: pose.height * 0.55,
+      roll: pose.roll,
+      leftEye,
+      rightEye,
+      eyeRadiusX: eyeWidth * 0.72,
+      eyeRadiusY: eyeHeight * 1.15,
+      mouth,
+      mouthRadiusX: pose.width * 0.17,
+      mouthRadiusY: pose.height * 0.11,
+    };
+    const rendered = this.beautyRenderer.render(
+      outputCanvas,
+      mask,
+      0.34,
+    );
+    if (rendered) {
+      outputContext.drawImage(
+        rendered,
+        0,
+        0,
+        outputCanvas.width,
+        outputCanvas.height,
+      );
+    }
+  }
+
+  private drawCatEar(
+    context: DrawingContext,
+    config: AnimalConfig,
+    side: -1 | 1,
+    x: number,
+    y: number,
+    scale: number,
+    perspective: number,
+    roll: number,
+  ) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(roll + side * config.earTilt);
+    context.scale(side * scale * perspective, scale);
+    context.lineJoin = "round";
+    context.lineWidth = 0.065;
+    context.strokeStyle = "rgba(76, 48, 51, 0.82)";
+    context.shadowColor = "rgba(20, 63, 86, 0.2)";
+    context.shadowBlur = 0.13;
+    context.shadowOffsetY = 0.06;
+
+    const outer = context.createLinearGradient(-0.4, -0.9, 0.45, 0.5);
+    outer.addColorStop(0, "#f8d7ac");
+    outer.addColorStop(0.58, config.outer);
+    outer.addColorStop(1, "#c9784f");
+    context.beginPath();
+    context.moveTo(-0.56, 0.44);
+    context.quadraticCurveTo(-0.38, -0.48, 0.03, -1.12);
+    context.quadraticCurveTo(0.48, -0.43, 0.56, 0.46);
+    context.quadraticCurveTo(0.02, 0.64, -0.56, 0.44);
+    context.closePath();
+    context.fillStyle = outer;
+    context.fill();
+    context.stroke();
+
+    context.shadowColor = "transparent";
+    const inner = context.createLinearGradient(0, -0.78, 0, 0.32);
+    inner.addColorStop(0, "#f9d4d0");
+    inner.addColorStop(1, config.inner);
+    context.beginPath();
+    context.moveTo(-0.29, 0.27);
+    context.quadraticCurveTo(-0.19, -0.29, 0.03, -0.76);
+    context.quadraticCurveTo(0.3, -0.27, 0.32, 0.29);
+    context.quadraticCurveTo(0.03, 0.39, -0.29, 0.27);
+    context.closePath();
+    context.fillStyle = inner;
+    context.fill();
+
+    context.strokeStyle = "rgba(255, 247, 239, 0.75)";
+    context.lineWidth = 0.055;
+    context.lineCap = "round";
+    for (const tuft of [-0.22, 0, 0.22]) {
+      context.beginPath();
+      context.moveTo(tuft * 0.7, 0.36);
+      context.quadraticCurveTo(tuft, 0.16, tuft * 1.1, -0.02);
+      context.stroke();
+    }
+
+    context.restore();
   }
 
   private drawEar(
@@ -650,6 +790,203 @@ class AnimalEffectTransformer
     context.restore();
   }
 
+  private drawCatFaceDetails(
+    context: DrawingContext,
+    config: AnimalConfig,
+    pose: FacePose,
+  ) {
+    const scale = Math.max(6, pose.width * config.noseScale);
+    context.save();
+    context.translate(pose.noseX, pose.noseY);
+    context.rotate(pose.roll);
+
+    const blush = context.createRadialGradient(0, 0, 0, 0, 0, scale * 1.5);
+    blush.addColorStop(0, "rgba(244, 134, 120, 0.28)");
+    blush.addColorStop(1, "rgba(244, 134, 120, 0)");
+    context.fillStyle = blush;
+    for (const side of [-1, 1] as const) {
+      context.save();
+      context.translate(side * scale * 2.7, scale * 0.85);
+      context.scale(1.35, 0.58);
+      context.beginPath();
+      context.arc(0, 0, scale * 1.28, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    }
+
+    context.fillStyle = config.muzzle;
+    context.strokeStyle = "rgba(92, 64, 59, 0.12)";
+    context.lineWidth = Math.max(1, scale * 0.07);
+    for (const side of [-1, 1] as const) {
+      context.beginPath();
+      context.ellipse(
+        side * scale * 0.62,
+        scale * 0.72,
+        scale * 0.88,
+        scale * 0.7,
+        side * 0.1,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+      context.stroke();
+    }
+
+    context.fillStyle = config.nose;
+    context.strokeStyle = "rgba(255, 247, 239, 0.76)";
+    context.lineWidth = Math.max(1, scale * 0.08);
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(-scale, -scale * 0.24);
+    context.quadraticCurveTo(0, -scale * 0.72, scale, -scale * 0.24);
+    context.quadraticCurveTo(scale * 0.6, scale * 0.8, 0, scale * 0.94);
+    context.quadraticCurveTo(-scale * 0.6, scale * 0.8, -scale, -scale * 0.24);
+    context.closePath();
+    context.fill();
+    context.stroke();
+
+    context.fillStyle = "rgba(255, 255, 255, 0.62)";
+    context.beginPath();
+    context.ellipse(
+      -scale * 0.28,
+      -scale * 0.22,
+      scale * 0.2,
+      scale * 0.12,
+      -0.25,
+      0,
+      Math.PI * 2,
+    );
+    context.fill();
+
+    context.strokeStyle = config.accent;
+    context.lineWidth = Math.max(1.2, scale * 0.1);
+    context.lineCap = "round";
+    context.beginPath();
+    context.moveTo(0, scale * 0.76);
+    context.lineTo(0, scale * 1.2);
+    context.moveTo(0, scale * 1.18);
+    context.bezierCurveTo(
+      -scale * 0.18,
+      scale * 1.48,
+      -scale * 0.42,
+      scale * 1.52,
+      -scale * 0.58,
+      scale * 1.34,
+    );
+    context.moveTo(0, scale * 1.18);
+    context.bezierCurveTo(
+      scale * 0.18,
+      scale * 1.48,
+      scale * 0.42,
+      scale * 1.52,
+      scale * 0.58,
+      scale * 1.34,
+    );
+    context.stroke();
+
+    context.strokeStyle = "rgba(92, 64, 59, 0.88)";
+    context.lineWidth = Math.max(1.1, scale * 0.085);
+    context.shadowColor = "rgba(255, 247, 239, 0.86)";
+    context.shadowBlur = Math.max(1, scale * 0.1);
+    for (const side of [-1, 1] as const) {
+      for (const offset of [-0.5, 0.05, 0.6]) {
+        context.beginPath();
+        context.moveTo(side * scale * 0.92, scale * (0.73 + offset * 0.18));
+        context.quadraticCurveTo(
+          side * scale * 2.1,
+          scale * (0.63 + offset * 0.38),
+          side * scale * 3.35,
+          scale * (0.67 + offset),
+        );
+        context.stroke();
+      }
+    }
+
+    context.restore();
+  }
+
+  private drawCatEyeAccents(
+    context: DrawingContext,
+    landmarks: NormalizedLandmark[],
+    roll: number,
+  ) {
+    const eyes = [
+      { indices: LEFT_EYE, outerSide: -1 as const },
+      { indices: RIGHT_EYE, outerSide: 1 as const },
+    ];
+
+    context.save();
+    context.strokeStyle = "rgba(76, 48, 51, 0.82)";
+    context.lineCap = "round";
+    context.lineJoin = "round";
+
+    for (const { indices, outerSide } of eyes) {
+      const bounds = this.landmarkBounds(landmarks, indices);
+      const centerX = (bounds.minX + bounds.maxX) / 2;
+      const centerY = (bounds.minY + bounds.maxY) / 2;
+      const width = Math.max(8, bounds.maxX - bounds.minX);
+      const height = Math.max(4, bounds.maxY - bounds.minY);
+
+      context.save();
+      context.translate(centerX, centerY);
+      context.rotate(roll);
+      context.lineWidth = Math.max(1.2, width * 0.045);
+      context.beginPath();
+      context.moveTo(-width * 0.4, -height * 0.72);
+      context.quadraticCurveTo(0, -height * 1.05, width * 0.42, -height * 0.72);
+      context.stroke();
+
+      context.beginPath();
+      context.moveTo(outerSide * width * 0.36, -height * 0.75);
+      context.quadraticCurveTo(
+        outerSide * width * 0.55,
+        -height * 0.86,
+        outerSide * width * 0.68,
+        -height * 1.06,
+      );
+      context.stroke();
+      context.restore();
+    }
+
+    context.restore();
+  }
+
+  private drawCatSparkle(context: DrawingContext, pose: FacePose) {
+    const right = {
+      x: Math.cos(pose.roll),
+      y: Math.sin(pose.roll),
+    };
+    const up = {
+      x: Math.sin(pose.roll),
+      y: -Math.cos(pose.roll),
+    };
+    const pulse = 0.9 + Math.sin(performance.now() / 260) * 0.1;
+    const size = Math.max(6, pose.width * 0.055) * pulse;
+    const x =
+      pose.foreheadX + right.x * pose.width * 0.27 + up.x * pose.width * 0.3;
+    const y =
+      pose.foreheadY + right.y * pose.width * 0.27 + up.y * pose.width * 0.3;
+
+    context.save();
+    context.translate(x, y);
+    context.rotate(pose.roll + Math.PI / 4);
+    context.fillStyle = "#f4c94f";
+    context.strokeStyle = "rgba(76, 48, 51, 0.68)";
+    context.lineWidth = Math.max(1, size * 0.09);
+    context.shadowColor = "rgba(244, 201, 79, 0.4)";
+    context.shadowBlur = size * 0.45;
+    context.beginPath();
+    context.moveTo(0, -size);
+    context.quadraticCurveTo(size * 0.18, -size * 0.18, size, 0);
+    context.quadraticCurveTo(size * 0.18, size * 0.18, 0, size);
+    context.quadraticCurveTo(-size * 0.18, size * 0.18, -size, 0);
+    context.quadraticCurveTo(-size * 0.18, -size * 0.18, 0, -size);
+    context.closePath();
+    context.fill();
+    context.stroke();
+    context.restore();
+  }
+
   private drawFaceDetails(
     context: DrawingContext,
     config: AnimalConfig,
@@ -702,12 +1039,7 @@ class AnimalEffectTransformer
       context.beginPath();
       context.moveTo(-scale, -scale * 0.25);
       context.quadraticCurveTo(0, -scale * 0.72, scale, -scale * 0.25);
-      context.quadraticCurveTo(
-        scale * 0.62,
-        scale * 0.82,
-        0,
-        scale * 0.95,
-      );
+      context.quadraticCurveTo(scale * 0.62, scale * 0.82, 0, scale * 0.95);
       context.quadraticCurveTo(
         -scale * 0.62,
         scale * 0.82,
@@ -792,10 +1124,7 @@ class AnimalEffectTransformer
     context.restore();
   }
 
-  private landmarkBounds(
-    landmarks: NormalizedLandmark[],
-    indices: number[],
-  ) {
+  private landmarkBounds(landmarks: NormalizedLandmark[], indices: number[]) {
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -842,8 +1171,7 @@ class AnimalEffectTransformer
   ) {
     const { outputCanvas } = this.requireOutput();
     const outputFrame = new VideoFrame(outputCanvas, {
-      timestamp:
-        sourceFrame.timestamp ?? Math.round(performance.now() * 1_000),
+      timestamp: sourceFrame.timestamp ?? Math.round(performance.now() * 1_000),
     });
 
     try {
