@@ -107,6 +107,8 @@ export default function WorkroomCameraSetup({
     "medical-mask":
       "마스크 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
     beard: "수염 효과로 입과 턱을 가립니다. 눈과 자세는 그대로 보입니다.",
+    glasses:
+      "안경 효과와 밝은 뷰티 톤을 적용합니다. 눈과 자세는 그대로 보입니다.",
   };
 
   return (
@@ -248,6 +250,13 @@ export default function WorkroomCameraSetup({
                   "리얼 수염과 뷰티 톤",
                   <span aria-hidden="true">🧔</span>,
                   "is-accessory is-beard",
+                )}
+                {renderEffect(
+                  "glasses",
+                  "안경 뷰티",
+                  "빅 프레임과 브라이트 톤",
+                  <span aria-hidden="true">👓</span>,
+                  "is-accessory is-glasses",
                 )}
               </div>
             </div>

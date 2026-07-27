@@ -13,6 +13,7 @@ import { BearEffectRenderer } from "./bear-effect-renderer";
 import { BunnyEffectRenderer } from "./bunny-effect-renderer";
 import { CatEffectRenderer } from "./cat-effect-renderer";
 import { FoxEffectRenderer } from "./fox-effect-renderer";
+import { GlassesEffectRenderer } from "./glasses-effect-renderer";
 import {
   LEFT_EYE,
   LOWER_LIP,
@@ -34,9 +35,11 @@ const isAnimalEffect = (
   variant: FaceEffectVariant,
 ): variant is AnimalEffectVariant => variant in ANIMAL_CONFIGS;
 
-const isAccessoryEffect = (
+type LowerFaceAccessoryVariant = Exclude<AccessoryEffectVariant, "glasses">;
+
+const isLowerFaceAccessoryEffect = (
   variant: FaceEffectVariant,
-): variant is AccessoryEffectVariant =>
+): variant is LowerFaceAccessoryVariant =>
   variant === "medical-mask" || variant === "beard";
 
 export class AnimalOverlayRenderer {
@@ -49,6 +52,7 @@ export class AnimalOverlayRenderer {
   private readonly bunnyRenderer = new BunnyEffectRenderer();
   private readonly foxRenderer = new FoxEffectRenderer();
   private readonly accessoryRenderer = new AccessoryEffectRenderer();
+  private readonly glassesRenderer = new GlassesEffectRenderer();
   private readonly basicRenderer = new BasicAnimalRenderer();
   private beautyRenderer: WebGlBeautyRenderer | null = null;
   private beautyUnavailable = false;
@@ -65,6 +69,7 @@ export class AnimalOverlayRenderer {
       this.bunnyRenderer.init().catch(() => undefined),
       this.foxRenderer.init().catch(() => undefined),
       this.accessoryRenderer.init().catch(() => undefined),
+      this.glassesRenderer.init().catch(() => undefined),
     ]);
   }
 
@@ -112,15 +117,18 @@ export class AnimalOverlayRenderer {
     const useFoxRenderer =
       this.variant === "fox" && this.foxRenderer.isReady();
     const useAccessoryRenderer =
-      isAccessoryEffect(this.variant) &&
+      isLowerFaceAccessoryEffect(this.variant) &&
       this.accessoryRenderer.isReady(this.variant);
+    const useGlassesRenderer =
+      this.variant === "glasses" && this.glassesRenderer.isReady();
     if (
       useDogRenderer ||
       useCatRenderer ||
       useBearRenderer ||
       useBunnyRenderer ||
       useFoxRenderer ||
-      useAccessoryRenderer
+      useAccessoryRenderer ||
+      useGlassesRenderer
     ) {
       this.applyBeauty(outputCanvas, outputContext, tracking, profile);
     }
@@ -130,7 +138,18 @@ export class AnimalOverlayRenderer {
       ? ANIMAL_CONFIGS[this.variant]
       : null;
 
-    if (useAccessoryRenderer && isAccessoryEffect(this.variant)) {
+    if (useGlassesRenderer) {
+      this.glassesRenderer.draw(
+        overlayContext,
+        landmarks,
+        pose,
+        overlayCanvas.width,
+        overlayCanvas.height,
+      );
+    } else if (
+      useAccessoryRenderer &&
+      isLowerFaceAccessoryEffect(this.variant)
+    ) {
       this.accessoryRenderer.draw(overlayContext, this.variant, pose);
     } else if (useDogRenderer) {
       this.dogRenderer.draw(overlayContext, pose);
@@ -146,13 +165,15 @@ export class AnimalOverlayRenderer {
       this.basicRenderer.draw(overlayContext, config, pose);
     }
 
-    this.clearEyeWindows(
-      overlayContext,
-      landmarks,
-      pose.roll,
-      overlayCanvas.width,
-      overlayCanvas.height,
-    );
+    if (this.variant !== "glasses") {
+      this.clearEyeWindows(
+        overlayContext,
+        landmarks,
+        pose.roll,
+        overlayCanvas.width,
+        overlayCanvas.height,
+      );
+    }
     if (this.variant === "cat") {
       this.catRenderer.drawAccents(
         overlayContext,
@@ -181,6 +202,7 @@ export class AnimalOverlayRenderer {
     this.bunnyRenderer.destroy();
     this.foxRenderer.destroy();
     this.accessoryRenderer.destroy();
+    this.glassesRenderer.destroy();
     this.beautyRenderer?.destroy();
     this.beautyRenderer = null;
     this.beautyUnavailable = false;
@@ -261,6 +283,13 @@ export class AnimalOverlayRenderer {
       mouthRadiusY: pose.height * 0.11,
     };
     const treatment: BeautyTreatment = (() => {
+      if (this.variant === "glasses") {
+        return {
+          strength: Math.min(0.62, profile.beautyStrength * 1.78),
+          brightness: 0.088,
+          warmth: 0.002,
+        };
+      }
       if (this.variant === "medical-mask") {
         return {
           strength: Math.min(0.58, profile.beautyStrength * 1.68),

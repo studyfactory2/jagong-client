@@ -1,11 +1,9 @@
 import { closeEffectImage, loadEffectImage } from "./effect-asset-loader";
-import type {
-  AccessoryEffectVariant,
-  DrawingContext,
-  FacePose,
-} from "./types";
+import type { AccessoryEffectVariant, DrawingContext, FacePose } from "./types";
 
-type AccessoryAssets = Record<AccessoryEffectVariant, CanvasImageSource>;
+type LowerFaceAccessoryVariant = Exclude<AccessoryEffectVariant, "glasses">;
+
+type AccessoryAssets = Record<LowerFaceAccessoryVariant, CanvasImageSource>;
 
 type AccessoryDrawConfig = {
   size: number;
@@ -13,13 +11,13 @@ type AccessoryDrawConfig = {
   shadow: string;
 };
 
-const ACCESSORY_ASSETS: Record<AccessoryEffectVariant, string> = {
+const ACCESSORY_ASSETS: Record<LowerFaceAccessoryVariant, string> = {
   "medical-mask": "/effects/accessories/medical-mask.webp",
   beard: "/effects/accessories/beard.webp",
 };
 
 const ACCESSORY_DRAW_CONFIGS: Record<
-  AccessoryEffectVariant,
+  LowerFaceAccessoryVariant,
   AccessoryDrawConfig
 > = {
   "medical-mask": {
@@ -51,13 +49,13 @@ export class AccessoryEffectRenderer {
     };
   }
 
-  isReady(variant: AccessoryEffectVariant) {
+  isReady(variant: LowerFaceAccessoryVariant) {
     return this.assets?.[variant] !== undefined;
   }
 
   draw(
     context: DrawingContext,
-    variant: AccessoryEffectVariant,
+    variant: LowerFaceAccessoryVariant,
     pose: FacePose,
   ) {
     const image = this.assets?.[variant];

@@ -34,10 +34,7 @@ export type RemoteVideo = {
   track: RemoteVideoTrack;
 };
 
-export type CameraEffect =
-  | "original"
-  | "background-blur"
-  | FaceEffectVariant;
+export type CameraEffect = "original" | "background-blur" | FaceEffectVariant;
 
 type EffectSupportState = "unknown" | "supported" | "unsupported";
 
@@ -53,11 +50,10 @@ const FACE_EFFECTS: FaceEffectVariant[] = [
   "fox",
   "medical-mask",
   "beard",
+  "glasses",
 ];
 
-const isFaceEffect = (
-  effect: CameraEffect,
-): effect is FaceEffectVariant =>
+const isFaceEffect = (effect: CameraEffect): effect is FaceEffectVariant =>
   FACE_EFFECTS.includes(effect as FaceEffectVariant);
 
 const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
@@ -68,6 +64,7 @@ const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
   fox: "여우",
   "medical-mask": "마스크",
   beard: "수염",
+  glasses: "안경",
 };
 
 const createInitialEffectSupport = (): CameraEffectSupport => ({
@@ -79,6 +76,7 @@ const createInitialEffectSupport = (): CameraEffectSupport => ({
   fox: "unknown",
   "medical-mask": "unknown",
   beard: "unknown",
+  glasses: "unknown",
 });
 
 type WorkroomSessionValue = {
@@ -125,9 +123,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
-  const faceEffectProcessorRef = useRef<ProcessorWrapper<
-    FaceEffectOptions
-  > | null>(null);
+  const faceEffectProcessorRef =
+    useRef<ProcessorWrapper<FaceEffectOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
   const camTokenRef = useRef<CamTokenDto | null>(null);
   const joinedRef = useRef(false);

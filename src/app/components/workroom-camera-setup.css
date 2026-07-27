@@ -143,7 +143,7 @@
 }
 
 .workroom-camera-setup__effect-options.is-accessories {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .workroom-camera-setup__effect-option {
@@ -259,6 +259,10 @@
 
 .workroom-camera-setup__effect-icon.is-beard {
   background: linear-gradient(135deg, #f1e7df, #dcc7b6);
+}
+
+.workroom-camera-setup__effect-icon.is-glasses {
+  background: linear-gradient(135deg, #f4e7eb, #f4c5ce);
 }
 
 .workroom-camera-setup__effect-icon svg {
@@ -403,6 +407,10 @@
   .workroom-camera-setup__effect-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .workroom-camera-setup__effect-options.is-accessories {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workroom-camera-setup__effect-option {
