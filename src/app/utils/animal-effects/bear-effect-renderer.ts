@@ -44,7 +44,7 @@ export class BearEffectRenderer {
     this.drawBlush(context, pose);
     this.drawGlitter(context, pose);
     this.drawEars(context, pose, this.assets.ear);
-    this.drawMuzzle(context, pose, this.assets.muzzle);
+    this.drawPrivacyMuzzle(context, pose, this.assets.muzzle);
     return true;
   }
 
@@ -95,23 +95,23 @@ export class BearEffectRenderer {
     }
   }
 
-  private drawMuzzle(
+  private drawPrivacyMuzzle(
     context: DrawingContext,
     pose: FacePose,
     image: CanvasImageSource,
   ) {
-    const size = pose.width * 0.64;
-    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.14, 0.86, 1);
+    const size = pose.width * 1.08;
+    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.12, 0.88, 1);
 
     context.save();
-    context.translate(pose.noseX, pose.noseY + pose.height * 0.035);
+    context.translate(pose.noseX, pose.noseY + pose.height * 0.015);
     context.rotate(pose.roll);
     context.scale(yawScale, 1);
-    context.globalAlpha = 0.98;
+    context.globalAlpha = 0.99;
     context.shadowColor = "rgba(43, 27, 20, 0.2)";
-    context.shadowBlur = Math.max(3, pose.width * 0.016);
+    context.shadowBlur = Math.max(3, pose.width * 0.018);
     context.shadowOffsetY = Math.max(1, pose.width * 0.008);
-    context.drawImage(image, -size * 0.5, -size * 0.43, size, size);
+    context.drawImage(image, -size * 0.5, -size * 0.36, size, size);
     context.restore();
   }
 

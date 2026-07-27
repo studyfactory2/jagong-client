@@ -39,7 +39,7 @@ export class DogEffectRenderer {
     this.drawBlush(context, pose);
     this.drawGlitter(context, pose);
     this.drawEars(context, pose, this.assets.ear);
-    this.drawMuzzle(context, pose, this.assets.muzzle);
+    this.drawPrivacyMuzzle(context, pose, this.assets.muzzle);
     return true;
   }
 
@@ -97,23 +97,23 @@ export class DogEffectRenderer {
     }
   }
 
-  private drawMuzzle(
+  private drawPrivacyMuzzle(
     context: DrawingContext,
     pose: FacePose,
     image: CanvasImageSource,
   ) {
-    const size = pose.width * 0.9;
-    const yawScale = Math.max(0.82, 1 - Math.abs(pose.yaw) * 0.16);
+    const size = pose.width * 1.08;
+    const yawScale = Math.max(0.88, 1 - Math.abs(pose.yaw) * 0.12);
 
     context.save();
-    context.translate(pose.noseX, pose.noseY);
+    context.translate(pose.noseX, pose.noseY + pose.height * 0.015);
     context.rotate(pose.roll);
     context.scale(yawScale, 1);
-    context.globalAlpha = 0.98;
-    context.shadowColor = "rgba(31, 22, 20, 0.2)";
+    context.globalAlpha = 0.99;
+    context.shadowColor = "rgba(58, 31, 18, 0.2)";
     context.shadowBlur = Math.max(3, pose.width * 0.018);
     context.shadowOffsetY = Math.max(1, pose.width * 0.008);
-    context.drawImage(image, -size * 0.5, -size * 0.4, size, size);
+    context.drawImage(image, -size * 0.5, -size * 0.37, size, size);
     context.restore();
   }
 

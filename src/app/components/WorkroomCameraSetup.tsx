@@ -99,10 +99,10 @@ export default function WorkroomCameraSetup({
   const enteringMessages: Record<CameraEffect, string> = {
     original: "현재 원본 화면으로 입장합니다.",
     "background-blur": "현재 배경 흐림 화면으로 입장합니다.",
-    cat: "고양이 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
-    dog: "강아지 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
-    bear: "곰 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
-    bunny: "토끼 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    cat: "고양이 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
+    dog: "강아지 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
+    bear: "곰 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
+    bunny: "토끼 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
     fox: "여우 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
   };
 
@@ -188,28 +188,28 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "cat",
                   "고양이",
-                  "리얼 귀·코와 피부 톤",
+                  "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🐱</span>,
                   "is-character is-cat",
                 )}
                 {renderEffect(
                   "dog",
                   "강아지",
-                  "리얼 귀·코와 피부 톤",
+                  "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🐶</span>,
                   "is-character is-dog",
                 )}
                 {renderEffect(
                   "bear",
                   "곰",
-                  "리얼 귀·코와 뷰티 톤",
+                  "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🐻</span>,
                   "is-character is-bear",
                 )}
                 {renderEffect(
                   "bunny",
                   "토끼",
-                  "리얼 귀·코와 뷰티 톤",
+                  "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🐰</span>,
                   "is-character is-bunny",
                 )}

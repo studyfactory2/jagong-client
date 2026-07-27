@@ -54,7 +54,7 @@ export class CatEffectRenderer {
       this.drawAssetBlush(context, pose);
       this.drawFaceGlitter(context, pose);
       this.drawAssetEars(context, pose, this.assets.ear);
-      this.drawAssetMuzzle(context, pose, this.assets.muzzle);
+      this.drawPrivacyMuzzle(context, pose, this.assets.muzzle);
       this.drawAssetWhiskers(context, pose);
       return;
     }
@@ -145,23 +145,23 @@ export class CatEffectRenderer {
     }
   }
 
-  private drawAssetMuzzle(
+  private drawPrivacyMuzzle(
     context: DrawingContext,
     pose: FacePose,
     image: CanvasImageSource,
   ) {
-    const size = pose.width * 0.52;
-    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.15, 0.84, 1);
+    const size = pose.width * 1.08;
+    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.12, 0.88, 1);
 
     context.save();
-    context.translate(pose.noseX, pose.noseY + pose.height * 0.025);
+    context.translate(pose.noseX, pose.noseY + pose.height * 0.015);
     context.rotate(pose.roll);
     context.scale(yawScale, 1);
-    context.globalAlpha = 0.97;
-    context.shadowColor = "rgba(60, 39, 35, 0.16)";
-    context.shadowBlur = Math.max(2, pose.width * 0.012);
-    context.shadowOffsetY = Math.max(1, pose.width * 0.006);
-    context.drawImage(image, -size * 0.5, -size * 0.43, size, size);
+    context.globalAlpha = 0.99;
+    context.shadowColor = "rgba(66, 43, 36, 0.18)";
+    context.shadowBlur = Math.max(3, pose.width * 0.016);
+    context.shadowOffsetY = Math.max(1, pose.width * 0.008);
+    context.drawImage(image, -size * 0.5, -size * 0.37, size, size);
     context.restore();
   }
 

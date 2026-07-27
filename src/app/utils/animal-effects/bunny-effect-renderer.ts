@@ -44,7 +44,7 @@ export class BunnyEffectRenderer {
     this.drawBlush(context, pose);
     this.drawGlitter(context, pose);
     this.drawEars(context, pose, this.assets.ear);
-    this.drawMuzzle(context, pose, this.assets.muzzle);
+    this.drawPrivacyMuzzle(context, pose, this.assets.muzzle);
     return true;
   }
 
@@ -95,22 +95,22 @@ export class BunnyEffectRenderer {
     }
   }
 
-  private drawMuzzle(
+  private drawPrivacyMuzzle(
     context: DrawingContext,
     pose: FacePose,
     image: CanvasImageSource,
   ) {
-    const size = pose.width * 0.62;
-    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.14, 0.86, 1);
+    const size = pose.width * 1.08;
+    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.12, 0.88, 1);
 
     context.save();
-    context.translate(pose.noseX, pose.noseY + pose.height * 0.028);
+    context.translate(pose.noseX, pose.noseY + pose.height * 0.015);
     context.rotate(pose.roll);
     context.scale(yawScale, 1);
-    context.globalAlpha = 0.97;
-    context.shadowColor = "rgba(78, 47, 55, 0.16)";
-    context.shadowBlur = Math.max(2, pose.width * 0.013);
-    context.shadowOffsetY = Math.max(1, pose.width * 0.006);
+    context.globalAlpha = 0.99;
+    context.shadowColor = "rgba(78, 47, 55, 0.17)";
+    context.shadowBlur = Math.max(3, pose.width * 0.016);
+    context.shadowOffsetY = Math.max(1, pose.width * 0.008);
     context.drawImage(image, -size * 0.5, -size * 0.45, size, size);
     context.restore();
   }
