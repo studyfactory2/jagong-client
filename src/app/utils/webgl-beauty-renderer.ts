@@ -17,6 +17,12 @@ export type BeautyFaceMask = {
   mouthRadiusY: number;
 };
 
+export type BeautyTreatment = {
+  strength: number;
+  brightness: number;
+  warmth: number;
+};
+
 type BeautyCanvas = OffscreenCanvas | HTMLCanvasElement;
 
 const VERTEX_SHADER = `
@@ -43,6 +49,8 @@ const FRAGMENT_SHADER = `
   uniform vec2 u_mouth;
   uniform vec2 u_mouthRadius;
   uniform float u_strength;
+  uniform float u_brightness;
+  uniform float u_warmth;
   varying vec2 v_uv;
 
   float ellipseMask(vec2 point, vec2 center, vec2 radius) {
@@ -80,7 +88,8 @@ const FRAGMENT_SHADER = `
     float treatment = face * (1.0 - max(eyeProtection, mouthProtection));
     treatment *= u_strength;
 
-    vec3 brightened = min(vec3(1.0), softened * 1.028 + vec3(0.006, 0.004, 0.002));
+    vec3 tone = vec3(u_warmth, u_warmth * 0.58, u_warmth * 0.34);
+    vec3 brightened = min(vec3(1.0), softened * (1.0 + u_brightness) + tone);
     vec3 result = mix(original.rgb, brightened, treatment);
     gl_FragColor = vec4(result, original.a);
   }
@@ -167,7 +176,7 @@ export class WebGlBeautyRenderer {
   render(
     source: TexImageSource,
     mask: BeautyFaceMask,
-    strength = 0.34,
+    treatment: BeautyTreatment,
   ): CanvasImageSource | null {
     const gl = this.gl;
     try {
@@ -202,7 +211,9 @@ export class WebGlBeautyRenderer {
         mask.mouthRadiusX / this.canvas.width,
         mask.mouthRadiusY / this.canvas.height,
       );
-      this.uniform1f("u_strength", strength);
+      this.uniform1f("u_strength", treatment.strength);
+      this.uniform1f("u_brightness", treatment.brightness);
+      this.uniform1f("u_warmth", treatment.warmth);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       return this.canvas as CanvasImageSource;
     } catch {

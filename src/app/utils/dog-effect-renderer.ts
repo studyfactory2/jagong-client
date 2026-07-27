@@ -1,4 +1,8 @@
 import type { DrawingContext, FacePose } from "./animal-effects/types";
+import {
+  closeEffectImage,
+  loadEffectImage,
+} from "./animal-effects/effect-asset-loader";
 
 type DogAssets = {
   ear: CanvasImageSource;
@@ -19,36 +23,13 @@ const DOG_GLITTER = Array.from({ length: 168 }, (_, index) => {
   };
 });
 
-const loadImage = async (url: string): Promise<CanvasImageSource> => {
-  if (typeof createImageBitmap === "function") {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Unable to load effect asset: ${url}`);
-    return createImageBitmap(await response.blob());
-  }
-
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () =>
-      reject(new Error(`Unable to load effect asset: ${url}`));
-    image.src = url;
-  });
-};
-
-const closeImage = (image: CanvasImageSource) => {
-  if (typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap) {
-    image.close();
-  }
-};
-
 export class DogEffectRenderer {
   private assets: DogAssets | null = null;
 
   async init() {
     const [ear, muzzle] = await Promise.all([
-      loadImage(DOG_EAR_ASSET),
-      loadImage(DOG_MUZZLE_ASSET),
+      loadEffectImage(DOG_EAR_ASSET),
+      loadEffectImage(DOG_MUZZLE_ASSET),
     ]);
     this.assets = { ear, muzzle };
   }
@@ -68,8 +49,8 @@ export class DogEffectRenderer {
 
   destroy() {
     if (this.assets) {
-      closeImage(this.assets.ear);
-      closeImage(this.assets.muzzle);
+      closeEffectImage(this.assets.ear);
+      closeEffectImage(this.assets.muzzle);
     }
     this.assets = null;
   }

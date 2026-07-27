@@ -188,7 +188,7 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "cat",
                   "고양이",
-                  "귀·코·수염과 반짝임",
+                  "리얼 귀·코와 피부 톤",
                   <span aria-hidden="true">🐱</span>,
                   "is-character is-cat",
                 )}

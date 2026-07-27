@@ -1,13 +1,64 @@
 import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
 import type { AnimalConfig } from "./animal-config";
+import { closeEffectImage, loadEffectImage } from "./effect-asset-loader";
 import { LEFT_EYE, RIGHT_EYE, landmarkBounds } from "./landmark-utils";
 import type { DrawingContext, FacePose } from "./types";
+
+type CatAssets = {
+  ear: CanvasImageSource;
+  muzzle: CanvasImageSource;
+};
+
+const CAT_EAR_ASSET = "/effects/cat/ear.webp";
+const CAT_MUZZLE_ASSET = "/effects/cat/muzzle.webp";
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const CAT_GLITTER = Array.from({ length: 184 }, (_, index) => {
+  const radius = Math.sqrt((index + 0.5) / 184);
+  const angle = index * GOLDEN_ANGLE;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    size: 0.5 + ((index * 19) % 13) / 15,
+    alpha: 0.32 + ((index * 31) % 19) / 32,
+  };
+});
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 export class CatEffectRenderer {
+  private assets: CatAssets | null = null;
+
+  async init() {
+    const [ear, muzzle] = await Promise.all([
+      loadEffectImage(CAT_EAR_ASSET),
+      loadEffectImage(CAT_MUZZLE_ASSET),
+    ]);
+    this.assets = { ear, muzzle };
+  }
+
+  isReady() {
+    return this.assets !== null;
+  }
+
+  destroy() {
+    if (this.assets) {
+      closeEffectImage(this.assets.ear);
+      closeEffectImage(this.assets.muzzle);
+    }
+    this.assets = null;
+  }
+
   drawBase(context: DrawingContext, config: AnimalConfig, pose: FacePose) {
+    if (this.assets) {
+      this.drawAssetBlush(context, pose);
+      this.drawFaceGlitter(context, pose);
+      this.drawAssetEars(context, pose, this.assets.ear);
+      this.drawAssetMuzzle(context, pose, this.assets.muzzle);
+      this.drawAssetWhiskers(context, pose);
+      return;
+    }
+
     const right = {
       x: Math.cos(pose.roll),
       y: Math.sin(pose.roll),
@@ -53,6 +104,156 @@ export class CatEffectRenderer {
   ) {
     this.drawEyeAccents(context, landmarks, pose.roll, width, height);
     this.drawSparkle(context, pose);
+  }
+
+  private drawAssetEars(
+    context: DrawingContext,
+    pose: FacePose,
+    image: CanvasImageSource,
+  ) {
+    const size = pose.width * 0.68;
+    const right = {
+      x: Math.cos(pose.roll),
+      y: Math.sin(pose.roll),
+    };
+    const up = {
+      x: Math.sin(pose.roll),
+      y: -Math.cos(pose.roll),
+    };
+
+    for (const side of [-1, 1] as const) {
+      const perspective = clamp(1 + side * pose.yaw * 0.22, 0.78, 1.2);
+      const anchorX =
+        pose.foreheadX +
+        right.x * side * pose.width * 0.34 +
+        up.x * pose.width * 0.15;
+      const anchorY =
+        pose.foreheadY +
+        right.y * side * pose.width * 0.34 +
+        up.y * pose.width * 0.15;
+
+      context.save();
+      context.translate(anchorX, anchorY);
+      context.rotate(pose.roll + side * 0.035);
+      context.scale(side * perspective, 1);
+      context.globalAlpha = 0.98;
+      context.shadowColor = "rgba(45, 30, 25, 0.2)";
+      context.shadowBlur = Math.max(4, pose.width * 0.022);
+      context.shadowOffsetY = Math.max(2, pose.width * 0.01);
+      context.drawImage(image, -size * 0.5, -size * 0.54, size, size);
+      context.restore();
+    }
+  }
+
+  private drawAssetMuzzle(
+    context: DrawingContext,
+    pose: FacePose,
+    image: CanvasImageSource,
+  ) {
+    const size = pose.width * 0.52;
+    const yawScale = clamp(1 - Math.abs(pose.yaw) * 0.15, 0.84, 1);
+
+    context.save();
+    context.translate(pose.noseX, pose.noseY + pose.height * 0.025);
+    context.rotate(pose.roll);
+    context.scale(yawScale, 1);
+    context.globalAlpha = 0.97;
+    context.shadowColor = "rgba(60, 39, 35, 0.16)";
+    context.shadowBlur = Math.max(2, pose.width * 0.012);
+    context.shadowOffsetY = Math.max(1, pose.width * 0.006);
+    context.drawImage(image, -size * 0.5, -size * 0.43, size, size);
+    context.restore();
+  }
+
+  private drawAssetBlush(context: DrawingContext, pose: FacePose) {
+    const right = {
+      x: Math.cos(pose.roll),
+      y: Math.sin(pose.roll),
+    };
+    const down = {
+      x: -Math.sin(pose.roll),
+      y: Math.cos(pose.roll),
+    };
+    const radius = pose.width * 0.12;
+
+    for (const side of [-1, 1] as const) {
+      const x =
+        pose.centerX +
+        right.x * side * pose.width * 0.28 +
+        down.x * pose.height * 0.08;
+      const y =
+        pose.centerY +
+        right.y * side * pose.width * 0.28 +
+        down.y * pose.height * 0.08;
+      const blush = context.createRadialGradient(x, y, 0, x, y, radius);
+      blush.addColorStop(0, "rgba(246, 119, 134, 0.22)");
+      blush.addColorStop(0.55, "rgba(246, 119, 134, 0.1)");
+      blush.addColorStop(1, "rgba(246, 119, 134, 0)");
+      context.fillStyle = blush;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  private drawFaceGlitter(context: DrawingContext, pose: FacePose) {
+    const pulse = 0.94 + Math.sin(performance.now() / 320) * 0.06;
+
+    context.save();
+    context.translate(pose.centerX, pose.centerY);
+    context.rotate(pose.roll);
+    context.fillStyle = "#fffaf2";
+    context.shadowColor = "rgba(255, 239, 213, 0.66)";
+    context.shadowBlur = Math.max(1, pose.width * 0.009);
+
+    for (const point of CAT_GLITTER) {
+      const x = point.x * pose.width * 0.49;
+      const y = point.y * pose.height * 0.49;
+      const centralEyeBand =
+        Math.abs(y + pose.height * 0.17) < pose.height * 0.13;
+      if (centralEyeBand && Math.abs(x) < pose.width * 0.36) continue;
+
+      context.globalAlpha = point.alpha * pulse;
+      context.beginPath();
+      context.arc(
+        x,
+        y,
+        Math.max(0.65, pose.width * 0.0055 * point.size),
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+
+    context.restore();
+  }
+
+  private drawAssetWhiskers(context: DrawingContext, pose: FacePose) {
+    const scale = pose.width;
+    context.save();
+    context.translate(pose.noseX, pose.noseY);
+    context.rotate(pose.roll);
+    context.strokeStyle = "rgba(255, 250, 244, 0.9)";
+    context.lineWidth = Math.max(1.1, scale * 0.0045);
+    context.lineCap = "round";
+    context.shadowColor = "rgba(76, 48, 51, 0.5)";
+    context.shadowBlur = Math.max(1, scale * 0.004);
+
+    for (const side of [-1, 1] as const) {
+      for (const offset of [-0.65, 0, 0.65]) {
+        context.beginPath();
+        context.moveTo(side * scale * 0.17, scale * (0.055 + offset * 0.018));
+        context.quadraticCurveTo(
+          side * scale * 0.32,
+          scale * (0.052 + offset * 0.045),
+          side * scale * 0.47,
+          scale * (0.035 + offset * 0.07),
+        );
+        context.stroke();
+      }
+    }
+
+    context.restore();
   }
 
   private drawEar(

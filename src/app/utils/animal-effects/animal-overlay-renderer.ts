@@ -3,6 +3,7 @@ import { DogEffectRenderer } from "../dog-effect-renderer";
 import {
   WebGlBeautyRenderer,
   type BeautyFaceMask,
+  type BeautyTreatment,
 } from "../webgl-beauty-renderer";
 import type { AdaptiveQualityProfile } from "./adaptive-quality";
 import { ANIMAL_CONFIGS } from "./animal-config";
@@ -38,7 +39,10 @@ export class AnimalOverlayRenderer {
   }
 
   async init() {
-    await this.dogRenderer.init().catch(() => undefined);
+    await Promise.all([
+      this.dogRenderer.init().catch(() => undefined),
+      this.catRenderer.init().catch(() => undefined),
+    ]);
   }
 
   update(variant: AnimalEffectVariant) {
@@ -77,8 +81,9 @@ export class AnimalOverlayRenderer {
 
     const { landmarks, pose } = tracking;
     const useDogRenderer = this.variant === "dog" && this.dogRenderer.isReady();
-    if (useDogRenderer) {
-      this.applyDogBeauty(outputCanvas, outputContext, tracking, profile);
+    const useCatRenderer = this.variant === "cat" && this.catRenderer.isReady();
+    if (useDogRenderer || useCatRenderer) {
+      this.applyBeauty(outputCanvas, outputContext, tracking, profile);
     }
 
     overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -122,12 +127,13 @@ export class AnimalOverlayRenderer {
     this.overlayCanvas = null;
     this.overlayContext = null;
     this.dogRenderer.destroy();
+    this.catRenderer.destroy();
     this.beautyRenderer?.destroy();
     this.beautyRenderer = null;
     this.beautyUnavailable = false;
   }
 
-  private applyDogBeauty(
+  private applyBeauty(
     outputCanvas: EffectCanvas,
     outputContext: DrawingContext,
     tracking: TrackingResult,
@@ -201,10 +207,22 @@ export class AnimalOverlayRenderer {
       mouthRadiusX: pose.width * 0.17,
       mouthRadiusY: pose.height * 0.11,
     };
+    const treatment: BeautyTreatment =
+      this.variant === "cat"
+        ? {
+            strength: Math.min(0.58, profile.beautyStrength * 1.7),
+            brightness: 0.072,
+            warmth: 0.014,
+          }
+        : {
+            strength: profile.beautyStrength,
+            brightness: 0.028,
+            warmth: 0.006,
+          };
     const rendered = this.beautyRenderer.render(
       outputCanvas,
       mask,
-      profile.beautyStrength,
+      treatment,
     );
     if (rendered) {
       outputContext.drawImage(
