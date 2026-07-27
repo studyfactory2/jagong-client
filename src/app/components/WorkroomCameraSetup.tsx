@@ -103,7 +103,7 @@ export default function WorkroomCameraSetup({
     dog: "강아지 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
     bear: "곰 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
     bunny: "토끼 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
-    fox: "여우 효과로 입장합니다. 눈과 자세는 그대로 보입니다.",
+    fox: "여우 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
   };
 
   return (
@@ -216,7 +216,7 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "fox",
                   "여우",
-                  "뾰족한 귀",
+                  "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🦊</span>,
                   "is-character is-fox",
                 )}
