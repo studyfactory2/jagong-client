@@ -1,20 +1,4 @@
-type DrawingContext =
-  | CanvasRenderingContext2D
-  | OffscreenCanvasRenderingContext2D;
-
-export type DogEffectPose = {
-  foreheadX: number;
-  foreheadY: number;
-  centerX: number;
-  centerY: number;
-  noseX: number;
-  noseY: number;
-  width: number;
-  height: number;
-  roll: number;
-  yaw: number;
-  pitch: number;
-};
+import type { DrawingContext, FacePose } from "./animal-effects/types";
 
 type DogAssets = {
   ear: CanvasImageSource;
@@ -46,7 +30,8 @@ const loadImage = async (url: string): Promise<CanvasImageSource> => {
     const image = new Image();
     image.decoding = "async";
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`Unable to load effect asset: ${url}`));
+    image.onerror = () =>
+      reject(new Error(`Unable to load effect asset: ${url}`));
     image.src = url;
   });
 };
@@ -68,7 +53,7 @@ export class DogEffectRenderer {
     this.assets = { ear, muzzle };
   }
 
-  draw(context: DrawingContext, pose: DogEffectPose) {
+  draw(context: DrawingContext, pose: FacePose) {
     if (!this.assets) return false;
     this.drawBlush(context, pose);
     this.drawGlitter(context, pose);
@@ -91,7 +76,7 @@ export class DogEffectRenderer {
 
   private drawEars(
     context: DrawingContext,
-    pose: DogEffectPose,
+    pose: FacePose,
     image: CanvasImageSource,
   ) {
     const size = pose.width * 0.82;
@@ -105,7 +90,10 @@ export class DogEffectRenderer {
     };
 
     for (const side of [-1, 1] as const) {
-      const perspective = Math.max(0.76, Math.min(1.2, 1 + side * pose.yaw * 0.24));
+      const perspective = Math.max(
+        0.76,
+        Math.min(1.2, 1 + side * pose.yaw * 0.24),
+      );
       const anchorX =
         pose.foreheadX +
         right.x * side * pose.width * 0.35 +
@@ -130,7 +118,7 @@ export class DogEffectRenderer {
 
   private drawMuzzle(
     context: DrawingContext,
-    pose: DogEffectPose,
+    pose: FacePose,
     image: CanvasImageSource,
   ) {
     const size = pose.width * 0.9;
@@ -148,7 +136,7 @@ export class DogEffectRenderer {
     context.restore();
   }
 
-  private drawBlush(context: DrawingContext, pose: DogEffectPose) {
+  private drawBlush(context: DrawingContext, pose: FacePose) {
     const right = {
       x: Math.cos(pose.roll),
       y: Math.sin(pose.roll),
@@ -179,7 +167,7 @@ export class DogEffectRenderer {
     }
   }
 
-  private drawGlitter(context: DrawingContext, pose: DogEffectPose) {
+  private drawGlitter(context: DrawingContext, pose: FacePose) {
     context.save();
     context.translate(pose.centerX, pose.centerY);
     context.rotate(pose.roll);
@@ -190,7 +178,8 @@ export class DogEffectRenderer {
     for (const point of DOG_GLITTER) {
       const x = point.x * pose.width * 0.48;
       const y = point.y * pose.height * 0.49;
-      const centralEyeBand = Math.abs(y + pose.height * 0.17) < pose.height * 0.12;
+      const centralEyeBand =
+        Math.abs(y + pose.height * 0.17) < pose.height * 0.12;
       if (centralEyeBand && Math.abs(x) < pose.width * 0.34) continue;
 
       context.globalAlpha = point.alpha;
