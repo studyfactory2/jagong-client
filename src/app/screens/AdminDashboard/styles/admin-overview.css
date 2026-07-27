@@ -792,6 +792,125 @@
   text-align: center;
 }
 
+/* Manual payment and free-period confirmation. */
+.admin-overview .admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 33, 46, 0.42);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.admin-overview .admin-confirm-dialog {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid var(--overview-border);
+  border-radius: 14px;
+  background: var(--overview-surface);
+  padding: 20px;
+  box-shadow: 0 24px 70px rgba(9, 33, 46, 0.24);
+}
+
+.admin-overview .admin-confirm-dialog > strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+}
+
+.admin-overview .admin-confirm-dialog > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.admin-overview .admin-confirm-dialog dl {
+  min-height: 0;
+  max-height: min(44dvh, 350px);
+  display: grid;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  border: 1px solid var(--overview-border);
+  border-radius: 10px;
+  background: var(--overview-soft);
+}
+
+.admin-overview .admin-confirm-dialog dl > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(100px, 0.72fr) minmax(0, 1.28fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.admin-overview .admin-confirm-dialog dl > div + div {
+  border-top: 1px solid var(--overview-divider);
+}
+
+.admin-overview .admin-confirm-dialog dt,
+.admin-overview .admin-confirm-dialog dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+.admin-overview .admin-confirm-dialog dt {
+  color: var(--muted);
+}
+
+.admin-overview .admin-confirm-dialog dd {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  text-align: right;
+}
+
+.admin-overview .admin-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-overview .admin-confirm-actions > button {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid rgba(20, 63, 86, 0.2);
+  border-radius: 9px;
+  background: var(--overview-surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.admin-overview .admin-confirm-actions > button:last-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(247, 128, 118, 0.18);
+}
+
+.admin-overview .admin-confirm-actions > button:focus-visible {
+  outline: 3px solid rgba(20, 63, 86, 0.2);
+  outline-offset: 2px;
+}
+
 /* Tablet and compact desktop: prioritize the payment workflow. */
 @media (max-width: 1260px) {
   .admin-overview-workspace {
@@ -926,6 +1045,45 @@
   .admin-overview .admin-overview-submit-note,
   .admin-overview .admin-overview-receipt-status {
     grid-column: auto;
+  }
+
+  .admin-overview .admin-confirm-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .admin-overview .admin-confirm-dialog {
+    width: 100%;
+    max-height: calc(100vh - 44px);
+    max-height: calc(100dvh - 44px);
+    gap: 12px;
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    padding: 28px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .admin-overview .admin-confirm-dialog::before {
+    content: "";
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(20, 63, 86, 0.2);
+    transform: translateX(-50%);
+  }
+
+  .admin-overview .admin-confirm-dialog > strong {
+    font-size: 17px;
+  }
+
+  .admin-overview .admin-confirm-dialog dl {
+    max-height: 46dvh;
+  }
+
+  .admin-overview .admin-confirm-actions > button {
+    min-height: 46px;
   }
 }
 
