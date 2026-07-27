@@ -67,6 +67,35 @@ const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
   glasses: "안경",
 };
 
+const CAMERA_DIMENSION_SAMPLE_INTERVAL_MS = 60;
+const CAMERA_DIMENSION_WAIT_MS = 1200;
+
+async function waitForStableCameraDimensions(track: LocalVideoTrack) {
+  const deadline = performance.now() + CAMERA_DIMENSION_WAIT_MS;
+  let lastDimensions = "";
+  let stableSamples = 0;
+
+  while (performance.now() < deadline) {
+    const { width, height } = track.getSourceTrackSettings();
+    const dimensions = width && height ? `${width}x${height}` : "";
+
+    if (dimensions) {
+      if (dimensions === lastDimensions) {
+        stableSamples += 1;
+      } else {
+        lastDimensions = dimensions;
+        stableSamples = 1;
+      }
+
+      if (stableSamples >= 3) return;
+    }
+
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, CAMERA_DIMENSION_SAMPLE_INTERVAL_MS);
+    });
+  }
+}
+
 const createInitialEffectSupport = (): CameraEffectSupport => ({
   "background-blur": "unknown",
   cat: "unknown",
@@ -286,6 +315,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        await waitForStableCameraDimensions(track);
         const processor = BackgroundBlur(10, undefined, undefined, {
           maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
         });
@@ -320,6 +350,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
             variant: effect,
           });
         } else {
+          await waitForStableCameraDimensions(track);
           const processor = createFaceEffectProcessor(effect);
           await track.setProcessor(processor, true);
           faceEffectProcessorRef.current = processor;

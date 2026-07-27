@@ -20,6 +20,16 @@ export type {
   FaceEffectVariant,
 } from "./animal-effects/types";
 
+const FACE_EFFECT_PROCESSOR_NAME = "face-effects";
+const ASPECT_RATIO_TOLERANCE = 0.02;
+
+function frameDimensions(frame: VideoFrame) {
+  return {
+    width: frame.displayWidth || frame.codedWidth,
+    height: frame.displayHeight || frame.codedHeight,
+  };
+}
+
 class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> {
   transformer?: TransformStream<VideoFrame, VideoFrame>;
 
@@ -28,6 +38,7 @@ class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> 
   private readonly faceTracker = new FaceTracker();
   private readonly qualityController = new AdaptiveQualityController();
   private readonly overlayRenderer: AnimalOverlayRenderer;
+  private frameDimensionsSynced = false;
 
   constructor(options: FaceEffectOptions) {
     this.overlayRenderer = new AnimalOverlayRenderer(options.variant);
@@ -56,6 +67,7 @@ class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> 
     this.overlayRenderer.destroy();
     this.outputCanvas = null;
     this.outputContext = null;
+    this.frameDimensionsSynced = false;
     this.transformer = undefined;
   }
 
@@ -70,14 +82,9 @@ class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> 
 
     const frameStartedAt = performance.now();
     try {
+      this.syncOutputDimensions(frame);
       const { outputCanvas, outputContext } = this.requireOutput();
-      outputContext.drawImage(
-        frame,
-        0,
-        0,
-        outputCanvas.width,
-        outputCanvas.height,
-      );
+      this.drawFrameCover(frame, outputCanvas, outputContext);
 
       try {
         const tracking = this.faceTracker.track(
@@ -119,7 +126,97 @@ class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> 
 
     this.outputCanvas = outputCanvas;
     this.outputContext = context;
+    this.frameDimensionsSynced = false;
     this.overlayRenderer.resize(outputCanvas.width, outputCanvas.height);
+  }
+
+  private syncOutputDimensions(frame: VideoFrame) {
+    if (this.frameDimensionsSynced) return;
+
+    const { width, height } = frameDimensions(frame);
+    if (!width || !height) return;
+
+    const { outputCanvas } = this.requireOutput();
+    const frameRatio = width / height;
+    const canvasRatio = outputCanvas.width / outputCanvas.height;
+    const ratioMismatch =
+      !Number.isFinite(canvasRatio) ||
+      Math.abs(frameRatio - canvasRatio) > ASPECT_RATIO_TOLERANCE;
+
+    if (ratioMismatch) {
+      outputCanvas.width = width;
+      outputCanvas.height = height;
+
+      const context = outputCanvas.getContext("2d", {
+        alpha: false,
+      }) as DrawingContext | null;
+      if (!context) {
+        throw new Error("Animal effect output canvas is unavailable.");
+      }
+
+      this.outputContext = context;
+      this.overlayRenderer.resize(width, height);
+      this.resizeFallbackCanvas(width, height);
+    }
+
+    this.frameDimensionsSynced = true;
+  }
+
+  private resizeFallbackCanvas(width: number, height: number) {
+    if (typeof document === "undefined") return;
+
+    const displayCanvas = document.querySelector<HTMLCanvasElement>(
+      `canvas[data-livekit-processor="${FACE_EFFECT_PROCESSOR_NAME}"]`,
+    );
+    if (!displayCanvas) return;
+
+    displayCanvas.width = width;
+    displayCanvas.height = height;
+  }
+
+  private drawFrameCover(
+    frame: VideoFrame,
+    outputCanvas: EffectCanvas,
+    outputContext: DrawingContext,
+  ) {
+    const { width: frameWidth, height: frameHeight } = frameDimensions(frame);
+    if (!frameWidth || !frameHeight) {
+      outputContext.drawImage(
+        frame,
+        0,
+        0,
+        outputCanvas.width,
+        outputCanvas.height,
+      );
+      return;
+    }
+
+    const frameRatio = frameWidth / frameHeight;
+    const canvasRatio = outputCanvas.width / outputCanvas.height;
+    let sourceX = 0;
+    let sourceY = 0;
+    let sourceWidth = frameWidth;
+    let sourceHeight = frameHeight;
+
+    if (frameRatio > canvasRatio) {
+      sourceWidth = frameHeight * canvasRatio;
+      sourceX = (frameWidth - sourceWidth) / 2;
+    } else if (frameRatio < canvasRatio) {
+      sourceHeight = frameWidth / canvasRatio;
+      sourceY = (frameHeight - sourceHeight) / 2;
+    }
+
+    outputContext.drawImage(
+      frame,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      outputCanvas.width,
+      outputCanvas.height,
+    );
   }
 
   private enqueueOutputFrame(
@@ -163,7 +260,7 @@ export function createFaceEffectProcessor(
 ) {
   return new ProcessorWrapper<FaceEffectOptions>(
     new FaceEffectTransformer({ variant: initialVariant }),
-    "face-effects",
+    FACE_EFFECT_PROCESSOR_NAME,
     {
       maxFps: ProcessorWrapper.hasModernApiSupport ? 24 : 18,
     },
