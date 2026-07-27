@@ -202,7 +202,7 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "bear",
                   "곰",
-                  "동그란 귀",
+                  "리얼 귀·코와 뷰티 톤",
                   <span aria-hidden="true">🐻</span>,
                   "is-character is-bear",
                 )}

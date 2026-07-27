@@ -8,6 +8,7 @@ import {
 import type { AdaptiveQualityProfile } from "./adaptive-quality";
 import { ANIMAL_CONFIGS } from "./animal-config";
 import { BasicAnimalRenderer } from "./basic-animal-renderer";
+import { BearEffectRenderer } from "./bear-effect-renderer";
 import { CatEffectRenderer } from "./cat-effect-renderer";
 import {
   LEFT_EYE,
@@ -30,6 +31,7 @@ export class AnimalOverlayRenderer {
   private overlayContext: DrawingContext | null = null;
   private readonly dogRenderer = new DogEffectRenderer();
   private readonly catRenderer = new CatEffectRenderer();
+  private readonly bearRenderer = new BearEffectRenderer();
   private readonly basicRenderer = new BasicAnimalRenderer();
   private beautyRenderer: WebGlBeautyRenderer | null = null;
   private beautyUnavailable = false;
@@ -42,6 +44,7 @@ export class AnimalOverlayRenderer {
     await Promise.all([
       this.dogRenderer.init().catch(() => undefined),
       this.catRenderer.init().catch(() => undefined),
+      this.bearRenderer.init().catch(() => undefined),
     ]);
   }
 
@@ -82,7 +85,9 @@ export class AnimalOverlayRenderer {
     const { landmarks, pose } = tracking;
     const useDogRenderer = this.variant === "dog" && this.dogRenderer.isReady();
     const useCatRenderer = this.variant === "cat" && this.catRenderer.isReady();
-    if (useDogRenderer || useCatRenderer) {
+    const useBearRenderer =
+      this.variant === "bear" && this.bearRenderer.isReady();
+    if (useDogRenderer || useCatRenderer || useBearRenderer) {
       this.applyBeauty(outputCanvas, outputContext, tracking, profile);
     }
 
@@ -91,6 +96,8 @@ export class AnimalOverlayRenderer {
 
     if (useDogRenderer) {
       this.dogRenderer.draw(overlayContext, pose);
+    } else if (useBearRenderer) {
+      this.bearRenderer.draw(overlayContext, pose);
     } else if (this.variant === "cat") {
       this.catRenderer.drawBase(overlayContext, config, pose);
     } else {
@@ -128,6 +135,7 @@ export class AnimalOverlayRenderer {
     this.overlayContext = null;
     this.dogRenderer.destroy();
     this.catRenderer.destroy();
+    this.bearRenderer.destroy();
     this.beautyRenderer?.destroy();
     this.beautyRenderer = null;
     this.beautyUnavailable = false;
@@ -207,18 +215,27 @@ export class AnimalOverlayRenderer {
       mouthRadiusX: pose.width * 0.17,
       mouthRadiusY: pose.height * 0.11,
     };
-    const treatment: BeautyTreatment =
-      this.variant === "cat"
-        ? {
-            strength: Math.min(0.58, profile.beautyStrength * 1.7),
-            brightness: 0.072,
-            warmth: 0.014,
-          }
-        : {
-            strength: profile.beautyStrength,
-            brightness: 0.028,
-            warmth: 0.006,
-          };
+    const treatment: BeautyTreatment = (() => {
+      if (this.variant === "cat") {
+        return {
+          strength: Math.min(0.58, profile.beautyStrength * 1.7),
+          brightness: 0.072,
+          warmth: 0.014,
+        };
+      }
+      if (this.variant === "bear") {
+        return {
+          strength: Math.min(0.54, profile.beautyStrength * 1.55),
+          brightness: 0.06,
+          warmth: 0.012,
+        };
+      }
+      return {
+        strength: profile.beautyStrength,
+        brightness: 0.028,
+        warmth: 0.006,
+      };
+    })();
     const rendered = this.beautyRenderer.render(
       outputCanvas,
       mask,
