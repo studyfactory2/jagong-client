@@ -186,7 +186,7 @@ export default function WorkroomCameraSetup({
                 캐릭터 · 눈은 항상 보임
               </span>
               <div
-                className="workroom-camera-setup__effect-options"
+                className="workroom-camera-setup__effect-options is-characters"
                 role="group"
                 aria-label="캐릭터 화면"
               >
@@ -194,35 +194,39 @@ export default function WorkroomCameraSetup({
                   "cat",
                   "고양이",
                   "리얼 하관 커버와 뷰티 톤",
-                  <span aria-hidden="true">🐱</span>,
+                  <img src="/effects/cat/muzzle.webp" alt="" aria-hidden="true" />,
                   "is-character is-cat",
                 )}
                 {renderEffect(
                   "dog",
                   "강아지",
                   "리얼 하관 커버와 뷰티 톤",
-                  <span aria-hidden="true">🐶</span>,
+                  <img src="/effects/dog/muzzle.webp" alt="" aria-hidden="true" />,
                   "is-character is-dog",
                 )}
                 {renderEffect(
                   "bear",
                   "곰",
                   "리얼 하관 커버와 뷰티 톤",
-                  <span aria-hidden="true">🐻</span>,
+                  <img src="/effects/bear/muzzle.webp" alt="" aria-hidden="true" />,
                   "is-character is-bear",
                 )}
                 {renderEffect(
                   "bunny",
                   "토끼",
                   "리얼 하관 커버와 뷰티 톤",
-                  <span aria-hidden="true">🐰</span>,
+                  <img
+                    src="/effects/bunny/muzzle.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-character is-bunny",
                 )}
                 {renderEffect(
                   "fox",
                   "여우",
                   "리얼 하관 커버와 뷰티 톤",
-                  <span aria-hidden="true">🦊</span>,
+                  <img src="/effects/fox/muzzle.webp" alt="" aria-hidden="true" />,
                   "is-character is-fox",
                 )}
               </div>
@@ -241,21 +245,33 @@ export default function WorkroomCameraSetup({
                   "medical-mask",
                   "마스크",
                   "의료용 마스크와 뷰티 톤",
-                  <span aria-hidden="true">😷</span>,
+                  <img
+                    src="/effects/accessories/medical-mask.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-accessory is-mask",
                 )}
                 {renderEffect(
                   "beard",
                   "수염",
                   "리얼 수염과 뷰티 톤",
-                  <span aria-hidden="true">🧔</span>,
+                  <img
+                    src="/effects/accessories/beard.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-accessory is-beard",
                 )}
                 {renderEffect(
                   "glasses",
                   "안경 뷰티",
                   "빅 프레임과 브라이트 톤",
-                  <span aria-hidden="true">👓</span>,
+                  <img
+                    src="/effects/accessories/glasses.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-accessory is-glasses",
                 )}
               </div>
