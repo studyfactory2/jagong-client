@@ -9,6 +9,7 @@ import type { AdaptiveQualityProfile } from "./adaptive-quality";
 import { ANIMAL_CONFIGS } from "./animal-config";
 import { BasicAnimalRenderer } from "./basic-animal-renderer";
 import { BearEffectRenderer } from "./bear-effect-renderer";
+import { BunnyEffectRenderer } from "./bunny-effect-renderer";
 import { CatEffectRenderer } from "./cat-effect-renderer";
 import {
   LEFT_EYE,
@@ -32,6 +33,7 @@ export class AnimalOverlayRenderer {
   private readonly dogRenderer = new DogEffectRenderer();
   private readonly catRenderer = new CatEffectRenderer();
   private readonly bearRenderer = new BearEffectRenderer();
+  private readonly bunnyRenderer = new BunnyEffectRenderer();
   private readonly basicRenderer = new BasicAnimalRenderer();
   private beautyRenderer: WebGlBeautyRenderer | null = null;
   private beautyUnavailable = false;
@@ -45,6 +47,7 @@ export class AnimalOverlayRenderer {
       this.dogRenderer.init().catch(() => undefined),
       this.catRenderer.init().catch(() => undefined),
       this.bearRenderer.init().catch(() => undefined),
+      this.bunnyRenderer.init().catch(() => undefined),
     ]);
   }
 
@@ -87,7 +90,14 @@ export class AnimalOverlayRenderer {
     const useCatRenderer = this.variant === "cat" && this.catRenderer.isReady();
     const useBearRenderer =
       this.variant === "bear" && this.bearRenderer.isReady();
-    if (useDogRenderer || useCatRenderer || useBearRenderer) {
+    const useBunnyRenderer =
+      this.variant === "bunny" && this.bunnyRenderer.isReady();
+    if (
+      useDogRenderer ||
+      useCatRenderer ||
+      useBearRenderer ||
+      useBunnyRenderer
+    ) {
       this.applyBeauty(outputCanvas, outputContext, tracking, profile);
     }
 
@@ -98,6 +108,8 @@ export class AnimalOverlayRenderer {
       this.dogRenderer.draw(overlayContext, pose);
     } else if (useBearRenderer) {
       this.bearRenderer.draw(overlayContext, pose);
+    } else if (useBunnyRenderer) {
+      this.bunnyRenderer.draw(overlayContext, pose);
     } else if (this.variant === "cat") {
       this.catRenderer.drawBase(overlayContext, config, pose);
     } else {
@@ -136,6 +148,7 @@ export class AnimalOverlayRenderer {
     this.dogRenderer.destroy();
     this.catRenderer.destroy();
     this.bearRenderer.destroy();
+    this.bunnyRenderer.destroy();
     this.beautyRenderer?.destroy();
     this.beautyRenderer = null;
     this.beautyUnavailable = false;
@@ -228,6 +241,13 @@ export class AnimalOverlayRenderer {
           strength: Math.min(0.54, profile.beautyStrength * 1.55),
           brightness: 0.06,
           warmth: 0.012,
+        };
+      }
+      if (this.variant === "bunny") {
+        return {
+          strength: Math.min(0.56, profile.beautyStrength * 1.62),
+          brightness: 0.068,
+          warmth: 0.011,
         };
       }
       return {

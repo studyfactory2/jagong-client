@@ -209,7 +209,7 @@ export default function WorkroomCameraSetup({
                 {renderEffect(
                   "bunny",
                   "토끼",
-                  "길쭉한 귀",
+                  "리얼 귀·코와 뷰티 톤",
                   <span aria-hidden="true">🐰</span>,
                   "is-character is-bunny",
                 )}
