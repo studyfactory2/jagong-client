@@ -7,18 +7,20 @@ import { AdaptiveQualityController } from "./animal-effects/adaptive-quality";
 import { AnimalOverlayRenderer } from "./animal-effects/animal-overlay-renderer";
 import { FaceTracker } from "./animal-effects/face-tracker";
 import type {
-  AnimalEffectOptions,
-  AnimalEffectVariant,
   DrawingContext,
   EffectCanvas,
+  FaceEffectOptions,
+  FaceEffectVariant,
 } from "./animal-effects/types";
 
 export type {
-  AnimalEffectOptions,
+  AccessoryEffectVariant,
   AnimalEffectVariant,
+  FaceEffectOptions,
+  FaceEffectVariant,
 } from "./animal-effects/types";
 
-class AnimalEffectTransformer implements VideoTrackTransformer<AnimalEffectOptions> {
+class FaceEffectTransformer implements VideoTrackTransformer<FaceEffectOptions> {
   transformer?: TransformStream<VideoFrame, VideoFrame>;
 
   private outputCanvas: EffectCanvas | null = null;
@@ -27,7 +29,7 @@ class AnimalEffectTransformer implements VideoTrackTransformer<AnimalEffectOptio
   private readonly qualityController = new AdaptiveQualityController();
   private readonly overlayRenderer: AnimalOverlayRenderer;
 
-  constructor(options: AnimalEffectOptions) {
+  constructor(options: FaceEffectOptions) {
     this.overlayRenderer = new AnimalOverlayRenderer(options.variant);
   }
 
@@ -45,7 +47,7 @@ class AnimalEffectTransformer implements VideoTrackTransformer<AnimalEffectOptio
     this.faceTracker.reset();
   }
 
-  update(options: AnimalEffectOptions) {
+  update(options: FaceEffectOptions) {
     this.overlayRenderer.update(options.variant);
   }
 
@@ -148,7 +150,7 @@ class AnimalEffectTransformer implements VideoTrackTransformer<AnimalEffectOptio
   }
 }
 
-export function supportsAnimalEffect() {
+export function supportsFaceEffect() {
   return (
     ProcessorWrapper.isSupported &&
     typeof VideoFrame !== "undefined" &&
@@ -156,12 +158,12 @@ export function supportsAnimalEffect() {
   );
 }
 
-export function createAnimalEffectProcessor(
-  initialVariant: AnimalEffectVariant,
+export function createFaceEffectProcessor(
+  initialVariant: FaceEffectVariant,
 ) {
-  return new ProcessorWrapper<AnimalEffectOptions>(
-    new AnimalEffectTransformer({ variant: initialVariant }),
-    "animal-effects",
+  return new ProcessorWrapper<FaceEffectOptions>(
+    new FaceEffectTransformer({ variant: initialVariant }),
+    "face-effects",
     {
       maxFps: ProcessorWrapper.hasModernApiSupport ? 24 : 18,
     },

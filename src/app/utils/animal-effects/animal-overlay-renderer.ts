@@ -6,6 +6,7 @@ import {
   type BeautyTreatment,
 } from "../webgl-beauty-renderer";
 import type { AdaptiveQualityProfile } from "./adaptive-quality";
+import { AccessoryEffectRenderer } from "./accessory-effect-renderer";
 import { ANIMAL_CONFIGS } from "./animal-config";
 import { BasicAnimalRenderer } from "./basic-animal-renderer";
 import { BearEffectRenderer } from "./bear-effect-renderer";
@@ -21,14 +22,25 @@ import {
   landmarkBounds,
 } from "./landmark-utils";
 import type {
+  AccessoryEffectVariant,
   AnimalEffectVariant,
   DrawingContext,
   EffectCanvas,
+  FaceEffectVariant,
   TrackingResult,
 } from "./types";
 
+const isAnimalEffect = (
+  variant: FaceEffectVariant,
+): variant is AnimalEffectVariant => variant in ANIMAL_CONFIGS;
+
+const isAccessoryEffect = (
+  variant: FaceEffectVariant,
+): variant is AccessoryEffectVariant =>
+  variant === "medical-mask" || variant === "beard";
+
 export class AnimalOverlayRenderer {
-  private variant: AnimalEffectVariant;
+  private variant: FaceEffectVariant;
   private overlayCanvas: EffectCanvas | null = null;
   private overlayContext: DrawingContext | null = null;
   private readonly dogRenderer = new DogEffectRenderer();
@@ -36,11 +48,12 @@ export class AnimalOverlayRenderer {
   private readonly bearRenderer = new BearEffectRenderer();
   private readonly bunnyRenderer = new BunnyEffectRenderer();
   private readonly foxRenderer = new FoxEffectRenderer();
+  private readonly accessoryRenderer = new AccessoryEffectRenderer();
   private readonly basicRenderer = new BasicAnimalRenderer();
   private beautyRenderer: WebGlBeautyRenderer | null = null;
   private beautyUnavailable = false;
 
-  constructor(initialVariant: AnimalEffectVariant) {
+  constructor(initialVariant: FaceEffectVariant) {
     this.variant = initialVariant;
   }
 
@@ -51,10 +64,11 @@ export class AnimalOverlayRenderer {
       this.bearRenderer.init().catch(() => undefined),
       this.bunnyRenderer.init().catch(() => undefined),
       this.foxRenderer.init().catch(() => undefined),
+      this.accessoryRenderer.init().catch(() => undefined),
     ]);
   }
 
-  update(variant: AnimalEffectVariant) {
+  update(variant: FaceEffectVariant) {
     this.variant = variant;
   }
 
@@ -97,20 +111,28 @@ export class AnimalOverlayRenderer {
       this.variant === "bunny" && this.bunnyRenderer.isReady();
     const useFoxRenderer =
       this.variant === "fox" && this.foxRenderer.isReady();
+    const useAccessoryRenderer =
+      isAccessoryEffect(this.variant) &&
+      this.accessoryRenderer.isReady(this.variant);
     if (
       useDogRenderer ||
       useCatRenderer ||
       useBearRenderer ||
       useBunnyRenderer ||
-      useFoxRenderer
+      useFoxRenderer ||
+      useAccessoryRenderer
     ) {
       this.applyBeauty(outputCanvas, outputContext, tracking, profile);
     }
 
     overlayContext.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-    const config = ANIMAL_CONFIGS[this.variant];
+    const config = isAnimalEffect(this.variant)
+      ? ANIMAL_CONFIGS[this.variant]
+      : null;
 
-    if (useDogRenderer) {
+    if (useAccessoryRenderer && isAccessoryEffect(this.variant)) {
+      this.accessoryRenderer.draw(overlayContext, this.variant, pose);
+    } else if (useDogRenderer) {
       this.dogRenderer.draw(overlayContext, pose);
     } else if (useBearRenderer) {
       this.bearRenderer.draw(overlayContext, pose);
@@ -118,9 +140,9 @@ export class AnimalOverlayRenderer {
       this.bunnyRenderer.draw(overlayContext, pose);
     } else if (useFoxRenderer) {
       this.foxRenderer.draw(overlayContext, pose);
-    } else if (this.variant === "cat") {
+    } else if (this.variant === "cat" && config) {
       this.catRenderer.drawBase(overlayContext, config, pose);
-    } else {
+    } else if (config) {
       this.basicRenderer.draw(overlayContext, config, pose);
     }
 
@@ -158,6 +180,7 @@ export class AnimalOverlayRenderer {
     this.bearRenderer.destroy();
     this.bunnyRenderer.destroy();
     this.foxRenderer.destroy();
+    this.accessoryRenderer.destroy();
     this.beautyRenderer?.destroy();
     this.beautyRenderer = null;
     this.beautyUnavailable = false;
@@ -238,6 +261,20 @@ export class AnimalOverlayRenderer {
       mouthRadiusY: pose.height * 0.11,
     };
     const treatment: BeautyTreatment = (() => {
+      if (this.variant === "medical-mask") {
+        return {
+          strength: Math.min(0.58, profile.beautyStrength * 1.68),
+          brightness: 0.07,
+          warmth: 0.008,
+        };
+      }
+      if (this.variant === "beard") {
+        return {
+          strength: Math.min(0.52, profile.beautyStrength * 1.5),
+          brightness: 0.052,
+          warmth: 0.012,
+        };
+      }
       if (this.variant === "cat") {
         return {
           strength: Math.min(0.58, profile.beautyStrength * 1.7),

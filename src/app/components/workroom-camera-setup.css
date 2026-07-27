@@ -142,6 +142,10 @@
   gap: 8px;
 }
 
+.workroom-camera-setup__effect-options.is-accessories {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .workroom-camera-setup__effect-option {
   appearance: none;
   min-width: 0;
@@ -219,7 +223,8 @@
   box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.07);
 }
 
-.workroom-camera-setup__effect-icon.is-character > span {
+.workroom-camera-setup__effect-icon.is-character > span,
+.workroom-camera-setup__effect-icon.is-accessory > span {
   font-size: 20px;
   line-height: 1;
 }
@@ -242,6 +247,18 @@
 
 .workroom-camera-setup__effect-icon.is-fox {
   background: linear-gradient(135deg, #fff0df, #f5d0ac);
+}
+
+.workroom-camera-setup__effect-icon.is-accessory {
+  box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.07);
+}
+
+.workroom-camera-setup__effect-icon.is-mask {
+  background: linear-gradient(135deg, #f8faf4, #e1eee5);
+}
+
+.workroom-camera-setup__effect-icon.is-beard {
+  background: linear-gradient(135deg, #f1e7df, #dcc7b6);
 }
 
 .workroom-camera-setup__effect-icon svg {

@@ -19,8 +19,8 @@ import {
 import type { CamRoomMember, CamTokenDto } from "../../lib/types";
 import { useSocket } from "./SocketContext";
 import type {
-  AnimalEffectOptions,
-  AnimalEffectVariant,
+  FaceEffectOptions,
+  FaceEffectVariant,
 } from "../utils/landmarker-effect-processor";
 
 export type RemoteVideoTrack = {
@@ -37,33 +37,37 @@ export type RemoteVideo = {
 export type CameraEffect =
   | "original"
   | "background-blur"
-  | AnimalEffectVariant;
+  | FaceEffectVariant;
 
 type EffectSupportState = "unknown" | "supported" | "unsupported";
 
 type CameraEffectSupport = {
   "background-blur": EffectSupportState;
-} & Record<AnimalEffectVariant, EffectSupportState>;
+} & Record<FaceEffectVariant, EffectSupportState>;
 
-const ANIMAL_EFFECTS: AnimalEffectVariant[] = [
+const FACE_EFFECTS: FaceEffectVariant[] = [
   "cat",
   "dog",
   "bear",
   "bunny",
   "fox",
+  "medical-mask",
+  "beard",
 ];
 
-const isAnimalEffect = (
+const isFaceEffect = (
   effect: CameraEffect,
-): effect is AnimalEffectVariant =>
-  ANIMAL_EFFECTS.includes(effect as AnimalEffectVariant);
+): effect is FaceEffectVariant =>
+  FACE_EFFECTS.includes(effect as FaceEffectVariant);
 
-const ANIMAL_EFFECT_LABELS: Record<AnimalEffectVariant, string> = {
+const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
   cat: "고양이",
   dog: "강아지",
   bear: "곰",
   bunny: "토끼",
   fox: "여우",
+  "medical-mask": "마스크",
+  beard: "수염",
 };
 
 const createInitialEffectSupport = (): CameraEffectSupport => ({
@@ -73,6 +77,8 @@ const createInitialEffectSupport = (): CameraEffectSupport => ({
   bear: "unknown",
   bunny: "unknown",
   fox: "unknown",
+  "medical-mask": "unknown",
+  beard: "unknown",
 });
 
 type WorkroomSessionValue = {
@@ -119,8 +125,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
-  const animalEffectProcessorRef = useRef<ProcessorWrapper<
-    AnimalEffectOptions
+  const faceEffectProcessorRef = useRef<ProcessorWrapper<
+    FaceEffectOptions
   > | null>(null);
   const roomRef = useRef<Room | null>(null);
   const camTokenRef = useRef<CamTokenDto | null>(null);
@@ -181,7 +187,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setEffectSupport(createInitialEffectSupport());
     setEffectLoading(false);
     setEffectError("");
-    animalEffectProcessorRef.current = null;
+    faceEffectProcessorRef.current = null;
 
     if (!track) return;
 
@@ -255,7 +261,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       setEffectLoading(true);
       try {
         if (track.getProcessor()) await track.stopProcessor(false);
-        animalEffectProcessorRef.current = null;
+        faceEffectProcessorRef.current = null;
         setSelectedEffect("original");
       } catch {
         setEffectError("원본 화면으로 전환하지 못했습니다.");
@@ -287,7 +293,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           maxFps: supportsModernBackgroundProcessors() ? 24 : 18,
         });
         await track.setProcessor(processor, true);
-        animalEffectProcessorRef.current = null;
+        faceEffectProcessorRef.current = null;
         setEffectSupport((current) => ({
           ...current,
           "background-blur": "supported",
@@ -296,11 +302,11 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (isAnimalEffect(effect)) {
-        const { createAnimalEffectProcessor, supportsAnimalEffect } =
+      if (isFaceEffect(effect)) {
+        const { createFaceEffectProcessor, supportsFaceEffect } =
           await import("../utils/landmarker-effect-processor");
 
-        if (!supportsAnimalEffect()) {
+        if (!supportsFaceEffect()) {
           setEffectSupport((current) => ({
             ...current,
             [effect]: "unsupported",
@@ -310,16 +316,16 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         }
 
         const currentProcessor = track.getProcessor();
-        const reusableProcessor = animalEffectProcessorRef.current;
+        const reusableProcessor = faceEffectProcessorRef.current;
 
         if (reusableProcessor && currentProcessor === reusableProcessor) {
           await reusableProcessor.updateTransformerOptions({
             variant: effect,
           });
         } else {
-          const processor = createAnimalEffectProcessor(effect);
+          const processor = createFaceEffectProcessor(effect);
           await track.setProcessor(processor, true);
-          animalEffectProcessorRef.current = processor;
+          faceEffectProcessorRef.current = processor;
         }
 
         setEffectSupport((current) => ({
@@ -335,13 +341,13 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       } catch {
         // Keep the original camera usable even if processor cleanup fails.
       }
-      animalEffectProcessorRef.current = null;
+      faceEffectProcessorRef.current = null;
       setSelectedEffect("original");
       const label =
         effect === "background-blur"
           ? "배경 흐림"
-          : isAnimalEffect(effect)
-            ? ANIMAL_EFFECT_LABELS[effect]
+          : isFaceEffect(effect)
+            ? FACE_EFFECT_LABELS[effect]
             : "화면";
       setEffectError(
         `${label} 효과를 준비하지 못했습니다. 원본을 다시 선택해 주세요.`,

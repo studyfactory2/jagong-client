@@ -104,6 +104,9 @@ export default function WorkroomCameraSetup({
     bear: "곰 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
     bunny: "토끼 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
     fox: "여우 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
+    "medical-mask":
+      "마스크 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
+    beard: "수염 효과로 입과 턱을 가립니다. 눈과 자세는 그대로 보입니다.",
   };
 
   return (
@@ -219,6 +222,32 @@ export default function WorkroomCameraSetup({
                   "리얼 하관 커버와 뷰티 톤",
                   <span aria-hidden="true">🦊</span>,
                   "is-character is-fox",
+                )}
+              </div>
+            </div>
+
+            <div className="workroom-camera-setup__effect-group">
+              <span className="workroom-camera-setup__effect-group-label">
+                소품 · 눈은 항상 보임
+              </span>
+              <div
+                className="workroom-camera-setup__effect-options is-accessories"
+                role="group"
+                aria-label="소품 화면"
+              >
+                {renderEffect(
+                  "medical-mask",
+                  "마스크",
+                  "의료용 마스크와 뷰티 톤",
+                  <span aria-hidden="true">😷</span>,
+                  "is-accessory is-mask",
+                )}
+                {renderEffect(
+                  "beard",
+                  "수염",
+                  "리얼 수염과 뷰티 톤",
+                  <span aria-hidden="true">🧔</span>,
+                  "is-accessory is-beard",
                 )}
               </div>
             </div>

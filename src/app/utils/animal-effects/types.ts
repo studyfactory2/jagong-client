@@ -2,8 +2,14 @@ import type { NormalizedLandmark } from "@mediapipe/tasks-vision";
 
 export type AnimalEffectVariant = "cat" | "dog" | "bear" | "bunny" | "fox";
 
-export type AnimalEffectOptions = {
-  variant: AnimalEffectVariant;
+export type AccessoryEffectVariant = "medical-mask" | "beard";
+
+export type FaceEffectVariant =
+  | AnimalEffectVariant
+  | AccessoryEffectVariant;
+
+export type FaceEffectOptions = {
+  variant: FaceEffectVariant;
 };
 
 export type DrawingContext =
