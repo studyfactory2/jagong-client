@@ -13,9 +13,9 @@ import type { ProcessorWrapper } from "@livekit/track-processors";
 import {
   getCamRoomMembers,
   issueCamToken,
-  joinCam,
   leaveCam,
 } from "../services/cam.service";
+import { syncCamAttendance } from "../services/attendance.service";
 import type { CamRoomMember, CamTokenDto } from "../../lib/types";
 import { useSocket } from "./SocketContext";
 import type {
@@ -69,6 +69,13 @@ const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
 
 const CAMERA_DIMENSION_SAMPLE_INTERVAL_MS = 60;
 const CAMERA_DIMENSION_WAIT_MS = 1200;
+
+class WorkroomConnectionCancelledError extends Error {
+  constructor() {
+    super("Workroom connection was cancelled.");
+    this.name = "WorkroomConnectionCancelledError";
+  }
+}
 
 async function waitForStableCameraDimensions(track: LocalVideoTrack) {
   const deadline = performance.now() + CAMERA_DIMENSION_WAIT_MS;
@@ -155,7 +162,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const faceEffectProcessorRef =
     useRef<ProcessorWrapper<FaceEffectOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
-  const camTokenRef = useRef<CamTokenDto | null>(null);
+  const participantSidRef = useRef<string | null>(null);
+  const connectionGenerationRef = useRef(0);
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
   const visibleRemoteUserIdsRef = useRef<string[]>([]);
@@ -219,13 +227,23 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
     try {
       if (track.getProcessor()) await track.stopProcessor(false);
+    } catch {
+      // The camera track still has to stop when processor cleanup fails.
     } finally {
       track.stop();
     }
   }, []);
 
   const startLocalCamera = useCallback(
-    async (deviceId?: string) => {
+    async (deviceId?: string, connectionGeneration?: number) => {
+      const isCurrentGeneration = () =>
+        connectionGeneration === undefined ||
+        connectionGenerationRef.current === connectionGeneration;
+
+      if (!isCurrentGeneration()) {
+        throw new WorkroomConnectionCancelledError();
+      }
+
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("이 브라우저에서는 카메라를 사용할 수 없습니다.");
       }
@@ -234,8 +252,14 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       if (currentTrack) {
         if (deviceId) {
           const currentDeviceId = await currentTrack.getDeviceId();
+          if (!isCurrentGeneration()) {
+            throw new WorkroomConnectionCancelledError();
+          }
           if (currentDeviceId !== deviceId) {
             const changed = await currentTrack.setDeviceId(deviceId);
+            if (!isCurrentGeneration()) {
+              throw new WorkroomConnectionCancelledError();
+            }
             if (!changed) {
               throw new Error("선택한 카메라로 변경하지 못했습니다.");
             }
@@ -244,6 +268,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
         setCameraReady(true);
         await refreshDevices();
+        if (!isCurrentGeneration()) {
+          throw new WorkroomConnectionCancelledError();
+        }
         return currentTrack;
       }
 
@@ -258,20 +285,49 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         },
       });
 
+      if (!isCurrentGeneration()) {
+        track.stop();
+        throw new WorkroomConnectionCancelledError();
+      }
+
+      const activeDeviceId = (await track.getDeviceId()) ?? deviceId ?? "";
+      if (!isCurrentGeneration()) {
+        track.stop();
+        throw new WorkroomConnectionCancelledError();
+      }
+
       localVideoTrackRef.current = track;
       setLocalVideoTrack(track);
       setCameraReady(true);
-      setSelectedDeviceId((await track.getDeviceId()) ?? deviceId ?? "");
+      setSelectedDeviceId(activeDeviceId);
       await refreshDevices();
+      if (!isCurrentGeneration()) {
+        if (localVideoTrackRef.current === track) {
+          localVideoTrackRef.current = null;
+          setLocalVideoTrack(null);
+          setCameraReady(false);
+          track.stop();
+        }
+        throw new WorkroomConnectionCancelledError();
+      }
       return track;
     },
     [refreshDevices],
   );
 
-  const disconnectLiveKit = useCallback(() => {
-    roomRef.current?.disconnect();
+  const disconnectLiveKit = useCallback(async () => {
+    const room = roomRef.current;
     roomRef.current = null;
+    participantSidRef.current = null;
     setRemoteVideos([]);
+
+    if (!room) return;
+
+    try {
+      await room.disconnect();
+    } catch {
+      // The LiveKit webhook or server timeout still reconciles this participant.
+    }
   }, []);
 
   const selectCameraEffect = useCallback(async (effect: CameraEffect) => {
@@ -386,17 +442,39 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const connectLiveKit = useCallback(
-    async (token: CamTokenDto) => {
-      if (!token.url || token.token.startsWith("stub.")) return;
+    async (token: CamTokenDto, connectionGeneration: number) => {
+      if (!token.url || token.token.startsWith("stub.")) {
+        throw new Error("실시간 작업장 서버가 설정되지 않았습니다.");
+      }
+      if (!token.canPublish) {
+        throw new Error("이 계정에는 카메라 송출 권한이 없습니다.");
+      }
+      if (connectionGenerationRef.current !== connectionGeneration) {
+        throw new WorkroomConnectionCancelledError();
+      }
 
       const { Room, RoomEvent, Track } = await import("livekit-client");
+      if (connectionGenerationRef.current !== connectionGeneration) {
+        throw new WorkroomConnectionCancelledError();
+      }
+
+      const videoTrack = localVideoTrackRef.current;
+      if (!videoTrack) {
+        throw new Error("송출할 카메라 화면을 찾지 못했습니다.");
+      }
+
       const room = new Room({ adaptiveStream: true, dynacast: true });
+      roomRef.current = room;
+
+      const isCurrentRoom = () =>
+        connectionGenerationRef.current === connectionGeneration &&
+        roomRef.current === room;
 
       try {
         room.on(
           RoomEvent.TrackSubscribed,
           (track, publication, participant) => {
-            if (String(track.kind) !== "video") return;
+            if (!isCurrentRoom() || String(track.kind) !== "video") return;
             setRemoteVideos((current) => [
               ...current.filter(
                 (video) => video.trackSid !== publication.trackSid,
@@ -411,51 +489,95 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         );
 
         room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
+          if (!isCurrentRoom()) return;
           setRemoteVideos((current) =>
             current.filter((video) => video.trackSid !== publication.trackSid),
           );
         });
 
         room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+          if (!isCurrentRoom()) return;
           setRemoteVideos((current) =>
             current.filter((video) => video.userId !== participant.identity),
           );
         });
 
         room.on(RoomEvent.TrackPublished, () => {
+          if (!isCurrentRoom()) return;
           syncRemoteCameraSubscriptions(room);
         });
 
+        room.on(RoomEvent.Disconnected, () => {
+          if (roomRef.current !== room) return;
+
+          const participantSid = participantSidRef.current;
+          connectionGenerationRef.current += 1;
+          roomRef.current = null;
+          participantSidRef.current = null;
+          joinedRef.current = false;
+          joiningRef.current = false;
+          setJoined(false);
+          setJoining(false);
+          setRemoteVideos([]);
+          setError(
+            "실시간 작업장 연결이 종료되었습니다. 카메라를 확인한 뒤 다시 입장해 주세요.",
+          );
+          void stopLocalCamera();
+          if (participantSid) {
+            void leaveCam({ participantSid })
+              .catch(() => undefined)
+              .finally(() => void refreshRoomMembers());
+          } else {
+            void refreshRoomMembers();
+          }
+        });
+
         await room.connect(token.url, token.token, { autoSubscribe: false });
-        roomRef.current = room;
+        if (!isCurrentRoom()) {
+          throw new WorkroomConnectionCancelledError();
+        }
+
+        const participantSid = room.localParticipant.sid;
+        if (!participantSid) {
+          throw new Error("작업장 참가자 연결 정보를 확인하지 못했습니다.");
+        }
+        participantSidRef.current = participantSid;
         syncRemoteCameraSubscriptions(room);
 
-        if (token.canPublish) {
-          const videoTrack = localVideoTrackRef.current;
-          if (videoTrack) {
-            await room.localParticipant.publishTrack(videoTrack, {
-              source: Track.Source.Camera,
-            });
-          }
+        await room.localParticipant.publishTrack(videoTrack, {
+          source: Track.Source.Camera,
+        });
+        if (!isCurrentRoom()) {
+          throw new WorkroomConnectionCancelledError();
         }
+        return participantSid;
       } catch (err) {
-        room.disconnect();
         if (roomRef.current === room) roomRef.current = null;
+        try {
+          await room.disconnect();
+        } catch {
+          // Preserve the original connection or publishing error.
+        }
         throw err;
       }
     },
-    [syncRemoteCameraSubscriptions],
+    [refreshRoomMembers, stopLocalCamera, syncRemoteCameraSubscriptions],
   );
 
   const previewCamera = useCallback(
     async (deviceId?: string) => {
       setError("");
       if (joiningRef.current) return;
+      const connectionGeneration = connectionGenerationRef.current;
       joiningRef.current = true;
       setJoining(true);
       try {
-        await startLocalCamera(deviceId ?? (selectedDeviceId || undefined));
+        await startLocalCamera(
+          deviceId ?? (selectedDeviceId || undefined),
+          connectionGeneration,
+        );
       } catch (err) {
+        if (err instanceof WorkroomConnectionCancelledError) return;
         setError(
           err instanceof Error
             ? err.message
@@ -471,11 +593,13 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
   const selectCamera = useCallback(
     async (deviceId: string) => {
+      const connectionGeneration = connectionGenerationRef.current;
       setSelectedDeviceId(deviceId);
       setError("");
       try {
-        await startLocalCamera(deviceId || undefined);
+        await startLocalCamera(deviceId || undefined, connectionGeneration);
       } catch (err) {
+        if (err instanceof WorkroomConnectionCancelledError) return;
         setError(
           err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.",
         );
@@ -485,19 +609,23 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const leaveSession = useCallback(async () => {
-    const wasJoined = joinedRef.current;
-    disconnectLiveKit();
-    await stopLocalCamera();
+    const participantSid = participantSidRef.current;
+    connectionGenerationRef.current += 1;
+    joiningRef.current = false;
     joinedRef.current = false;
-    camTokenRef.current = null;
+    participantSidRef.current = null;
+    setJoining(false);
     setJoined(false);
     setError("");
 
-    if (wasJoined) {
+    await disconnectLiveKit();
+    await stopLocalCamera();
+
+    if (participantSid) {
       try {
-        await leaveCam();
+        await leaveCam({ participantSid });
       } catch {
-        // Local camera cleanup still happens when the presence request fails.
+        // The participant-left webhook remains authoritative if fallback fails.
       }
     }
     await refreshRoomMembers();
@@ -508,35 +636,72 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       if (joinedRef.current) return true;
       if (joiningRef.current) return false;
 
+      const connectionGeneration = connectionGenerationRef.current + 1;
+      connectionGenerationRef.current = connectionGeneration;
       setError("");
       joiningRef.current = true;
       setJoining(true);
       try {
         const token = await issueCamToken();
-        if (!localVideoTrackRef.current) {
-          await startLocalCamera(selectedDeviceId || undefined);
+        if (connectionGenerationRef.current !== connectionGeneration) {
+          throw new WorkroomConnectionCancelledError();
         }
-        await connectLiveKit(token);
-        await joinCam(slot);
+        if (!localVideoTrackRef.current) {
+          await startLocalCamera(
+            selectedDeviceId || undefined,
+            connectionGeneration,
+          );
+        }
+        const participantSid = await connectLiveKit(
+          token,
+          connectionGeneration,
+        );
+        if (
+          connectionGenerationRef.current !== connectionGeneration ||
+          participantSidRef.current !== participantSid
+        ) {
+          throw new WorkroomConnectionCancelledError();
+        }
         joinedRef.current = true;
-        camTokenRef.current = token;
         setJoined(true);
+        if (slot) {
+          for (let attempt = 0; attempt < 5; attempt += 1) {
+            if (connectionGenerationRef.current !== connectionGeneration) {
+              break;
+            }
+            try {
+              await syncCamAttendance(slot);
+              break;
+            } catch {
+              await new Promise((resolve) => window.setTimeout(resolve, 300));
+            }
+          }
+        }
         await refreshRoomMembers();
-        return true;
+        return connectionGenerationRef.current === connectionGeneration;
       } catch (err) {
-        disconnectLiveKit();
+        if (connectionGenerationRef.current !== connectionGeneration) {
+          return false;
+        }
+
+        await disconnectLiveKit();
         await stopLocalCamera();
         joinedRef.current = false;
-        camTokenRef.current = null;
-        setError(
-          err instanceof Error
-            ? err.message
-            : "작업장 입장 상태를 변경하지 못했습니다.",
-        );
+        participantSidRef.current = null;
+        setJoined(false);
+        if (!(err instanceof WorkroomConnectionCancelledError)) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "작업장 연결을 시작하지 못했습니다.",
+          );
+        }
         return false;
       } finally {
-        joiningRef.current = false;
-        setJoining(false);
+        if (connectionGenerationRef.current === connectionGeneration) {
+          joiningRef.current = false;
+          setJoining(false);
+        }
       }
     },
     [

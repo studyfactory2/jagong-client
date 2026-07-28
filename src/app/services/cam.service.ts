@@ -32,20 +32,10 @@ export async function getCamRoomMembers(): Promise<CamRoomMember[]> {
   return data;
 }
 
-export async function joinCam(slot?: number): Promise<CamSessionRecord> {
-  const { data } = await http.post<CamSessionRecord>(
-    "/cam/join",
-    slot === undefined ? {} : { slot },
-  );
-  return data;
-}
-
-export async function leaveCam(slot?: number): Promise<CamSessionRecord> {
-  const { data } = await http.post<CamSessionRecord>(
-    "/cam/leave",
-    slot === undefined ? {} : { slot },
-  );
-  return data;
+export async function leaveCam(input: {
+  participantSid: string;
+}): Promise<void> {
+  await http.post("/cam/leave", input);
 }
 
 export async function warnStudent(input: {
