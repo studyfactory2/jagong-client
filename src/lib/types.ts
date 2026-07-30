@@ -143,6 +143,8 @@ export interface PaymentRecord {
   pgTxId: string | null;
   depositorName?: string | null;
   paidAt?: string | null;
+  checkoutIssuedAt?: string | null;
+  checkoutExpiresAt?: string | null;
   adminMemo?: string | null;
   refundAmount?: number | null;
   refundCharge?: number | null;

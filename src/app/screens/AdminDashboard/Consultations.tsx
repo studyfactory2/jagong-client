@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import type { ConsultationRecord, PageMeta } from "../../../lib/types";
 import AdminPager from "./AdminPager";
-import { dateOnlyText, dateText, money } from "./admin.utils";
+import {
+  addDaysDateOnly,
+  dateOnlyText,
+  dateText,
+  money,
+  todayDateInputValue,
+  toDateInputValue,
+} from "./admin.utils";
 
 type ConsultationsProps = {
   consultations: ConsultationRecord[];
@@ -37,16 +44,6 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "취소",
 };
 
-function todayText(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function maxStartDate(): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 30);
-  return date.toISOString().slice(0, 10);
-}
-
 function consultationDate(item: ConsultationRecord) {
   return item.desiredDate
     ? dateOnlyText(item.desiredDate)
@@ -63,6 +60,12 @@ function consultationStatus(item: ConsultationRecord) {
 
 function statusTone(status: string) {
   return `is-${status.toLowerCase()}`;
+}
+
+function checkoutExpired(value?: string | null): boolean {
+  if (!value) return true;
+  const expiresAt = new Date(value).getTime();
+  return Number.isNaN(expiresAt) || expiresAt <= Date.now();
 }
 
 export default function Consultations(props: ConsultationsProps) {
@@ -86,15 +89,31 @@ export default function Consultations(props: ConsultationsProps) {
     {},
   );
   const [copiedId, setCopiedId] = useState("");
-  const startMin = useMemo(() => todayText(), []);
-  const startMax = useMemo(() => maxStartDate(), []);
+  const startMin = useMemo(() => todayDateInputValue(), []);
+  const startMax = useMemo(
+    () => addDaysDateOnly(startMin, 30) ?? startMin,
+    [startMin],
+  );
   const selectedConsultation =
     consultations.find((item) => item.id === selectedId) ??
     consultations[0] ??
     null;
 
   function checkoutForm(id: string) {
-    return checkoutForms[id] ?? { months: 1, startDate: startMin };
+    const saved = checkoutForms[id];
+    if (saved) return saved;
+
+    const pending = consultations
+      .find((item) => item.id === id)
+      ?.payments?.find((payment) => payment.status === "PENDING");
+    if (pending) {
+      return {
+        months: pending.planMonths,
+        startDate: toDateInputValue(pending.periodStart) || startMin,
+      };
+    }
+
+    return { months: 1, startDate: startMin };
   }
 
   function updateCheckoutForm(
@@ -141,6 +160,10 @@ export default function Consultations(props: ConsultationsProps) {
   const isSelectedVideo = selectedConsultation?.consultType === "VIDEO";
   const selectedPaid = selectedPayment?.status === "PAID";
   const selectedPaymentPending = selectedPayment?.status === "PENDING";
+  const selectedCheckoutExpired = Boolean(
+    selectedPaymentPending &&
+    checkoutExpired(selectedPayment?.checkoutExpiresAt),
+  );
   const canConfirmSelected =
     selectedConsultation?.status === "PENDING" &&
     (!isSelectedVideo || Boolean(selectedMeetingLink.trim()));
@@ -359,7 +382,9 @@ export default function Consultations(props: ConsultationsProps) {
                     {selectedPaid
                       ? "결제완료"
                       : selectedPaymentPending
-                        ? "결제대기"
+                        ? selectedCheckoutExpired
+                          ? "링크만료"
+                          : "결제대기"
                         : "링크 미생성"}
                   </strong>
                 </div>
@@ -376,6 +401,7 @@ export default function Consultations(props: ConsultationsProps) {
                   <label>
                     <span>이용권</span>
                     <select
+                      disabled={selectedPaymentPending}
                       value={selectedCheckoutForm.months}
                       onChange={(event) =>
                         updateCheckoutForm(selectedConsultation.id, {
@@ -391,6 +417,7 @@ export default function Consultations(props: ConsultationsProps) {
                   <label>
                     <span>시작일</span>
                     <input
+                      disabled={selectedPaymentPending}
                       min={startMin}
                       max={startMax}
                       type="date"
@@ -406,12 +433,14 @@ export default function Consultations(props: ConsultationsProps) {
                     onClick={() => createLink(selectedConsultation.id)}
                     type="button"
                   >
-                    결제링크 생성
+                    {selectedPaymentPending
+                      ? "결제링크 재발급"
+                      : "결제링크 생성"}
                   </button>
                 </div>
               )}
 
-              {selectedCheckoutLink && (
+              {selectedCheckoutLink && !selectedCheckoutExpired && (
                 <button
                   className="admin-consultation-copy-link"
                   onClick={() =>
