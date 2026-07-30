@@ -38,6 +38,7 @@ const PAYMENT_STATUS_LABEL: Record<string, string> = {
   PAID: "결제완료",
   FAILED: "실패",
   CANCELLED: "취소",
+  SUPERSEDED: "링크교체",
   REFUNDED: "환불완료",
 };
 
@@ -309,6 +310,16 @@ export default function Payments(props: PaymentsProps) {
               <span>결제 금액</span>
               <strong>{money(selectedPayment.amount)}</strong>
             </div>
+
+            {selectedPayment.reviewRequiredAt && (
+              <div className="admin-payment-review-warning">
+                <strong>결제 확인 필요</strong>
+                <span>
+                  교체되거나 취소된 링크에서 결제가 확인되었습니다. 다른 결제
+                  기록과 포트원을 함께 확인해주세요.
+                </span>
+              </div>
+            )}
 
             <dl className="admin-payment-directory-fields">
               <div>

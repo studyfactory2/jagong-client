@@ -83,6 +83,23 @@ export async function createConsultationCheckout(input: {
   return data;
 }
 
+export async function replaceConsultationCheckout(input: {
+  consultationId: string;
+  paymentId: string;
+  planMonths: number;
+  startDate: string;
+}): Promise<ConsultationCheckoutResult> {
+  const { data } = await http.post<ConsultationCheckoutResult>(
+    "/memberships/consultations/" + input.consultationId + "/checkout/replace",
+    {
+      paymentId: input.paymentId,
+      planMonths: input.planMonths,
+      startDate: input.startDate,
+    },
+  );
+  return data;
+}
+
 export async function getAdminPayments(input?: {
   status?: PaymentStatus;
   userId?: string;

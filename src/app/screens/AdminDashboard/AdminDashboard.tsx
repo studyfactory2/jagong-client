@@ -32,6 +32,7 @@ import {
   getAdminPayments,
   grantFreeTrial,
   recordManualPayment,
+  replaceConsultationCheckout,
 } from "../../services/membership.service";
 import { getAdminLeaves } from "../../services/leave.service";
 import { getAdminChatRooms } from "../../services/chat.service";
@@ -50,7 +51,12 @@ import Members from "./Members";
 import Overview from "./Overview";
 import Payments from "./Payments";
 import Profile from "./Profile";
-import type { AdminUser, Branch, TimetableSlot } from "../../../lib/types";
+import type {
+  AdminUser,
+  Branch,
+  ConsultationCheckoutLinkResult,
+  TimetableSlot,
+} from "../../../lib/types";
 import {
   adminPrimaryTabs,
   adminTabs,
@@ -499,15 +505,51 @@ export default function AdminDashboard() {
     consultationId: string;
     planMonths: number;
     startDate: string;
-  }): Promise<string> {
-    if (!isAdmin) return "";
-    let checkoutUrl = "";
-    await runAdminAction(async () => {
+  }): Promise<ConsultationCheckoutLinkResult> {
+    if (!isAdmin) throw new Error("관리자 권한이 필요합니다.");
+    setError("");
+    try {
       const checkout = await createConsultationCheckout(input);
-      checkoutUrl = window.location.origin + "/checkout/" + checkout.paymentId;
       await load();
-    }, "결제링크를 만들지 못했습니다.");
-    return checkoutUrl;
+      return {
+        ...checkout,
+        checkoutUrl:
+          window.location.origin + "/checkout/" + checkout.paymentId,
+      };
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "결제링크를 만들지 못했습니다.",
+      );
+      throw err;
+    }
+  }
+
+  async function replaceConsultationPaymentLink(input: {
+    consultationId: string;
+    paymentId: string;
+    planMonths: number;
+    startDate: string;
+  }): Promise<ConsultationCheckoutLinkResult> {
+    if (!isAdmin) throw new Error("관리자 권한이 필요합니다.");
+    setError("");
+    try {
+      const checkout = await replaceConsultationCheckout(input);
+      await load();
+      return {
+        ...checkout,
+        checkoutUrl:
+          window.location.origin + "/checkout/" + checkout.paymentId,
+      };
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "결제링크를 교체하지 못했습니다.",
+      );
+      throw err;
+    }
   }
 
   function preparePreRegisterFromConsultation(id: string) {
@@ -886,6 +928,7 @@ export default function AdminDashboard() {
                 onConfirm={confirmConsultation}
                 onComplete={completeConsultation}
                 onCreateCheckout={createConsultationPaymentLink}
+                onReplaceCheckout={replaceConsultationPaymentLink}
                 onPreparePreRegister={preparePreRegisterFromConsultation}
                 pageMeta={pageMeta.consultations}
                 onPageChange={(page) => changePage("consultations", page)}

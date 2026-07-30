@@ -1,5 +1,9 @@
-import { useMemo, useState } from "react";
-import type { ConsultationRecord, PageMeta } from "../../../lib/types";
+import { useRef, useState } from "react";
+import type {
+  ConsultationCheckoutLinkResult,
+  ConsultationRecord,
+  PageMeta,
+} from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import {
   addDaysDateOnly,
@@ -24,7 +28,13 @@ type ConsultationsProps = {
     consultationId: string;
     planMonths: number;
     startDate: string;
-  }) => Promise<string>;
+  }) => Promise<ConsultationCheckoutLinkResult>;
+  onReplaceCheckout: (input: {
+    consultationId: string;
+    paymentId: string;
+    planMonths: number;
+    startDate: string;
+  }) => Promise<ConsultationCheckoutLinkResult>;
   onPreparePreRegister: (id: string) => void;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
@@ -76,6 +86,7 @@ export default function Consultations(props: ConsultationsProps) {
     onConfirm,
     onComplete,
     onCreateCheckout,
+    onReplaceCheckout,
     onPreparePreRegister,
     pageMeta,
     onPageChange,
@@ -85,35 +96,77 @@ export default function Consultations(props: ConsultationsProps) {
   const [checkoutForms, setCheckoutForms] = useState<
     Record<string, { months: number; startDate: string }>
   >({});
-  const [checkoutLinks, setCheckoutLinks] = useState<Record<string, string>>(
+  const [provisionalCheckouts, setProvisionalCheckouts] = useState<
+    Record<string, ConsultationCheckoutLinkResult>
+  >({});
+  const [copiedId, setCopiedId] = useState("");
+  const [replacementModeId, setReplacementModeId] = useState("");
+  const [checkoutBusyId, setCheckoutBusyId] = useState("");
+  const checkoutBusyRef = useRef("");
+  const [checkoutErrors, setCheckoutErrors] = useState<Record<string, string>>(
     {},
   );
-  const [copiedId, setCopiedId] = useState("");
-  const startMin = useMemo(() => todayDateInputValue(), []);
-  const startMax = useMemo(
-    () => addDaysDateOnly(startMin, 30) ?? startMin,
-    [startMin],
-  );
+  const startMin = todayDateInputValue();
+  const startMax = addDaysDateOnly(startMin, 30) ?? startMin;
   const selectedConsultation =
     consultations.find((item) => item.id === selectedId) ??
     consultations[0] ??
     null;
 
-  function checkoutForm(id: string) {
-    const saved = checkoutForms[id];
-    if (saved) return saved;
-
-    const pending = consultations
+  function pendingPayment(id: string) {
+    return consultations
       .find((item) => item.id === id)
       ?.payments?.find((payment) => payment.status === "PENDING");
+  }
+
+  function provisionalCheckout(id: string) {
+    const provisional = provisionalCheckouts[id];
+    if (!provisional) return undefined;
+    const serverPayments =
+      consultations.find((item) => item.id === id)?.payments ?? [];
+    const serverPayment = serverPayments.find(
+      (payment) => payment.id === provisional.paymentId,
+    );
+    if (serverPayment && serverPayment.status !== "PENDING") {
+      return undefined;
+    }
+    const lifecycleConfirmed = Boolean(
+      serverPayment &&
+      (!provisional.checkoutExpiresAt ||
+        serverPayment.checkoutExpiresAt === provisional.checkoutExpiresAt),
+    );
+    const provisionalIssuedAt = provisional.checkoutIssuedAt
+      ? new Date(provisional.checkoutIssuedAt).getTime()
+      : Number.NaN;
+    const serverHasNewerCheckout =
+      Number.isFinite(provisionalIssuedAt) &&
+      serverPayments.some(
+        (payment) =>
+          payment.id !== provisional.paymentId &&
+          new Date(payment.createdAt).getTime() >= provisionalIssuedAt,
+      );
+    return lifecycleConfirmed || serverHasNewerCheckout
+      ? undefined
+      : provisional;
+  }
+
+  function checkoutForm(id: string) {
+    const pending = pendingPayment(id);
+    const saved = checkoutForms[id];
     if (pending) {
+      const storedStart = toDateInputValue(pending.periodStart);
+      const pendingStart = storedStart || startMin;
+      const replacementRequired = !storedStart || pendingStart < startMin;
+      const replacing =
+        replacementModeId === id || replacementRequired;
+      if (saved && replacing) return saved;
       return {
         months: pending.planMonths,
-        startDate: toDateInputValue(pending.periodStart) || startMin,
+        startDate: replacing && pendingStart < startMin ? startMin : pendingStart,
       };
     }
 
-    return { months: 1, startDate: startMin };
+    return saved ?? { months: 1, startDate: startMin };
   }
 
   function updateCheckoutForm(
@@ -126,14 +179,85 @@ export default function Consultations(props: ConsultationsProps) {
     }));
   }
 
-  async function createLink(id: string) {
-    const form = checkoutForm(id);
-    const link = await onCreateCheckout({
-      consultationId: id,
-      planMonths: form.months,
-      startDate: form.startDate,
+  function beginReplacement(id: string) {
+    const pending = pendingPayment(id);
+    if (!pending) return;
+    const pendingStart = toDateInputValue(pending.periodStart) || startMin;
+    setCheckoutForms((current) => ({
+      ...current,
+      [id]: {
+        months: pending.planMonths,
+        startDate: pendingStart < startMin ? startMin : pendingStart,
+      },
+    }));
+    setCheckoutErrors((current) => ({ ...current, [id]: "" }));
+    setReplacementModeId(id);
+  }
+
+  function cancelReplacement(id: string) {
+    setCheckoutForms((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
     });
-    if (link) setCheckoutLinks((current) => ({ ...current, [id]: link }));
+    setCheckoutErrors((current) => ({ ...current, [id]: "" }));
+    setReplacementModeId("");
+  }
+
+  async function createLink(id: string, replace = false) {
+    if (checkoutBusyRef.current) return;
+    const form = checkoutForm(id);
+    const pending = pendingPayment(id);
+    if (replace && !pending) return;
+    if (
+      replace &&
+      !window.confirm(
+        [
+          "기존 결제링크는 즉시 사용할 수 없게 됩니다.",
+          "",
+          `기존 조건: ${pending!.planMonths}개월 · ${toDateInputValue(pending!.periodStart) || "시작일 미정"}`,
+          `새 조건: ${form.months}개월 · ${form.startDate}`,
+          "",
+          "새 링크로 교체하시겠습니까?",
+        ].join("\n"),
+      )
+    ) {
+      return;
+    }
+
+    checkoutBusyRef.current = id;
+    setCheckoutErrors((current) => ({ ...current, [id]: "" }));
+    setCheckoutBusyId(id);
+    try {
+      const checkout = replace
+        ? await onReplaceCheckout({
+            consultationId: id,
+            paymentId: pending!.id,
+            planMonths: form.months,
+            startDate: form.startDate,
+          })
+        : await onCreateCheckout({
+            consultationId: id,
+            planMonths: form.months,
+            startDate: form.startDate,
+          });
+      setProvisionalCheckouts((current) => ({
+        ...current,
+        [id]: checkout,
+      }));
+      setReplacementModeId((current) => (current === id ? "" : current));
+    } catch (error) {
+      setCheckoutErrors((current) => ({
+        ...current,
+        [id]:
+          error instanceof Error
+            ? error.message
+            : "결제링크를 처리하지 못했습니다.",
+      }));
+    } finally {
+      if (checkoutBusyRef.current === id) checkoutBusyRef.current = "";
+      setCheckoutBusyId((current) => (current === id ? "" : current));
+    }
   }
 
   async function copyLink(id: string, link: string) {
@@ -142,28 +266,62 @@ export default function Consultations(props: ConsultationsProps) {
     window.setTimeout(() => setCopiedId(""), 1600);
   }
 
-  const selectedPayment = selectedConsultation?.payments?.[0];
+  const selectedPayments = selectedConsultation?.payments ?? [];
+  const selectedProvisional = selectedConsultation
+    ? provisionalCheckout(selectedConsultation.id)
+    : undefined;
+  const selectedPaidPayment = selectedPayments.find(
+    (payment) => payment.status === "PAID",
+  );
+  const selectedPendingPayment = selectedPayments.find(
+    (payment) => payment.status === "PENDING",
+  );
+  const selectedPayment =
+    selectedPaidPayment ?? selectedPendingPayment ?? selectedPayments[0];
   const selectedMeetingLink = selectedConsultation
     ? (meetingLinks[selectedConsultation.id] ??
       selectedConsultation.agoraRoomId ??
       "")
     : "";
   const selectedCheckoutLink = selectedConsultation
-    ? (checkoutLinks[selectedConsultation.id] ??
-      (selectedPayment
-        ? `${window.location.origin}/checkout/${selectedPayment.id}`
-        : ""))
+    ? selectedProvisional
+      ? selectedProvisional.checkoutUrl
+      : selectedPendingPayment
+        ? `${window.location.origin}/checkout/${selectedPendingPayment.id}`
+      : ""
     : "";
   const selectedCheckoutForm = selectedConsultation
     ? checkoutForm(selectedConsultation.id)
     : { months: 1, startDate: startMin };
   const isSelectedVideo = selectedConsultation?.consultType === "VIDEO";
-  const selectedPaid = selectedPayment?.status === "PAID";
-  const selectedPaymentPending = selectedPayment?.status === "PENDING";
-  const selectedCheckoutExpired = Boolean(
-    selectedPaymentPending &&
-    checkoutExpired(selectedPayment?.checkoutExpiresAt),
+  const selectedPaid = Boolean(selectedPaidPayment);
+  const selectedPaymentPending = Boolean(
+    selectedProvisional || selectedPendingPayment,
   );
+  const selectedCheckoutExpired = Boolean(
+    selectedProvisional
+      ? checkoutExpired(selectedProvisional.checkoutExpiresAt)
+      : selectedPendingPayment &&
+          checkoutExpired(selectedPendingPayment.checkoutExpiresAt),
+  );
+  const selectedPendingStart = toDateInputValue(
+    selectedProvisional?.periodStart ?? selectedPendingPayment?.periodStart,
+  );
+  const selectedStartPassed = Boolean(
+    !selectedPendingStart || selectedPendingStart < startMin,
+  );
+  const replacementRequired = selectedPaymentPending && selectedStartPassed;
+  const replacingSelected = Boolean(
+    selectedConsultation &&
+    (replacementModeId === selectedConsultation.id || replacementRequired),
+  );
+  const selectedCheckoutBusy = Boolean(
+    selectedConsultation && checkoutBusyId === selectedConsultation.id,
+  );
+  const anyCheckoutBusy = Boolean(checkoutBusyId);
+  const selectedCheckoutError = selectedConsultation
+    ? (checkoutErrors[selectedConsultation.id] ?? "")
+    : "";
   const canConfirmSelected =
     selectedConsultation?.status === "PENDING" &&
     (!isSelectedVideo || Boolean(selectedMeetingLink.trim()));
@@ -209,8 +367,12 @@ export default function Consultations(props: ConsultationsProps) {
               <button
                 aria-pressed={selectedConsultation?.id === item.id}
                 className={`admin-consultation-directory-row${selectedConsultation?.id === item.id ? " is-selected" : ""}`}
+                disabled={anyCheckoutBusy}
                 key={item.id}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  setReplacementModeId("");
+                }}
                 type="button"
               >
                 <span className="admin-consultation-directory-date">
@@ -388,59 +550,154 @@ export default function Consultations(props: ConsultationsProps) {
                         : "링크 미생성"}
                   </strong>
                 </div>
-                {selectedPayment && (
+                {selectedProvisional ? (
+                  <small>
+                    {selectedProvisional.planMonths}개월 · 새 링크 발급됨
+                  </small>
+                ) : selectedPayment ? (
                   <small>
                     {selectedPayment.planMonths}개월 ·{" "}
                     {money(selectedPayment.amount)}
                   </small>
-                )}
+                ) : null}
               </div>
 
-              {!selectedPaid && (
-                <div className="admin-consultation-checkout-form">
-                  <label>
-                    <span>이용권</span>
-                    <select
-                      disabled={selectedPaymentPending}
-                      value={selectedCheckoutForm.months}
-                      onChange={(event) =>
-                        updateCheckoutForm(selectedConsultation.id, {
-                          months: Number(event.target.value),
-                        })
-                      }
-                    >
-                      <option value={1}>1개월</option>
-                      <option value={2}>2개월</option>
-                      <option value={3}>3개월</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>시작일</span>
-                    <input
-                      disabled={selectedPaymentPending}
-                      min={startMin}
-                      max={startMax}
-                      type="date"
-                      value={selectedCheckoutForm.startDate}
-                      onChange={(event) =>
-                        updateCheckoutForm(selectedConsultation.id, {
-                          startDate: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <button
-                    onClick={() => createLink(selectedConsultation.id)}
-                    type="button"
-                  >
-                    {selectedPaymentPending
-                      ? "결제링크 재발급"
-                      : "결제링크 생성"}
-                  </button>
-                </div>
+              {selectedPaidPayment?.reviewRequiredAt && (
+                <p className="admin-consultation-checkout-warning is-review">
+                  교체되거나 취소된 링크에서 결제가 확인되었습니다. 결제
+                  관리에서 다른 결제 기록과 포트원을 확인해주세요.
+                </p>
               )}
 
-              {selectedCheckoutLink && !selectedCheckoutExpired && (
+              {!selectedPaid &&
+                selectedProvisional &&
+                !selectedCheckoutExpired && (
+                <p className="admin-consultation-checkout-success">
+                  새 결제링크가 발급되었습니다. 아래 링크를 복사해 전달해주세요.
+                </p>
+              )}
+
+              {!selectedPaid &&
+                selectedProvisional &&
+                selectedCheckoutExpired && (
+                  <p className="admin-consultation-checkout-warning">
+                    새 결제링크의 유효 시간이 지났습니다. 새로고침해 최신 상태를
+                    확인한 후 재발급해주세요.
+                  </p>
+                )}
+
+              {!selectedPaid && !selectedProvisional && (
+                <>
+                  {replacementRequired && (
+                    <p className="admin-consultation-checkout-warning">
+                      기존 시작일이 지났습니다. 새 시작일을 선택해 링크를
+                      교체해주세요.
+                    </p>
+                  )}
+                  {replacingSelected && !replacementRequired && (
+                    <p className="admin-consultation-checkout-warning">
+                      교체하면 기존 링크는 즉시 사용할 수 없습니다. 새 조건을
+                      확인해주세요.
+                    </p>
+                  )}
+                  <div className="admin-consultation-checkout-form">
+                    <label>
+                      <span>이용권</span>
+                      <select
+                        disabled={
+                          anyCheckoutBusy ||
+                          (selectedPaymentPending && !replacingSelected)
+                        }
+                        value={selectedCheckoutForm.months}
+                        onChange={(event) =>
+                          updateCheckoutForm(selectedConsultation.id, {
+                            months: Number(event.target.value),
+                          })
+                        }
+                      >
+                        <option value={1}>1개월</option>
+                        <option value={2}>2개월</option>
+                        <option value={3}>3개월</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>시작일</span>
+                      <input
+                        disabled={
+                          anyCheckoutBusy ||
+                          (selectedPaymentPending && !replacingSelected)
+                        }
+                        min={startMin}
+                        max={startMax}
+                        type="date"
+                        value={selectedCheckoutForm.startDate}
+                        onChange={(event) =>
+                          updateCheckoutForm(selectedConsultation.id, {
+                            startDate: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <div className="admin-consultation-checkout-actions">
+                      <button
+                        disabled={anyCheckoutBusy}
+                        onClick={() =>
+                          void createLink(
+                            selectedConsultation.id,
+                            replacingSelected,
+                          )
+                        }
+                        type="button"
+                      >
+                        {selectedCheckoutBusy
+                          ? replacingSelected
+                            ? "교체 중..."
+                            : "발급 중..."
+                          : replacingSelected
+                            ? "새 결제링크로 교체"
+                            : selectedPaymentPending
+                              ? "결제링크 재발급"
+                              : "결제링크 생성"}
+                      </button>
+                      {selectedPaymentPending && !replacingSelected && (
+                        <button
+                          className="is-secondary"
+                          disabled={anyCheckoutBusy}
+                          onClick={() =>
+                            beginReplacement(selectedConsultation.id)
+                          }
+                          type="button"
+                        >
+                          조건 변경 후 교체
+                        </button>
+                      )}
+                      {replacingSelected && !replacementRequired && (
+                        <button
+                          className="is-secondary"
+                          disabled={anyCheckoutBusy}
+                          onClick={() =>
+                            cancelReplacement(selectedConsultation.id)
+                          }
+                          type="button"
+                        >
+                          교체 취소
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedCheckoutError && (
+                <p className="admin-consultation-checkout-error">
+                  {selectedCheckoutError}
+                </p>
+              )}
+
+              {selectedCheckoutLink &&
+                !selectedPaid &&
+                !selectedCheckoutExpired &&
+                !replacingSelected && (
                 <button
                   className="admin-consultation-copy-link"
                   onClick={() =>
@@ -452,7 +709,7 @@ export default function Consultations(props: ConsultationsProps) {
                     ? "링크 복사됨"
                     : "결제링크 복사"}
                 </button>
-              )}
+                )}
 
               {selectedPaid && (
                 <button

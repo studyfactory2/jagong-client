@@ -135,7 +135,13 @@ export interface PaymentRecord {
   planMonths: number;
   amount: number;
   method: string | null;
-  status: "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
+  status:
+    | "PENDING"
+    | "PAID"
+    | "FAILED"
+    | "CANCELLED"
+    | "SUPERSEDED"
+    | "REFUNDED";
   receiptUrl: string | null;
   receiptSignedUrl?: string | null;
   periodStart: string | null;
@@ -145,6 +151,9 @@ export interface PaymentRecord {
   paidAt?: string | null;
   checkoutIssuedAt?: string | null;
   checkoutExpiresAt?: string | null;
+  supersededAt?: string | null;
+  supersededById?: string | null;
+  reviewRequiredAt?: string | null;
   adminMemo?: string | null;
   refundAmount?: number | null;
   refundCharge?: number | null;
@@ -172,7 +181,14 @@ export interface CheckoutResult {
 export interface ConsultationCheckoutResult extends CheckoutResult {
   periodStart: string;
   periodEnd: string;
+  checkoutIssuedAt?: string | null;
+  checkoutExpiresAt?: string | null;
   consultation: Pick<ConsultationRecord, "id" | "name" | "phone">;
+}
+
+export interface ConsultationCheckoutLinkResult
+  extends ConsultationCheckoutResult {
+  checkoutUrl: string;
 }
 
 export interface ConsultationCheckoutRecord {
@@ -212,7 +228,13 @@ export interface MembershipGrant {
 
 
 export type RoleName = "ADMIN" | "STAFF" | "MEMBER" | string;
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED" | "REFUNDED";
+export type PaymentStatus =
+  | "PENDING"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED"
+  | "SUPERSEDED"
+  | "REFUNDED";
 export type ConsultationStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | string;
 export type ConsultationTypeName = "PHONE" | "VIDEO" | "QUESTION" | "IMMEDIATE" | string;
 export type LeaveTypeName = "FULL" | "MORNING" | "AFTERNOON";

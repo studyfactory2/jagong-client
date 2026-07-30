@@ -256,6 +256,11 @@
   color: #946316;
 }
 
+.admin-payment-directory-status.is-superseded {
+  background: var(--admin-panel-muted);
+  color: var(--muted);
+}
+
 .admin-payment-directory-status.is-refunded {
   background: color-mix(in srgb, #7667c9 10%, white);
   color: #6556b4;
@@ -372,6 +377,27 @@
   font-size: 21px;
   font-weight: 950;
   white-space: nowrap;
+}
+
+.admin-payment-review-warning {
+  display: grid;
+  gap: 4px;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 10px 11px;
+}
+
+.admin-payment-review-warning strong {
+  font-size: 11.5px;
+  font-weight: 950;
+}
+
+.admin-payment-review-warning span {
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .admin-payment-directory-fields {
