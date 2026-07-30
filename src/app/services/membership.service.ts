@@ -4,6 +4,7 @@ import type {
   ConsultationCheckoutRecord,
   ConsultationCheckoutResult,
   MembershipPlan,
+  MemberPaymentRecord,
   MembershipStatus,
   MembershipGrant,
   PaginatedResult,
@@ -25,8 +26,10 @@ export async function getMyMembership(): Promise<MembershipStatus> {
   return data;
 }
 
-export async function getMyPayments(): Promise<PaymentRecord[]> {
-  const { data } = await http.get<PaymentRecord[]>("/memberships/me/payments");
+export async function getMyPayments(): Promise<MemberPaymentRecord[]> {
+  const { data } = await http.get<MemberPaymentRecord[]>(
+    "/memberships/me/payments",
+  );
   return data;
 }
 
@@ -42,8 +45,11 @@ export async function checkoutMembership(
 export async function confirmMembershipPayment(input: {
   paymentId: string;
   pgKey?: string;
-}): Promise<PaymentRecord> {
-  const { data } = await http.post<PaymentRecord>("/memberships/confirm", input);
+}): Promise<MemberPaymentRecord> {
+  const { data } = await http.post<MemberPaymentRecord>(
+    "/memberships/confirm",
+    input,
+  );
   return data;
 }
 

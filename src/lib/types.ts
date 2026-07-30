@@ -165,6 +165,15 @@ export interface PaymentRecord {
   consultation?: Pick<ConsultationRecord, "id" | "name" | "phone"> | null;
 }
 
+export interface MemberPaymentRecord {
+  id: string;
+  planMonths: number;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: string;
+  receiptSignedUrl: string | null;
+}
+
 export interface RefundPreview {
   amount: number;
   refundAmount: number;
@@ -200,7 +209,7 @@ export interface ConsultationCheckoutRecord {
   periodEnd: string | null;
   consultation: Pick<
     ConsultationRecord,
-    "id" | "name" | "desiredDate" | "timeSlot" | "consultType"
+    "name" | "desiredDate" | "timeSlot" | "consultType"
   > & { phoneLast4?: string | null };
 }
 

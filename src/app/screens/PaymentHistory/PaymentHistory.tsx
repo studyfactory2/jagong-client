@@ -12,9 +12,9 @@ import {
 import { PORTONE_CHANNEL_KEY, PORTONE_STORE_ID } from "../../../lib/config";
 import type {
   CheckoutResult,
+  MemberPaymentRecord,
   MembershipPlan,
   MembershipStatus,
-  PaymentRecord,
 } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import "./payment-history.css";
@@ -147,7 +147,7 @@ export default function PaymentHistory() {
   const { session } = useAuth();
   const [plans, setPlans] = useState<MembershipPlan[]>(FALLBACK_PLANS);
   const [membership, setMembership] = useState<MembershipStatus | null>(null);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [payments, setPayments] = useState<MemberPaymentRecord[]>([]);
   const [selected, setSelected] = useState(3);
   const [loading, setLoading] = useState(true);
   const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>("idle");
