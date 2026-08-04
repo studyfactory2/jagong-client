@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
@@ -22,12 +22,15 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
+import { getWeeklyStudyLeaderboard } from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
 import type {
   AttendanceRecord,
   AttendanceStatusName,
   CamRoomMember,
   TimetableSlot,
+  WeeklyStudyLeaderboard,
+  WeeklyStudyLeaderboardMember,
 } from "../../../lib/types";
 import {
   getScheduleSoundEnabled,
@@ -132,6 +135,21 @@ const formatDuration = (seconds: number) => {
   return `${String(minutes).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 };
 
+const formatStudyTime = (seconds?: number) => {
+  if (seconds === undefined || !Number.isFinite(seconds)) return "--";
+
+  const safeSeconds = Math.max(0, seconds);
+  if (safeSeconds > 0 && safeSeconds < 60) return "1분 미만";
+
+  const totalMinutes = Math.floor(safeSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) return `${minutes}분`;
+  if (minutes === 0) return `${hours}시간`;
+  return `${hours}시간 ${minutes}분`;
+};
+
 const isClockInSlot = (slot?: TimetableSlot | null) =>
   Boolean(slot && (slot.slot === 0 || slot.label.includes("출근")));
 
@@ -177,15 +195,6 @@ function workerGradient(index: number) {
         : "linear-gradient(135deg,#b08a4f,#8a6a2f)";
 }
 
-function randomRank(value: string, seed: string) {
-  let hash = 0;
-  const input = `${seed}:${value}`;
-  for (let i = 0; i < input.length; i += 1) {
-    hash = (hash * 31 + input.charCodeAt(i)) % 1000003;
-  }
-  return hash;
-}
-
 type RemoteVideoTrack = {
   attach: (element?: HTMLMediaElement) => HTMLMediaElement;
   detach: (element?: HTMLMediaElement) => HTMLMediaElement[];
@@ -195,6 +204,10 @@ type RemoteVideo = {
   trackSid: string;
   userId: string;
   track: RemoteVideoTrack;
+};
+
+type FameBoardMember = WeeklyStudyLeaderboardMember & {
+  presence: "working" | "waiting" | "unknown";
 };
 
 function WorkerPreviewVideo({ track }: { track: RemoteVideoTrack }) {
@@ -234,13 +247,20 @@ export default function WaitingRoom() {
   const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
     getScheduleSoundEnabled,
   );
-  const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
+  const [roomMembers, setRoomMembers] = useState<CamRoomMember[] | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [weeklyLeaderboard, setWeeklyLeaderboard] =
+    useState<WeeklyStudyLeaderboard | null>(null);
+  const [weeklyLeaderboardLoading, setWeeklyLeaderboardLoading] =
+    useState(true);
+  const [weeklyLeaderboardError, setWeeklyLeaderboardError] = useState("");
   const [previewVideos, setPreviewVideos] = useState<RemoteVideo[]>([]);
   const [previewStatus, setPreviewStatus] = useState<
     "idle" | "connecting" | "connected" | "stub" | "error"
   >("idle");
   const bellTimerRef = useRef<number | null>(null);
+  const roomMembersRequestRef = useRef(0);
+  const weeklyLeaderboardRequestRef = useRef(0);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
@@ -263,11 +283,15 @@ export default function WaitingRoom() {
   }, []);
 
   const refreshRoomMembers = useCallback(async () => {
+    const requestId = roomMembersRequestRef.current + 1;
+    roomMembersRequestRef.current = requestId;
+
     try {
       const members = await getCamRoomMembers();
+      if (requestId !== roomMembersRequestRef.current) return;
       setRoomMembers(members);
     } catch {
-      setRoomMembers([]);
+      // Keep the last successful roster so known presence is not reset to waiting.
     }
   }, []);
 
@@ -277,6 +301,30 @@ export default function WaitingRoom() {
       setAttendance(records);
     } catch {
       setAttendance([]);
+    }
+  }, []);
+
+  const refreshWeeklyLeaderboard = useCallback(async () => {
+    const requestId = weeklyLeaderboardRequestRef.current + 1;
+    weeklyLeaderboardRequestRef.current = requestId;
+    setWeeklyLeaderboardLoading(true);
+    setWeeklyLeaderboardError("");
+
+    try {
+      const leaderboard = await getWeeklyStudyLeaderboard();
+      if (requestId !== weeklyLeaderboardRequestRef.current) return;
+      setWeeklyLeaderboard(leaderboard);
+    } catch (error) {
+      if (requestId !== weeklyLeaderboardRequestRef.current) return;
+      setWeeklyLeaderboardError(
+        error instanceof Error
+          ? error.message
+          : "주간 공부 순위를 불러오지 못했습니다.",
+      );
+    } finally {
+      if (requestId === weeklyLeaderboardRequestRef.current) {
+        setWeeklyLeaderboardLoading(false);
+      }
     }
   }, []);
 
@@ -292,8 +340,24 @@ export default function WaitingRoom() {
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
+      roomMembersRequestRef.current += 1;
     };
   }, [refreshAttendance, refreshRoomMembers]);
+
+  useEffect(() => {
+    const initialTimer = window.setTimeout(() => {
+      void refreshWeeklyLeaderboard();
+    }, 0);
+    const timer = window.setInterval(() => {
+      void refreshWeeklyLeaderboard();
+    }, 60000);
+
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+      weeklyLeaderboardRequestRef.current += 1;
+    };
+  }, [refreshWeeklyLeaderboard]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -374,7 +438,7 @@ export default function WaitingRoom() {
     workPeriodSlots.reduce((sum, slot) => {
       return sum + Math.max(0, toSec(slot.endTime) - toSec(slot.startTime));
     }, 0) || 1;
-  const progress = Math.min(
+  const scheduleProgress = Math.min(
     100,
     Math.round((elapsedWorkSeconds / totalWorkSeconds) * 100),
   );
@@ -418,37 +482,49 @@ export default function WaitingRoom() {
       workPeriodSlotNumbers.has(record.slot) &&
       (record.status === "PRESENT" || record.status === "EXCUSED"),
   ).length;
-  const workingMemberCount = roomMembers.filter(
-    (member) => member.isWorking,
-  ).length;
-  const waitingMemberCount = Math.max(
-    0,
-    roomMembers.length - workingMemberCount,
+  const workingMemberCount =
+    roomMembers?.filter((member) => member.isWorking).length ?? null;
+  const weeklyRankedMembers = useMemo(
+    () =>
+      weeklyLeaderboard?.members.filter(
+        (member) =>
+          Number.isFinite(member.studySeconds) && member.studySeconds > 0,
+      ) ?? [],
+    [weeklyLeaderboard],
   );
-  const displayWorkingMemberCount =
-    workingMemberCount > 0 ? workingMemberCount : 1;
-  const displayWaitingMemberCount =
-    workingMemberCount > 0 ? waitingMemberCount : 9;
-  const previewSeed = isoDate(now);
-  const previewMembers = useMemo(() => {
-    const byRank = (a: CamRoomMember, b: CamRoomMember) =>
-      randomRank(a.id, previewSeed) - randomRank(b.id, previewSeed);
-    const working = roomMembers
-      .filter((member) => member.isWorking)
-      .sort(byRank);
-    const waiting = roomMembers
-      .filter((member) => !member.isWorking)
-      .sort(byRank);
-    const remainingSlots = Math.max(0, 8 - Math.min(working.length, 8));
+  const weeklyRecordMemberCount = weeklyLeaderboard
+    ? weeklyRankedMembers.length
+    : null;
+  const fameMembers = useMemo<FameBoardMember[]>(() => {
+    if (weeklyRankedMembers.length === 0) return [];
 
-    return [...working.slice(0, 8), ...waiting.slice(0, remainingSlots)];
-  }, [previewSeed, roomMembers]);
+    const roomMemberById = new Map(
+      (roomMembers ?? []).map((member) => [member.id, member]),
+    );
+    const cutoffIndex = Math.min(7, weeklyRankedMembers.length - 1);
+    const cutoffSeconds = weeklyRankedMembers[cutoffIndex].studySeconds;
+
+    return weeklyRankedMembers
+      .filter((member) => member.studySeconds >= cutoffSeconds)
+      .map(
+        (member): FameBoardMember => ({
+          ...member,
+          presence:
+            roomMemberById.get(member.userId)?.isWorking === true
+              ? "working"
+              : roomMemberById.get(member.userId)?.isWorking === false
+                ? "waiting"
+                : "unknown",
+        }),
+      );
+  }, [roomMembers, weeklyRankedMembers]);
   const livePreviewIds = useMemo(
     () =>
-      previewMembers
-        .filter((member) => member.isWorking)
-        .map((member) => member.id),
-    [previewMembers],
+      fameMembers
+        .filter((member) => member.presence === "working")
+        .slice(0, 8)
+        .map((member) => member.userId),
+    [fameMembers],
   );
   const effectivePreviewStatus =
     livePreviewIds.length === 0 ? "idle" : previewStatus;
@@ -659,61 +735,128 @@ export default function WaitingRoom() {
       </header>
 
       <main className="wr-body">
-        <section className="wr-panel wr-workers">
+        <section
+          aria-labelledby="wr-fame-board-title"
+          className="wr-panel wr-workers"
+        >
           <div className="wr-panel-head">
             <div className="wr-panel-title">
-              <VideocamOutlinedIcon />
-              <span>전국사원 근무현황</span>
+              <EmojiEventsOutlinedIcon />
+              <span id="wr-fame-board-title">이번 주 공부 명예의 전당</span>
             </div>
 
             <div className="wr-badges">
+              <span className="wr-badge is-record">
+                <i />
+                이번 주 기록 {weeklyRecordMemberCount ?? "--"}명
+              </span>
               <span className="wr-badge is-on">
                 <i />
-                {displayWorkingMemberCount}명 근무중
-              </span>
-              <span className="wr-badge is-wait">
-                <i />
-                {displayWaitingMemberCount}명 대기중
+                현재 공부중 {workingMemberCount ?? "--"}명
               </span>
             </div>
           </div>
 
-          <div className="wr-worker-grid">
-            {previewMembers.map((worker, index) => {
-              const video = previewVideoByUser.get(worker.id);
+          <div aria-busy={weeklyLeaderboardLoading} className="wr-worker-grid">
+            {fameMembers.map((worker, index) => {
+              const video = previewVideoByUser.get(worker.userId);
+              const isWorking = worker.presence === "working";
+              const isWaiting = worker.presence === "waiting";
               return (
-                <div
-                  className={`wr-worker${video ? " has-video" : ""}${
-                    worker.isWorking ? "" : " is-off"
+                <article
+                  aria-label={`${worker.rank}위 ${worker.name}, 이번 주 ${formatStudyTime(worker.studySeconds)}, ${
+                    isWorking ? "공부중" : isWaiting ? "대기" : "상태 확인중"
                   }`}
-                  key={worker.id}
+                  className={`wr-worker${video ? " has-video" : ""}${
+                    isWaiting ? " is-off" : ""
+                  }${worker.presence === "unknown" ? " is-unknown" : ""}${
+                    worker.isMe ? " is-me" : ""
+                  }${worker.rank <= 3 ? ` is-rank-${worker.rank}` : ""}`}
+                  key={worker.userId}
                   style={
                     video ? undefined : { background: workerGradient(index) }
                   }
                 >
                   {video && <WorkerPreviewVideo track={video.track} />}
-                  <span className="wr-worker-name">{worker.name}</span>
+
+                  <span className="wr-worker-rank">{worker.rank}위</span>
+                  <span
+                    aria-label={`이번 주 공부시간 ${formatStudyTime(worker.studySeconds)}`}
+                    className="wr-worker-study-time"
+                    title={formatStudyTime(worker.studySeconds)}
+                  >
+                    <small>이번 주</small>
+                    <strong>{formatStudyTime(worker.studySeconds)}</strong>
+                  </span>
+                  <span className="wr-worker-name">
+                    {worker.name}
+                    {worker.isMe && <i>나</i>}
+                  </span>
                   <span
                     className={`wr-worker-state${
-                      worker.isWorking ? "" : " is-off"
+                      isWaiting
+                        ? " is-off"
+                        : worker.presence === "unknown"
+                          ? " is-unknown"
+                          : ""
                     }`}
                   >
-                    {worker.isWorking ? "입장" : "대기"}
+                    {isWorking ? "공부중" : isWaiting ? "대기" : "확인중"}
                   </span>
-                </div>
+                </article>
               );
             })}
-            {previewMembers.length === 0 && (
-              <p className="wr-worker-empty">표시할 작업장 회원이 없습니다.</p>
+            {fameMembers.length === 0 && (
+              <div
+                className={`wr-worker-empty${
+                  weeklyLeaderboardError ? " is-error" : ""
+                }`}
+                role={weeklyLeaderboardError ? "alert" : "status"}
+              >
+                <span>
+                  {weeklyLeaderboardLoading && !weeklyLeaderboard
+                    ? "주간 공부시간 순위를 불러오는 중입니다."
+                    : weeklyLeaderboardError
+                      ? weeklyLeaderboardError
+                      : "이번 주 공부 기록이 쌓이면 명예의 전당이 열립니다."}
+                </span>
+                {weeklyLeaderboardError && (
+                  <button
+                    disabled={weeklyLeaderboardLoading}
+                    onClick={() => void refreshWeeklyLeaderboard()}
+                    type="button"
+                  >
+                    다시 시도
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
-          <p className="wr-preview-note">
-            *현재 접속 중인 사원 중 일부가 랜덤으로 표시됩니다.
-            {effectivePreviewStatus === "connecting" && " 연결 중입니다."}
-            {effectivePreviewStatus === "error" &&
-              " 영상 연결을 확인하지 못했습니다."}
-          </p>
+          <div className="wr-preview-note" aria-live="polite">
+            <span>
+              *이번 주 실제 공부시간 기준 1~8위가 표시되며, 공동 순위는 함께
+              표시됩니다.
+              {effectivePreviewStatus === "connecting" &&
+                " 실시간 화면을 연결하고 있습니다."}
+              {effectivePreviewStatus === "error" &&
+                " 실시간 화면 연결을 확인하지 못했습니다."}
+            </span>
+            {weeklyLeaderboardError && fameMembers.length > 0 && (
+              <>
+                <span className="wr-preview-error">
+                  최신 순위를 확인하지 못해 이전 기록을 표시합니다.
+                </span>
+                <button
+                  disabled={weeklyLeaderboardLoading}
+                  onClick={() => void refreshWeeklyLeaderboard()}
+                  type="button"
+                >
+                  다시 시도
+                </button>
+              </>
+            )}
+          </div>
         </section>
 
         <section className="wr-schedule-notice" aria-live="polite">
@@ -729,10 +872,22 @@ export default function WaitingRoom() {
             className={`wr-sound-toggle${scheduleSoundEnabled ? " is-on" : ""}`}
             type="button"
             onClick={toggleScheduleSound}
-            aria-label={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
-            title={scheduleSoundEnabled ? "일정 알림 소리 끄기" : "일정 알림 소리 켜기"}
+            aria-label={
+              scheduleSoundEnabled
+                ? "일정 알림 소리 끄기"
+                : "일정 알림 소리 켜기"
+            }
+            title={
+              scheduleSoundEnabled
+                ? "일정 알림 소리 끄기"
+                : "일정 알림 소리 켜기"
+            }
           >
-            {scheduleSoundEnabled ? <VolumeUpRoundedIcon /> : <VolumeOffRoundedIcon />}
+            {scheduleSoundEnabled ? (
+              <VolumeUpRoundedIcon />
+            ) : (
+              <VolumeOffRoundedIcon />
+            )}
           </button>
         </section>
 
@@ -766,13 +921,13 @@ export default function WaitingRoom() {
 
         <section className="wr-progress">
           <div className="wr-progress-card">
-            <span>오늘 작업장 진행률</span>
-            <strong>{progress}%</strong>
+            <span>오늘 일정 진행률</span>
+            <strong>{scheduleProgress}%</strong>
             <em>
-              ({completedWorkSlots}/{totalWorkSlots})
+              {completedWorkSlots}/{totalWorkSlots}교시
             </em>
             <div className="wr-progress-bar">
-              <i style={{ width: `${progress}%` }} />
+              <i style={{ width: `${scheduleProgress}%` }} />
             </div>
           </div>
 

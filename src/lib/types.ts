@@ -522,6 +522,25 @@ export interface CamRoomMember {
   joinedAt?: string | null;
 }
 
+export interface StudyStatisticsWindow {
+  startsAt: string;
+  endsAtExclusive: string;
+}
+
+export interface WeeklyStudyLeaderboardMember {
+  rank: number;
+  userId: string;
+  name: string;
+  studySeconds: number;
+  isMe: boolean;
+}
+
+export interface WeeklyStudyLeaderboard {
+  generatedAt: string;
+  window: StudyStatisticsWindow;
+  members: WeeklyStudyLeaderboardMember[];
+}
+
 export interface CamWarningRecord {
   id: string;
   userId: string;

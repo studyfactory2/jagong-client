@@ -10,4 +10,5 @@ export * from "./membership.service";
 export * from "./notice.service";
 export * from "./status.service";
 export * from "./study-plan.service";
+export * from "./study-statistics.service";
 export * from "./timetable.service";
