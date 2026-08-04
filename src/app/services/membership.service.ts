@@ -5,6 +5,7 @@ import type {
   ConsultationCheckoutRequest,
   ConsultationCheckoutResult,
   ManualPaymentRequest,
+  ManualRefundRequest,
   MembershipPlan,
   MemberPaymentRecord,
   MembershipStatus,
@@ -159,9 +160,11 @@ export async function previewRefund(paymentId: string): Promise<RefundPreview> {
 
 export async function recordManualRefund(
   paymentId: string,
+  input: ManualRefundRequest,
 ): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>(
     "/memberships/" + paymentId + "/refund",
+    input,
   );
   return data;
 }

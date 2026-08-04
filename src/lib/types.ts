@@ -154,6 +154,12 @@ export interface ManualPaymentRequest extends AdminDiscountRequest {
   adminMemo?: string;
 }
 
+export interface ManualRefundRequest {
+  externalReference?: string;
+  evidence?: string;
+  memo?: string;
+}
+
 export interface PaymentRecord {
   id: string;
   userId?: string | null;
@@ -189,9 +195,14 @@ export interface PaymentRecord {
   refundCharge?: number | null;
   refundUsedDays?: number | null;
   refundedAt?: string | null;
+  refundedById?: string | null;
+  refundExternalReference?: string | null;
+  refundEvidence?: string | null;
+  refundMemo?: string | null;
   createdAt: string;
   updatedAt: string;
   user?: Pick<AdminUser, "id" | "name" | "phone"> | null;
+  refundedBy?: Pick<AdminUser, "id" | "name"> | null;
   consultation?: Pick<ConsultationRecord, "id" | "name" | "phone"> | null;
 }
 
