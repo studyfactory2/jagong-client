@@ -743,7 +743,7 @@ export default function WaitingRoom() {
           <div className="wr-panel-head">
             <div className="wr-panel-title">
               <EmojiEventsOutlinedIcon />
-              <span id="wr-fame-board-title">이번 주 공부 명예의 전당</span>
+              <span id="wr-fame-board-title">이번 주 랭킹</span>
             </div>
 
             <div className="wr-badges">
