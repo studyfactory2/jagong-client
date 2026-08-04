@@ -15,6 +15,7 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
+import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import type { Room } from "livekit-client";
@@ -999,9 +1000,9 @@ export default function WaitingRoom() {
             <LockOutlinedIcon />
             휴가내역 및 신청
           </button>
-          <button onClick={() => navigate("/attendance")}>
-            <FactCheckOutlinedIcon />
-            출석현황
+          <button onClick={() => navigate("/study-records")}>
+            <QueryStatsOutlinedIcon />
+            공부기록
           </button>
           <button onClick={() => navigate("/inquiry")}>
             <ArticleOutlinedIcon />

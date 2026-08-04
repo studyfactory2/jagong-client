@@ -46,6 +46,7 @@ export default function AppShell({
           titleBlock
         ) : showBack ? (
           <button
+            aria-label="뒤로가기"
             className="app-shell-back"
             onClick={() => navigate(backTo)}
             type="button"

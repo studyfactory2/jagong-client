@@ -527,6 +527,17 @@ export interface StudyStatisticsWindow {
   endsAtExclusive: string;
 }
 
+export interface StudyDurationTotal extends StudyStatisticsWindow {
+  studySeconds: number;
+}
+
+export interface MyStudyStatistics {
+  generatedAt: string;
+  today: StudyDurationTotal;
+  currentWeek: StudyDurationTotal;
+  currentMonth: StudyDurationTotal;
+}
+
 export interface WeeklyStudyLeaderboardMember {
   rank: number;
   userId: string;

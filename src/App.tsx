@@ -22,6 +22,7 @@ const StudyRoom = lazy(() => import("./app/screens/StudyRoom"));
 const WeeklyPlan = lazy(() => import("./app/screens/WeeklyPlan"));
 const LeaveRequest = lazy(() => import("./app/screens/LeaveRequest"));
 const Attendance = lazy(() => import("./app/screens/Attendance"));
+const StudyRecords = lazy(() => import("./app/screens/StudyRecords"));
 const Inquiry = lazy(() => import("./app/screens/Inquiry"));
 const AdminDashboard = lazy(() => import("./app/screens/AdminDashboard"));
 
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="/weekly-plan" element={<WeeklyPlan />} />
             <Route path="/leaves" element={<LeaveRequest />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/study-records" element={<StudyRecords />} />
             <Route path="/inquiry" element={<Inquiry />} />
           </Route>
         </Route>
