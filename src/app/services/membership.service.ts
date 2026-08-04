@@ -18,7 +18,22 @@ import type {
 
 export async function getMembershipPlans(): Promise<MembershipPlan[]> {
   const { data } = await http.get<MembershipPlan[]>("/memberships/plans");
-  return data;
+  const validPlans =
+    data.length > 0 &&
+    data.every(
+      (plan) =>
+        Number.isInteger(plan.months) &&
+        plan.months > 0 &&
+        Number.isInteger(plan.days) &&
+        plan.days > 0 &&
+        Number.isInteger(plan.total) &&
+        plan.total > 0,
+    ) &&
+    new Set(data.map((plan) => plan.months)).size === data.length;
+  if (!validPlans) {
+    throw new Error("이용권 가격 정보가 올바르지 않습니다.");
+  }
+  return [...data].sort((left, right) => left.months - right.months);
 }
 
 export async function getMyMembership(): Promise<MembershipStatus> {

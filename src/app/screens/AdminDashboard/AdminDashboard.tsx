@@ -30,6 +30,7 @@ import {
   attachPaymentReceipt,
   createConsultationCheckout,
   getAdminPayments,
+  getMembershipPlans,
   grantFreeTrial,
   recordManualPayment,
   replaceConsultationCheckout,
@@ -55,6 +56,7 @@ import type {
   AdminUser,
   Branch,
   ConsultationCheckoutLinkResult,
+  MembershipPlan,
   TimetableSlot,
 } from "../../../lib/types";
 import {
@@ -158,6 +160,9 @@ export default function AdminDashboard() {
   const [manualStartDate, setManualStartDate] = useState(() =>
     todayDateInputValue(),
   );
+  const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([]);
+  const [membershipPlansLoading, setMembershipPlansLoading] = useState(true);
+  const [membershipPlansError, setMembershipPlansError] = useState("");
   const [manualMemo, setManualMemo] = useState("");
   const [freeTrialDays, setFreeTrialDays] = useState(7);
   const [freeTrialStartDate, setFreeTrialStartDate] = useState(() =>
@@ -209,6 +214,27 @@ export default function AdminDashboard() {
     isAdmin && dashboardDestinationTabs.includes(activeTab);
 
   /** DATA LOADERS **/
+  const loadMembershipPlans = useCallback(async () => {
+    if (!isAdmin) return;
+    setMembershipPlansLoading(true);
+    setMembershipPlansError("");
+    try {
+      const plans = await getMembershipPlans();
+      setMembershipPlans(plans);
+      setManualMonths((current) =>
+        plans.some((plan) => plan.months === current)
+          ? current
+          : plans[0].months,
+      );
+    } catch {
+      setMembershipPlansError(
+        "이용권 가격을 확인하지 못했습니다. 새로고침 후 다시 시도해주세요.",
+      );
+    } finally {
+      setMembershipPlansLoading(false);
+    }
+  }, [isAdmin]);
+
   const load = useCallback(async () => {
     if (!allowed) return;
     setError("");
@@ -365,6 +391,13 @@ export default function AdminDashboard() {
   }, [load]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadMembershipPlans();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadMembershipPlans]);
+
+  useEffect(() => {
     if (!socket || !allowed) return;
     const refreshCamera = () => refreshLiveData();
     socket.on("cam:join", refreshCamera);
@@ -441,6 +474,9 @@ export default function AdminDashboard() {
       !manualName.trim() ||
       !manualPaidAt ||
       !manualStartDate ||
+      membershipPlansLoading ||
+      membershipPlansError ||
+      !membershipPlans.some((plan) => plan.months === manualMonths) ||
       savingManualPayment
     )
       return;
@@ -720,6 +756,11 @@ export default function AdminDashboard() {
   }
 
   /** RENDER **/
+  function refreshDashboard() {
+    void load();
+    void loadMembershipPlans();
+  }
+
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
@@ -727,7 +768,11 @@ export default function AdminDashboard() {
 
   const actions = (
     <>
-      <button className="admin-refresh" onClick={load} type="button">
+      <button
+        className="admin-refresh"
+        onClick={refreshDashboard}
+        type="button"
+      >
         <RefreshOutlinedIcon /> <span>새로고침</span>
       </button>
       <button className="admin-logout" onClick={handleLogout} type="button">
@@ -877,6 +922,9 @@ export default function AdminDashboard() {
                 notices={data.notices}
                 noticeTitle={noticeTitle}
                 noticeContent={noticeContent}
+                membershipPlans={membershipPlans}
+                membershipPlansLoading={membershipPlansLoading}
+                membershipPlansError={membershipPlansError}
                 manualUserId={manualUserId}
                 manualMonths={manualMonths}
                 manualName={manualName}

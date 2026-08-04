@@ -236,6 +236,42 @@
   gap: 8px;
 }
 
+.pay-plan-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid rgba(20, 63, 86, 0.11);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--muted);
+  padding: 13px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.pay-plan-state.is-error {
+  border-color: rgba(244, 127, 114, 0.34);
+  background: #fff8f6;
+  color: var(--accent-deep);
+}
+
+.pay-plan-state button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--accent-deep);
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .pay-fees > div button {
   width: 100%;
   min-height: 68px;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import HeadsetMicOutlinedIcon from "@mui/icons-material/HeadsetMicOutlined";
@@ -21,12 +21,6 @@ import "./payment-history.css";
 
 type PaymentPhase = "idle" | "checkout" | "portone";
 type MembershipViewState = "loading" | "active" | "future" | "expired" | "none";
-
-const FALLBACK_PLANS: MembershipPlan[] = [
-  { months: 1, days: 30, total: 370000 },
-  { months: 2, days: 60, total: 700000 },
-  { months: 3, days: 90, total: 990000 },
-];
 
 function money(value: number): string {
   return `${value.toLocaleString("ko-KR")}원`;
@@ -145,10 +139,12 @@ function paymentNotice(
 export default function PaymentHistory() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [plans, setPlans] = useState<MembershipPlan[]>(FALLBACK_PLANS);
+  const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [membership, setMembership] = useState<MembershipStatus | null>(null);
   const [payments, setPayments] = useState<MemberPaymentRecord[]>([]);
-  const [selected, setSelected] = useState(3);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState("");
   const [loading, setLoading] = useState(true);
   const [paymentPhase, setPaymentPhase] = useState<PaymentPhase>("idle");
   const [error, setError] = useState("");
@@ -156,9 +152,11 @@ export default function PaymentHistory() {
   const paying = paymentPhase !== "idle";
 
   const selectedPlan = useMemo(
-    () => plans.find((p) => p.months === selected) ?? plans[0],
+    () => plans.find((plan) => plan.months === selected),
     [plans, selected],
   );
+  const availablePlan =
+    !plansLoading && !plansError ? selectedPlan : undefined;
   const viewState = membershipViewState(membership, loading);
   const hasValidMembership = viewState === "active" || viewState === "future";
   const canEnterWaitingRoom = viewState === "active";
@@ -181,21 +179,48 @@ export default function PaymentHistory() {
         ? "부터 시작합니다"
         : "이용권 상태를 확인해주세요";
 
+  const loadPlans = useCallback(async () => {
+    setPlansLoading(true);
+    setPlansError("");
+    try {
+      const planData = await getMembershipPlans();
+      setPlans(planData);
+      setSelected((current) => {
+        if (
+          current !== null &&
+          planData.some((plan) => plan.months === current)
+        ) {
+          return current;
+        }
+        return (planData.find((plan) => plan.months === 3) ?? planData[0])
+          .months;
+      });
+    } catch {
+      setPlansError(
+        "이용권 가격을 확인하지 못했습니다. 다시 불러온 후 결제를 진행해주세요.",
+      );
+    } finally {
+      setPlansLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadPlans();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadPlans]);
+
   useEffect(() => {
     let alive = true;
     async function load() {
       try {
         setLoading(true);
-        const [planData, membershipData, paymentData] = await Promise.all([
-          getMembershipPlans(),
+        const [membershipData, paymentData] = await Promise.all([
           getMyMembership(),
           getMyPayments(),
         ]);
         if (!alive) return;
-        setPlans(planData.length ? planData : FALLBACK_PLANS);
-        setSelected((current) =>
-          planData.some((p) => p.months === current) ? current : 3,
-        );
         setMembership(membershipData);
         setPayments(paymentData);
       } catch (err) {
@@ -216,7 +241,13 @@ export default function PaymentHistory() {
   }, []);
 
   async function startPayment() {
-    if (!selectedPlan || paying) return;
+    if (paying) return;
+    if (!availablePlan) {
+      setError(
+        "이용권 가격을 확인할 수 없어 결제를 시작하지 못했습니다. 가격을 다시 불러와주세요.",
+      );
+      return;
+    }
     setError("");
 
     if (!PORTONE_STORE_ID || !PORTONE_CHANNEL_KEY) {
@@ -227,7 +258,7 @@ export default function PaymentHistory() {
     try {
       setPaymentPhase("checkout");
       const checkout: CheckoutResult = await checkoutMembership(
-        selectedPlan.months,
+        availablePlan.months,
       );
       const PortOne = await import("@portone/browser-sdk/v2");
       setPaymentPhase("portone");
@@ -285,14 +316,13 @@ export default function PaymentHistory() {
     : paidPayments.slice(0, 3);
   const backPath = canEnterWaitingRoom ? "/waiting-room" : "/my-page";
   const backLabel = canEnterWaitingRoom ? "대기장" : "내 정보";
-  const selectedMonthly = selectedPlan
-    ? Math.round(selectedPlan.total / selectedPlan.months)
+  const selectedMonthly = availablePlan
+    ? Math.round(availablePlan.total / availablePlan.months)
     : 0;
-  const baseMonthly =
-    plans.find((plan) => plan.months === 1)?.total ?? FALLBACK_PLANS[0].total;
+  const baseMonthly = plans.find((plan) => plan.months === 1)?.total ?? 0;
   const projectedEnd = projectedMembershipEndText(
     membership,
-    selectedPlan,
+    availablePlan,
     hasValidMembership,
   );
 
@@ -342,47 +372,62 @@ export default function PaymentHistory() {
         <section className="pay-fees">
           <h2>이용권 선택</h2>
           <p className="pay-fees-copy">남은 기간 뒤로 누적 적용돼요</p>
-          <div>
-            {plans.map((plan) => {
-              const monthly = Math.round(plan.total / plan.months);
-              const discount =
-                baseMonthly > monthly ? baseMonthly - monthly : 0;
-              return (
-                <button
-                  className={selected === plan.months ? "is-active" : ""}
-                  key={plan.months}
-                  onClick={() => setSelected(plan.months)}
-                  type="button"
-                >
-                  <i aria-hidden="true" />
-                  <span className="pay-plan-term">
-                    <strong>{plan.months}달</strong>
-                    {discount > 0 && (
-                      <small className="pay-plan-discount">
-                        월 {money(discount)} 할인
-                      </small>
-                    )}
-                  </span>
-                  <b className="pay-plan-price">
-                    {money(plan.total)}
-                    <small>월 {money(monthly)}</small>
-                  </b>
-                </button>
-              );
-            })}
-          </div>
+          {plansLoading ? (
+            <p className="pay-plan-state" aria-live="polite">
+              이용권 가격을 확인하는 중입니다.
+            </p>
+          ) : plansError ? (
+            <p className="pay-plan-state is-error" role="alert">
+              <span>{plansError}</span>
+              <button onClick={() => void loadPlans()} type="button">
+                다시 불러오기
+              </button>
+            </p>
+          ) : (
+            <div>
+              {plans.map((plan) => {
+                const monthly = Math.round(plan.total / plan.months);
+                const discount =
+                  baseMonthly > monthly ? baseMonthly - monthly : 0;
+                return (
+                  <button
+                    className={selected === plan.months ? "is-active" : ""}
+                    key={plan.months}
+                    onClick={() => setSelected(plan.months)}
+                    type="button"
+                  >
+                    <i aria-hidden="true" />
+                    <span className="pay-plan-term">
+                      <strong>{plan.months}달</strong>
+                      {discount > 0 && (
+                        <small className="pay-plan-discount">
+                          월 {money(discount)} 할인
+                        </small>
+                      )}
+                    </span>
+                    <b className="pay-plan-price">
+                      {money(plan.total)}
+                      <small>월 {money(monthly)}</small>
+                    </b>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <p className="pay-fee-note">모든 금액은 부가세 포함 금액이에요</p>
         </section>
 
         <section className="pay-summary">
           <div className="pay-summary-head">
             <span>선택한 이용권</span>
-            <strong>{selectedPlan?.months ?? "-"}개월권</strong>
+            <strong>
+              {availablePlan ? `${availablePlan.months}개월권` : "가격 확인 필요"}
+            </strong>
           </div>
           <dl className="pay-summary-list">
             <div>
               <dt>이용 기간</dt>
-              <dd>{selectedPlan?.months ?? "-"}개월</dd>
+              <dd>{availablePlan ? `${availablePlan.months}개월` : "-"}</dd>
             </div>
             <div>
               <dt>적용 후 만료일</dt>
@@ -391,20 +436,30 @@ export default function PaymentHistory() {
           </dl>
           <div className="pay-summary-total">
             <span>결제 금액</span>
-            <strong>{selectedPlan ? money(selectedPlan.total) : "-"}</strong>
+            <strong>{availablePlan ? money(availablePlan.total) : "-"}</strong>
             <small>월 {selectedMonthly ? money(selectedMonthly) : "-"}</small>
           </div>
           <button
             className="pay-extend"
-            disabled={paying || loading}
+            disabled={
+              paying ||
+              loading ||
+              plansLoading ||
+              Boolean(plansError) ||
+              !availablePlan
+            }
             onClick={startPayment}
             type="button"
           >
-            {paying
-              ? paymentPhaseText(paymentPhase)
-              : hasValidMembership
-                ? "결제수단으로 연장하기"
-                : "결제수단으로 결제하기"}
+            {plansLoading
+              ? "가격 확인 중..."
+              : plansError || !availablePlan
+                ? "가격 확인 필요"
+                : paying
+                  ? paymentPhaseText(paymentPhase)
+                  : hasValidMembership
+                    ? "결제수단으로 연장하기"
+                    : "결제수단으로 결제하기"}
           </button>
           <p className="pay-safe-line">
             결제는 포트원(PG)을 통해 안전하게 처리돼요

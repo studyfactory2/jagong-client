@@ -8,7 +8,11 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import type { AdminUser, NoticeRecord } from "../../../lib/types";
+import type {
+  AdminUser,
+  MembershipPlan,
+  NoticeRecord,
+} from "../../../lib/types";
 import type { AdminStats, AdminTabKey } from "./admin.types";
 import {
   addCalendarMonthsDateOnly,
@@ -27,6 +31,9 @@ type OverviewProps = {
   notices: NoticeRecord[];
   noticeTitle: string;
   noticeContent: string;
+  membershipPlans: MembershipPlan[];
+  membershipPlansLoading: boolean;
+  membershipPlansError: string;
   manualUserId: string;
   manualMonths: number;
   manualName: string;
@@ -56,12 +63,6 @@ type OverviewProps = {
   onSaveFreeTrial: () => void;
   onNavigate: (tab: AdminTabKey) => void;
 };
-
-const MANUAL_PAYMENT_PLANS = [
-  { months: 1, amount: 370000 },
-  { months: 2, amount: 700000 },
-  { months: 3, amount: 990000 },
-] as const;
 
 const FREE_TRIAL_DAYS = [1, 3, 5, 7] as const;
 
@@ -123,6 +124,9 @@ export default function Overview(props: OverviewProps) {
     notices,
     noticeTitle,
     noticeContent,
+    membershipPlans,
+    membershipPlansLoading,
+    membershipPlansError,
     manualUserId,
     manualMonths,
     manualName,
@@ -197,9 +201,9 @@ export default function Overview(props: OverviewProps) {
   const currentMembershipEnd = selectedManualUser?.membershipEnd
     ? membershipEndText(selectedManualUser.membershipEnd)
     : null;
-  const selectedManualPlan =
-    MANUAL_PAYMENT_PLANS.find((plan) => plan.months === manualMonths) ??
-    MANUAL_PAYMENT_PLANS[0];
+  const selectedManualPlan = membershipPlans.find(
+    (plan) => plan.months === manualMonths,
+  );
   const selectedManualUserMeta = selectedManualUser
     ? [selectedManualUser.examType, selectedManualUser.phone]
         .filter(Boolean)
@@ -263,6 +267,9 @@ export default function Overview(props: OverviewProps) {
 
   const manualActionDisabled =
     savingManualPayment ||
+    membershipPlansLoading ||
+    Boolean(membershipPlansError) ||
+    !selectedManualPlan ||
     !selectedManualUser ||
     !manualName.trim() ||
     !manualPaidAt ||
@@ -287,7 +294,9 @@ export default function Overview(props: OverviewProps) {
           ["회원", selectedManualUser?.name ?? "-"],
           [
             "이용권",
-            `${selectedManualPlan.months}개월 · ${money(selectedManualPlan.amount)}`,
+            selectedManualPlan
+              ? `${selectedManualPlan.months}개월 · ${money(selectedManualPlan.total)}`
+              : "가격 정보 없음",
           ],
           ["입금자명", manualName.trim() || "-"],
           ["입금일", formatDateInputForDisplay(manualPaidAt)],
@@ -314,7 +323,7 @@ export default function Overview(props: OverviewProps) {
   function confirmPendingAction() {
     const action = pendingConfirm;
     setPendingConfirm(null);
-    if (action === "payment") onSaveManualPayment();
+    if (action === "payment" && selectedManualPlan) onSaveManualPayment();
     if (action === "free") onSaveFreeTrial();
   }
 
@@ -506,25 +515,50 @@ export default function Overview(props: OverviewProps) {
                 <>
                   <div className="admin-access-section">
                     <h3>결제 정보</h3>
-                    <div className="admin-overview-plan-options">
-                      {MANUAL_PAYMENT_PLANS.map((plan) => (
-                        <button
-                          aria-pressed={manualMonths === plan.months}
-                          className={
-                            manualMonths === plan.months ? "is-active" : ""
-                          }
-                          key={plan.months}
-                          onClick={() => onManualMonthsChange(plan.months)}
-                          type="button"
-                        >
-                          <span>{plan.months}개월</span>
-                          <strong>{money(plan.amount)}</strong>
-                          <small>
-                            월 {money(Math.round(plan.amount / plan.months))}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
+                    {membershipPlansLoading && (
+                      <p className="admin-loading">
+                        이용권 가격을 확인하는 중입니다.
+                      </p>
+                    )}
+                    {membershipPlansError && (
+                      <p className="admin-inline-error" role="alert">
+                        {membershipPlansError}
+                      </p>
+                    )}
+                    {!membershipPlansLoading &&
+                      !membershipPlansError &&
+                      membershipPlans.length === 0 && (
+                        <p className="admin-inline-error" role="alert">
+                          등록 가능한 이용권이 없습니다.
+                        </p>
+                      )}
+                    {!membershipPlansLoading &&
+                      !membershipPlansError &&
+                      membershipPlans.length > 0 && (
+                        <div className="admin-overview-plan-options">
+                          {membershipPlans.map((plan) => (
+                            <button
+                              aria-pressed={manualMonths === plan.months}
+                              className={
+                                manualMonths === plan.months
+                                  ? "is-active"
+                                  : ""
+                              }
+                              key={plan.months}
+                              onClick={() =>
+                                onManualMonthsChange(plan.months)
+                              }
+                              type="button"
+                            >
+                              <span>{plan.months}개월</span>
+                              <strong>{money(plan.total)}</strong>
+                              <small>
+                                월 {money(Math.round(plan.total / plan.months))}
+                              </small>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                   </div>
 
                   <div className="admin-access-section">
@@ -804,11 +838,19 @@ export default function Overview(props: OverviewProps) {
                 <dl className="admin-overview-summary-list">
                   <div>
                     <dt>선택 이용권</dt>
-                    <dd>{selectedManualPlan.months}개월권</dd>
+                    <dd>
+                      {selectedManualPlan
+                        ? `${selectedManualPlan.months}개월권`
+                        : "-"}
+                    </dd>
                   </div>
                   <div className="is-emphasis">
                     <dt>결제 금액</dt>
-                    <dd>{money(selectedManualPlan.amount)}</dd>
+                    <dd>
+                      {selectedManualPlan
+                        ? money(selectedManualPlan.total)
+                        : "-"}
+                    </dd>
                   </div>
                   <div>
                     <dt>입금일</dt>
