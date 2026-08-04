@@ -1,11 +1,16 @@
 import { http } from "./http";
-import type { AdminUser, AdminUsersResult } from "../../lib/types";
+import type {
+  AdminUser,
+  AdminUsersResult,
+  MemberStatus,
+} from "../../lib/types";
 
 /** ADMIN USER API **/
 
 export async function getAdminUsers(input?: {
   branchId?: string;
   role?: string;
+  memberStatus?: MemberStatus;
   text?: string;
   page?: number;
   limit?: number;
@@ -62,6 +67,16 @@ export async function updateAdminUser(
   return data;
 }
 
+export async function updateAdminMemberStatus(
+  userId: string,
+  input: { memberStatus: MemberStatus },
+): Promise<AdminUser> {
+  const { data } = await http.post<AdminUser>(
+    "/users/members/" + userId + "/status",
+    input,
+  );
+  return data;
+}
 
 export async function createStaffUser(input: {
   name: string;

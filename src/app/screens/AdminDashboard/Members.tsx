@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
-import type { AdminUser, Branch, PageMeta } from "../../../lib/types";
+import type {
+  AdminUser,
+  Branch,
+  MemberStatus,
+  PageMeta,
+} from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import { dDayText, userDetail } from "./admin.utils";
+
+export type MemberStatusFilter = "ALL" | MemberStatus;
 
 type MemberEditForm = {
   phone: string;
@@ -19,11 +26,27 @@ type MembersProps = {
   users: AdminUser[];
   branches: Branch[];
   searchText: string;
+  memberStatusFilter: MemberStatusFilter;
+  memberStatusBusy: boolean;
   onSearchChange: (value: string) => void;
+  onMemberStatusFilterChange: (value: MemberStatusFilter) => void;
+  onMemberStatusChange: (
+    userId: string,
+    memberStatus: MemberStatus,
+  ) => Promise<boolean>;
   onUserUpdate: (userId: string, input: Partial<AdminUser>) => Promise<void>;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
 };
+
+const MEMBER_STATUS_FILTERS: Array<{
+  value: MemberStatusFilter;
+  label: string;
+}> = [
+  { value: "ALL", label: "전체" },
+  { value: "ACTIVE", label: "접근 허용" },
+  { value: "BLOCKED", label: "이용 제한" },
+];
 
 function branchLabel(branches: Branch[], branchId?: string) {
   if (!branchId) return "지점 없음";
@@ -43,11 +66,51 @@ function memberEditForm(user: AdminUser): MemberEditForm {
   };
 }
 
+function memberAccessStatus(user: AdminUser): MemberStatus {
+  return user.memberStatus ?? "ACTIVE";
+}
+
+function MemberStatusBadges({ user }: { user: AdminUser }) {
+  const accessStatus = memberAccessStatus(user);
+  const accessLabel = accessStatus === "BLOCKED" ? "이용 제한" : "접근 허용";
+  const registrationLabel = user.isActive ? "등록 활성" : "등록 대기";
+
+  return (
+    <span
+      aria-label={`접근 상태 ${accessLabel}, 등록 상태 ${registrationLabel}`}
+      className="admin-member-directory-statuses"
+    >
+      <em
+        className={
+          accessStatus === "BLOCKED"
+            ? "is-access-blocked"
+            : "is-access-active"
+        }
+      >
+        {accessLabel}
+      </em>
+      <em
+        className={
+          user.isActive
+            ? "is-registration-active"
+            : "is-registration-pending"
+        }
+      >
+        {registrationLabel}
+      </em>
+    </span>
+  );
+}
+
 export default function Members({
   users,
   branches,
   searchText,
+  memberStatusFilter,
+  memberStatusBusy,
   onSearchChange,
+  onMemberStatusFilterChange,
+  onMemberStatusChange,
   onUserUpdate,
   pageMeta,
   onPageChange,
@@ -57,12 +120,19 @@ export default function Members({
   const [editingId, setEditingId] = useState("");
   const [editForm, setEditForm] = useState<MemberEditForm | null>(null);
   const [savingId, setSavingId] = useState("");
+  const [statusChange, setStatusChange] = useState<{
+    userId: string;
+    memberName: string;
+    target: MemberStatus;
+  } | null>(null);
+  const statusChanging = Boolean(statusChange) || memberStatusBusy;
   const members = users.filter((user) => user.role === "MEMBER");
   const selectedUser =
     members.find((user) => user.id === selectedId) ?? null;
+  const detailVisible = detailOpen && Boolean(selectedUser);
 
   useEffect(() => {
-    if (!detailOpen) return;
+    if (!detailVisible) return;
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
@@ -74,7 +144,7 @@ export default function Members({
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [detailOpen]);
+  }, [detailVisible]);
 
   function resetSelection() {
     setDetailOpen(false);
@@ -102,7 +172,7 @@ export default function Members({
   }
 
   async function saveEdit(userId: string) {
-    if (!editForm || savingId) return;
+    if (!editForm || savingId || statusChanging) return;
     setSavingId(userId);
     try {
       await onUserUpdate(userId, {
@@ -126,7 +196,39 @@ export default function Members({
     onSearchChange(value);
   }
 
+  function changeStatusFilter(value: MemberStatusFilter) {
+    resetSelection();
+    onMemberStatusFilterChange(value);
+  }
+
+  async function changeMemberStatus(user: AdminUser) {
+    if (statusChanging) return;
+    const target: MemberStatus =
+      memberAccessStatus(user) === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+    const confirmed = window.confirm(
+      target === "BLOCKED"
+        ? `${user.name} 회원의 이용을 제한할까요?\n\n회원은 즉시 로그아웃되며 로그인, 학습, 카메라 및 실시간 연결 이용이 중지됩니다.\n관리자가 다시 허용하기 전까지 로그인할 수 없습니다.`
+        : `${user.name} 회원의 접근을 다시 허용할까요?\n\n등록 활성 상태와 이용권 조건은 별도로 유지됩니다.\n해당 조건을 충족하면 회원이 다시 로그인할 수 있습니다.`,
+    );
+    if (!confirmed) return;
+
+    setStatusChange({ userId: user.id, memberName: user.name, target });
+    try {
+      const changed = await onMemberStatusChange(user.id, target);
+      if (
+        changed &&
+        memberStatusFilter !== "ALL" &&
+        memberStatusFilter !== target
+      ) {
+        resetSelection();
+      }
+    } finally {
+      setStatusChange(null);
+    }
+  }
+
   function changePage(page: number) {
+    if (statusChanging) return;
     resetSelection();
     onPageChange(page);
   }
@@ -136,22 +238,65 @@ export default function Members({
       <div className="admin-member-directory-head">
         <div>
           <h2>회원 관리</h2>
-          <p>회원 정보와 이용권 상태를 빠르게 확인하고 수정합니다.</p>
+          <p>회원 정보, 등록 상태와 접근 권한을 확인하고 관리합니다.</p>
         </div>
         <span>{pageMeta.total}명</span>
       </div>
 
-      <label className="admin-member-directory-search">
-        <span>회원 검색</span>
-        <input
-          value={searchText}
-          onChange={(event) => changeSearch(event.target.value)}
-          placeholder="이름, 연락처, 자격증, 지역 검색"
-        />
-      </label>
+      <div className="admin-member-directory-toolbar">
+        <label className="admin-member-directory-search">
+          <span>회원 검색</span>
+          <input
+            disabled={statusChanging}
+            value={searchText}
+            onChange={(event) => changeSearch(event.target.value)}
+            placeholder="이름, 연락처, 자격증, 지역 검색"
+          />
+        </label>
+
+        <div className="admin-member-directory-status-filter">
+          <span>접근 상태</span>
+          <div aria-label="회원 접근 상태 필터" role="group">
+            {MEMBER_STATUS_FILTERS.map((filter) => (
+              <button
+                aria-pressed={memberStatusFilter === filter.value}
+                className={
+                  memberStatusFilter === filter.value ? "is-selected" : ""
+                }
+                disabled={statusChanging}
+                key={filter.value}
+                onClick={() => changeStatusFilter(filter.value)}
+                type="button"
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <span
+        aria-live="polite"
+        className="admin-member-directory-status-announcement"
+        role="status"
+      >
+        {statusChange
+          ? `${statusChange.memberName} 회원의 ${
+              statusChange.target === "BLOCKED" ? "이용 제한" : "접근 허용"
+            }을 처리하고 있습니다.`
+          : memberStatusBusy
+            ? "회원 접근 상태 변경을 처리하고 있습니다."
+            : ""}
+      </span>
 
       <div className="admin-member-directory-workspace">
-        <div className="admin-member-directory-results">
+        <fieldset
+          aria-busy={statusChanging}
+          className={`admin-member-directory-results${
+            statusChanging ? " is-status-changing" : ""
+          }`}
+          disabled={statusChanging}
+        >
           <div className="admin-member-directory-list">
             <div
               className="admin-member-directory-list-head"
@@ -160,13 +305,13 @@ export default function Members({
               <span>회원</span>
               <span>준비기간</span>
               <span>이용권</span>
-              <span>상태</span>
+              <span>접근 / 등록</span>
               <span />
             </div>
 
             {members.length === 0 ? (
               <div className="admin-member-directory-empty">
-                등록된 회원이 없습니다.
+                조건에 맞는 회원이 없습니다.
               </div>
             ) : (
               members.map((user) => (
@@ -197,9 +342,7 @@ export default function Members({
                   <span className="admin-member-directory-expiry">
                     {dDayText(user.membershipEnd)}
                   </span>
-                  <em className={user.isActive ? "is-active" : "is-pending"}>
-                    {user.isActive ? "활성" : "대기"}
-                  </em>
+                  <MemberStatusBadges user={user} />
                   <span
                     className="admin-member-directory-chevron"
                     aria-hidden="true"
@@ -216,11 +359,11 @@ export default function Members({
             numbered
             onPageChange={changePage}
           />
-        </div>
+        </fieldset>
 
         <div
           className={`admin-member-directory-detail-layer${
-            detailOpen ? " is-open" : ""
+            detailVisible ? " is-open" : ""
           }`}
         >
           <button
@@ -250,14 +393,14 @@ export default function Members({
             ) : (
               <>
                 <header className="admin-member-directory-detail-head">
-                  <div>
+                  <div className="admin-member-directory-detail-identity">
                     <span
                       className="admin-member-directory-avatar"
                       aria-hidden="true"
                     >
                       {selectedUser.name.slice(0, 1)}
                     </span>
-                    <div>
+                    <div className="admin-member-directory-detail-copy">
                       <small>선택 회원</small>
                       <strong>{selectedUser.name}</strong>
                       <span>
@@ -266,13 +409,7 @@ export default function Members({
                     </div>
                   </div>
                   <div className="admin-member-directory-detail-controls">
-                    <em
-                      className={
-                        selectedUser.isActive ? "is-active" : "is-pending"
-                      }
-                    >
-                      {selectedUser.isActive ? "활성" : "대기"}
-                    </em>
+                    <MemberStatusBadges user={selectedUser} />
                     <button
                       aria-label="회원 상세 닫기"
                       onClick={resetSelection}
@@ -350,7 +487,7 @@ export default function Members({
                           }
                           type="checkbox"
                         />
-                        활성 회원
+                        등록 활성 상태
                       </label>
                     </div>
                   ) : (
@@ -383,13 +520,16 @@ export default function Members({
                   {editingId === selectedUser.id && editForm ? (
                     <>
                       <button
-                        disabled={savingId === selectedUser.id}
+                        disabled={
+                          savingId === selectedUser.id || statusChanging
+                        }
                         onClick={() => saveEdit(selectedUser.id)}
                         type="button"
                       >
                         {savingId === selectedUser.id ? "저장중" : "변경 저장"}
                       </button>
                       <button
+                        disabled={savingId === selectedUser.id}
                         onClick={() => {
                           setEditingId("");
                           setEditForm(null);
@@ -400,13 +540,35 @@ export default function Members({
                       </button>
                     </>
                   ) : (
-                    <button
-                      className="admin-member-directory-edit-button"
-                      onClick={() => startEdit(selectedUser)}
-                      type="button"
-                    >
-                      회원 정보 수정
-                    </button>
+                    <>
+                      <button
+                        className="admin-member-directory-edit-button"
+                        disabled={statusChanging}
+                        onClick={() => startEdit(selectedUser)}
+                        type="button"
+                      >
+                        회원 정보 수정
+                      </button>
+                      <button
+                        aria-busy={statusChange?.userId === selectedUser.id}
+                        className={`admin-member-directory-access-button ${
+                          memberAccessStatus(selectedUser) === "BLOCKED"
+                            ? "is-allow"
+                            : "is-block"
+                        }`}
+                        disabled={statusChanging}
+                        onClick={() => void changeMemberStatus(selectedUser)}
+                        type="button"
+                      >
+                        {statusChange?.userId === selectedUser.id
+                          ? statusChange.target === "BLOCKED"
+                            ? "이용 제한 처리 중..."
+                            : "접근 허용 처리 중..."
+                          : memberAccessStatus(selectedUser) === "BLOCKED"
+                            ? "접근 다시 허용"
+                            : "이용 제한"}
+                      </button>
+                    </>
                   )}
                 </footer>
               </>

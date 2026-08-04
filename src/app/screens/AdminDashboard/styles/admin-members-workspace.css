@@ -7,6 +7,9 @@
 }
 
 .admin-member-directory {
+  --admin-member-access-active-text: #326b40;
+  --admin-member-access-blocked-text: #a33f36;
+  --admin-member-registration-text: #59676c;
   display: grid;
   gap: 14px;
   min-width: 0;
@@ -59,7 +62,14 @@
   line-height: 1;
 }
 
-.admin-member-directory-search {
+.admin-member-directory-toolbar {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-member-directory-search,
+.admin-member-directory-status-filter {
   display: grid;
   gap: 7px;
   min-width: 0;
@@ -70,7 +80,8 @@
   padding: 12px;
 }
 
-.admin-member-directory-search > span {
+.admin-member-directory-search > span,
+.admin-member-directory-status-filter > span {
   color: var(--ink);
   font-size: 10.5px;
   font-weight: 900;
@@ -96,6 +107,49 @@
   box-shadow: 0 0 0 3px rgba(20, 63, 86, 0.07);
 }
 
+.admin-member-directory-search input:disabled {
+  background: var(--admin-panel-muted);
+  color: var(--muted);
+  cursor: default;
+}
+
+.admin-member-directory-status-filter > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 42px;
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  border-radius: 8px;
+  background: var(--admin-panel-muted);
+  padding: 3px;
+}
+
+.admin-member-directory-status-filter button {
+  min-width: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-member-directory-status-filter button.is-selected {
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 63, 86, 0.12);
+  color: var(--ink);
+}
+
+.admin-member-directory-status-filter button:disabled {
+  color: #9ca9ac;
+  cursor: default;
+}
+
 .admin-member-directory-workspace,
 .admin-member-directory-results {
   display: grid;
@@ -105,6 +159,28 @@
 
 .admin-member-directory-results {
   align-content: start;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.admin-member-directory-results.is-status-changing
+  .admin-member-directory-row,
+.admin-member-directory-results.is-status-changing .admin-list-pager {
+  opacity: 0.64;
+  cursor: wait;
+}
+
+.admin-member-directory-status-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  border: 0;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .admin-member-directory-list {
@@ -155,7 +231,7 @@
 }
 
 .admin-member-directory-main,
-.admin-member-directory-detail-head > div:first-child {
+.admin-member-directory-detail-identity {
   display: flex;
   align-items: center;
   min-width: 0;
@@ -208,25 +284,40 @@
   display: none;
 }
 
-.admin-member-directory-row em,
-.admin-member-directory-detail-controls em {
+.admin-member-directory-statuses {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  justify-items: center;
+}
+
+.admin-member-directory-statuses > em {
   flex: 0 0 auto;
   border-radius: 6px;
-  padding: 5px 7px;
+  padding: 4px 6px;
   font-size: 9.5px;
   font-style: normal;
   font-weight: 900;
   line-height: 1;
+  white-space: nowrap;
 }
 
-.admin-member-directory-row em.is-active,
-.admin-member-directory-detail-controls em.is-active {
+.admin-member-directory-statuses > em.is-access-active {
   background: var(--mint-soft);
-  color: var(--mint-deep);
+  color: var(--admin-member-access-active-text);
 }
 
-.admin-member-directory-row em.is-pending,
-.admin-member-directory-detail-controls em.is-pending {
+.admin-member-directory-statuses > em.is-access-blocked {
+  background: var(--accent-soft);
+  color: var(--admin-member-access-blocked-text);
+}
+
+.admin-member-directory-statuses > em.is-registration-active {
+  background: var(--admin-panel-muted);
+  color: var(--admin-member-registration-text);
+}
+
+.admin-member-directory-statuses > em.is-registration-pending {
   background: #fff3db;
   color: #9a620c;
 }
@@ -373,32 +464,32 @@
   padding: 22px 14px 13px;
 }
 
-.admin-member-directory-detail-head > div:first-child {
+.admin-member-directory-detail-identity {
   gap: 10px;
 }
 
-.admin-member-directory-detail-head > div:first-child > div {
+.admin-member-directory-detail-copy {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.admin-member-directory-detail-head small,
-.admin-member-directory-detail-head strong,
-.admin-member-directory-detail-head span {
+.admin-member-directory-detail-copy small,
+.admin-member-directory-detail-copy strong,
+.admin-member-directory-detail-copy span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.admin-member-directory-detail-head small,
-.admin-member-directory-detail-head span {
+.admin-member-directory-detail-copy small,
+.admin-member-directory-detail-copy span {
   color: var(--muted);
   font-size: 9.5px;
   font-weight: 700;
 }
 
-.admin-member-directory-detail-head strong {
+.admin-member-directory-detail-copy strong {
   color: var(--ink);
   font-size: 16px;
   font-weight: 950;
@@ -409,6 +500,10 @@
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
+}
+
+.admin-member-directory-detail-controls .admin-member-directory-statuses {
+  justify-items: end;
 }
 
 .admin-member-directory-detail-controls > button {
@@ -581,11 +676,39 @@
   color: var(--ink);
 }
 
+.admin-member-directory-actions
+  > button.admin-member-directory-edit-button {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.admin-member-directory-actions
+  > button.admin-member-directory-access-button.is-block {
+  border: 1px solid var(--admin-member-access-blocked-text);
+  background: var(--accent-soft);
+  color: var(--admin-member-access-blocked-text);
+}
+
+.admin-member-directory-actions
+  > button.admin-member-directory-access-button.is-allow {
+  border: 1px solid var(--admin-member-access-active-text);
+  background: var(--mint-soft);
+  color: var(--admin-member-access-active-text);
+}
+
 .admin-member-directory-actions > button:disabled {
   border-color: #d9dddc;
   background: #e9eceb;
   color: #8b999c;
   cursor: default;
+}
+
+.admin-member-directory-actions
+  > button.admin-member-directory-access-button:disabled {
+  border-color: #d9dddc;
+  background: #e9eceb;
+  color: #8b999c;
 }
 
 .admin-member-directory-placeholder {
@@ -618,6 +741,10 @@
 }
 
 @media (min-width: 720px) {
+  .admin-member-directory-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+  }
+
   .admin-member-directory-list {
     max-block-size: min(600px, calc(100dvh - 280px));
     overflow-y: auto;
@@ -627,7 +754,7 @@
   .admin-member-directory .admin-member-directory-row {
     grid-template-columns:
       minmax(170px, 1.6fr) minmax(82px, 0.7fr)
-      minmax(86px, 0.7fr) 58px 16px;
+      minmax(86px, 0.7fr) minmax(76px, 0.55fr) 16px;
   }
 
   .admin-member-directory-list-head {
@@ -767,7 +894,8 @@
     display: none;
   }
 
-  .admin-member-directory-search {
+  .admin-member-directory-search,
+  .admin-member-directory-status-filter {
     border-radius: 10px;
     box-shadow: none;
     padding: 11px;

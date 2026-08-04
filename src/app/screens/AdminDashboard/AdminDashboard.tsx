@@ -19,6 +19,7 @@ import {
   getAdminUsers,
   getAllAdminMembers,
   preRegisterUser,
+  updateAdminMemberStatus,
   updateAdminUser,
 } from "../../services/admin.service";
 import { getMe, updateMyProfile } from "../../services/auth.service";
@@ -45,7 +46,7 @@ import Camera from "./Camera";
 import Attendance from "./Attendance";
 import Chat from "./Chat";
 import Consultations from "./Consultations";
-import Members from "./Members";
+import Members, { type MemberStatusFilter } from "./Members";
 import Overview from "./Overview";
 import Payments from "./Payments";
 import Profile from "./Profile";
@@ -55,6 +56,7 @@ import type {
   ConsultationCheckoutLinkResult,
   ConsultationCheckoutRequest,
   ManualPaymentRequest,
+  MemberStatus,
   MembershipPlan,
   ReplaceConsultationCheckoutRequest,
   TimetableSlot,
@@ -141,6 +143,10 @@ export default function AdminDashboard() {
     chats: "",
     camera: "",
   });
+  const [memberStatusFilter, setMemberStatusFilter] =
+    useState<MemberStatusFilter>("ALL");
+  const [memberStatusBusy, setMemberStatusBusy] = useState(false);
+  const memberDirectoryRequestRef = useRef(0);
   const [paymentMemberFilter, setPaymentMemberFilter] = useState<{
     id: string;
     name: string;
@@ -243,8 +249,73 @@ export default function AdminDashboard() {
     }
   }, [isAdmin]);
 
+  const loadMemberDirectory = useCallback(
+    async (page: number) => {
+      if (!isAdmin) return;
+      const requestId = ++memberDirectoryRequestRef.current;
+      const sharedDataPromise = Promise.allSettled([
+        getAllAdminMembers(),
+        getAdminStats(),
+      ]);
+      let usersResult: Awaited<ReturnType<typeof getAdminUsers>>;
+
+      try {
+        usersResult = await getAdminUsers({
+          page,
+          limit: 12,
+          text: debouncedSearch.users,
+          role: "MEMBER",
+          memberStatus:
+            memberStatusFilter === "ALL" ? undefined : memberStatusFilter,
+        });
+      } catch (err) {
+        if (requestId === memberDirectoryRequestRef.current) throw err;
+        return;
+      }
+
+      setData((current) =>
+        requestId === memberDirectoryRequestRef.current
+          ? { ...current, users: usersResult.list }
+          : current,
+      );
+      setPageMeta((current) =>
+        requestId === memberDirectoryRequestRef.current
+          ? { ...current, users: usersResult }
+          : current,
+      );
+
+      const [allMembersResult, statsResult] = await sharedDataPromise;
+      if (allMembersResult.status === "fulfilled") {
+        setData((current) =>
+          requestId === memberDirectoryRequestRef.current
+            ? { ...current, allMembers: allMembersResult.value }
+            : current,
+        );
+      }
+      if (statsResult.status === "fulfilled") {
+        setStats((current) =>
+          requestId === memberDirectoryRequestRef.current
+            ? statsResult.value
+            : current,
+        );
+      }
+
+      const sharedFailure = [allMembersResult, statsResult].find(
+        (result) => result.status === "rejected",
+      );
+      if (
+        sharedFailure?.status === "rejected" &&
+        requestId === memberDirectoryRequestRef.current
+      ) {
+        throw sharedFailure.reason;
+      }
+    },
+    [debouncedSearch.users, isAdmin, memberStatusFilter],
+  );
+
   const load = useCallback(async () => {
     if (!allowed) return;
+    const memberDirectoryRequestId = ++memberDirectoryRequestRef.current;
     setError("");
     setLoading(true);
     try {
@@ -264,6 +335,8 @@ export default function AdminDashboard() {
           limit: 12,
           text: debouncedSearch.users,
           role: "MEMBER",
+          memberStatus:
+            memberStatusFilter === "ALL" ? undefined : memberStatusFilter,
         }),
         getBranches(),
         getTimetable(),
@@ -307,26 +380,39 @@ export default function AdminDashboard() {
       setBranches(branchData);
       setTimetable(timetableData);
       setProfileUser(me as AdminUser);
-      setStats(statsResult);
-      setData({
-        users: usersResult.list,
-        allMembers,
+      setStats((current) =>
+        memberDirectoryRequestId === memberDirectoryRequestRef.current
+          ? statsResult
+          : current,
+      );
+      setData((current) => ({
+        users:
+          memberDirectoryRequestId === memberDirectoryRequestRef.current
+            ? usersResult.list
+            : current.users,
+        allMembers:
+          memberDirectoryRequestId === memberDirectoryRequestRef.current
+            ? allMembers
+            : current.allMembers,
         consultations: consultations.list ?? [],
         payments: payments.list ?? [],
         leaves: leaves.list ?? [],
         chats: chatsResult.list,
         camSessions,
         notices,
-      });
-      setPageMeta({
-        users: usersResult,
+      }));
+      setPageMeta((current) => ({
+        users:
+          memberDirectoryRequestId === memberDirectoryRequestRef.current
+            ? usersResult
+            : current.users,
         consultations: consultations.list
           ? consultations
           : emptyAdminPageMeta.consultations,
         payments: payments.list ? payments : emptyAdminPageMeta.payments,
         leaves: leaves.list ? leaves : emptyAdminPageMeta.leaves,
         chats: chatsResult,
-      });
+      }));
       setManualUserId((current) => current || allMembers[0]?.id || "");
       setPreRegister((current) => ({
         ...current,
@@ -337,11 +423,13 @@ export default function AdminDashboard() {
         branchId: current.branchId || branchData[0]?.id || "",
       }));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "관리자 정보를 불러오지 못했습니다.",
-      );
+      if (memberDirectoryRequestId === memberDirectoryRequestRef.current) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "관리자 정보를 불러오지 못했습니다.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -353,6 +441,7 @@ export default function AdminDashboard() {
     debouncedSearch.payments,
     debouncedSearch.users,
     isAdmin,
+    memberStatusFilter,
     pages.chats,
     pages.consultations,
     pages.leaves,
@@ -391,11 +480,12 @@ export default function AdminDashboard() {
 
   /** EFFECTS **/
   useEffect(() => {
+    if (memberStatusBusy) return;
     const timer = window.setTimeout(() => {
       void load();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [load, memberStatusBusy]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -704,6 +794,61 @@ export default function AdminDashboard() {
     }, "회원 정보를 저장하지 못했습니다.");
   }
 
+  async function saveMemberStatus(
+    userId: string,
+    memberStatus: MemberStatus,
+  ): Promise<boolean> {
+    if (!isAdmin || memberStatusBusy) return false;
+    setMemberStatusBusy(true);
+    try {
+      setError("");
+      let mutationError: unknown = null;
+      let reconciliationError: unknown = null;
+
+      try {
+        await updateAdminMemberStatus(userId, { memberStatus });
+      } catch (err) {
+        mutationError = err;
+      }
+
+      const nextPage =
+        !mutationError &&
+        memberStatusFilter !== "ALL" &&
+        memberStatusFilter !== memberStatus
+          ? 1
+          : pages.users;
+      if (nextPage !== pages.users) {
+        setPages((current) => ({ ...current, users: nextPage }));
+      }
+
+      try {
+        await loadMemberDirectory(nextPage);
+      } catch (err) {
+        reconciliationError = err;
+      }
+
+      if (mutationError) {
+        setError(
+          mutationError instanceof Error
+            ? mutationError.message
+            : "회원 접근 상태를 변경하지 못했습니다.",
+        );
+        return false;
+      }
+      if (reconciliationError) {
+        setError(
+          reconciliationError instanceof Error
+            ? reconciliationError.message
+            : "변경된 회원 상태를 다시 불러오지 못했습니다.",
+        );
+        return false;
+      }
+      return true;
+    } finally {
+      setMemberStatusBusy(false);
+    }
+  }
+
   async function saveMyProfile(input: {
     name?: string;
     phone?: string;
@@ -730,6 +875,11 @@ export default function AdminDashboard() {
     if (pageKey && pageKey in pages) {
       setPages((current) => ({ ...current, [pageKey]: 1 }));
     }
+  }
+
+  function changeMemberStatusFilter(nextFilter: MemberStatusFilter) {
+    setMemberStatusFilter(nextFilter);
+    setPages((current) => ({ ...current, users: 1 }));
   }
 
   function navigateToTab(nextTab: AdminTabKey) {
@@ -802,6 +952,7 @@ export default function AdminDashboard() {
     <>
       <button
         className="admin-refresh"
+        disabled={memberStatusBusy}
         onClick={refreshDashboard}
         type="button"
       >
@@ -995,7 +1146,11 @@ export default function AdminDashboard() {
                 users={data.users}
                 branches={branches}
                 searchText={search.users}
+                memberStatusFilter={memberStatusFilter}
+                memberStatusBusy={memberStatusBusy}
                 onSearchChange={(value) => changeSearch("users", value)}
+                onMemberStatusFilterChange={changeMemberStatusFilter}
+                onMemberStatusChange={saveMemberStatus}
                 onUserUpdate={saveUserProfile}
                 pageMeta={pageMeta.users}
                 onPageChange={(page) => changePage("users", page)}
