@@ -53,6 +53,13 @@ export interface PolicyTable {
   rows: string[][];
 }
 
+export type MemberStatus = "ACTIVE" | "BLOCKED";
+
+export interface SessionRevokedPayload {
+  code: "MEMBER_BLOCKED";
+  message: string;
+}
+
 export interface AuthUser {
   userId?: string;
   id?: string;
@@ -66,6 +73,7 @@ export interface AuthUser {
   prepDuration?: string | null;
   notes?: string | null;
   isActive?: boolean;
+  memberStatus?: MemberStatus;
   startDate?: string | null;
   membershipEnd?: string | null;
 }
