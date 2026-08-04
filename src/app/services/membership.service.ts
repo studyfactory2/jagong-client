@@ -2,7 +2,9 @@ import { http } from "./http";
 import type {
   CheckoutResult,
   ConsultationCheckoutRecord,
+  ConsultationCheckoutRequest,
   ConsultationCheckoutResult,
+  ManualPaymentRequest,
   MembershipPlan,
   MemberPaymentRecord,
   MembershipStatus,
@@ -12,6 +14,7 @@ import type {
   PaymentStatus,
   PublicPaymentResult,
   RefundPreview,
+  ReplaceConsultationCheckoutRequest,
 } from "../../lib/types";
 
 /** MEMBER MEMBERSHIP API **/
@@ -92,31 +95,24 @@ export async function confirmPublicPayment(input: {
 
 /** ADMIN MEMBERSHIP API **/
 
-export async function createConsultationCheckout(input: {
-  consultationId: string;
-  planMonths: number;
-  startDate: string;
-}): Promise<ConsultationCheckoutResult> {
+export async function createConsultationCheckout(
+  input: ConsultationCheckoutRequest,
+): Promise<ConsultationCheckoutResult> {
+  const { consultationId, ...body } = input;
   const { data } = await http.post<ConsultationCheckoutResult>(
-    "/memberships/consultations/" + input.consultationId + "/checkout",
-    { planMonths: input.planMonths, startDate: input.startDate },
+    "/memberships/consultations/" + consultationId + "/checkout",
+    body,
   );
   return data;
 }
 
-export async function replaceConsultationCheckout(input: {
-  consultationId: string;
-  paymentId: string;
-  planMonths: number;
-  startDate: string;
-}): Promise<ConsultationCheckoutResult> {
+export async function replaceConsultationCheckout(
+  input: ReplaceConsultationCheckoutRequest,
+): Promise<ConsultationCheckoutResult> {
+  const { consultationId, ...body } = input;
   const { data } = await http.post<ConsultationCheckoutResult>(
-    "/memberships/consultations/" + input.consultationId + "/checkout/replace",
-    {
-      paymentId: input.paymentId,
-      planMonths: input.planMonths,
-      startDate: input.startDate,
-    },
+    "/memberships/consultations/" + consultationId + "/checkout/replace",
+    body,
   );
   return data;
 }
@@ -134,14 +130,9 @@ export async function getAdminPayments(input?: {
   return data;
 }
 
-export async function recordManualPayment(input: {
-  userId: string;
-  planMonths: number;
-  depositorName: string;
-  paidAt: string;
-  startDate: string;
-  adminMemo?: string;
-}): Promise<PaymentRecord> {
+export async function recordManualPayment(
+  input: ManualPaymentRequest,
+): Promise<PaymentRecord> {
   const { data } = await http.post<PaymentRecord>("/memberships/manual", input);
   return data;
 }

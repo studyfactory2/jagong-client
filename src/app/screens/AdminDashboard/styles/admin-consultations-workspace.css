@@ -351,7 +351,7 @@
 
 .admin-consultation-detail-note span,
 .admin-consultation-video-link > span,
-.admin-consultation-checkout-form label > span {
+.admin-consultation-checkout-form label > span:first-child {
   color: var(--muted);
   font-size: 10.5px;
   font-weight: 850;
@@ -492,6 +492,86 @@
   display: grid;
   gap: 5px;
   min-width: 0;
+}
+
+.admin-consultation-money-input {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.admin-consultation-money-input input {
+  appearance: textfield;
+  padding-right: 48px;
+}
+
+.admin-consultation-money-input input::-webkit-inner-spin-button,
+.admin-consultation-money-input input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.admin-consultation-money-input > span {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.admin-consultation-discount-error {
+  grid-column: 1 / -1;
+}
+
+.admin-consultation-price-preview {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border-radius: 8px;
+  background: rgba(20, 63, 86, 0.08);
+  overflow: hidden;
+}
+
+.admin-consultation-price-preview > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  background: #ffffff;
+}
+
+.admin-consultation-price-preview > div.is-reason {
+  grid-column: 1 / -1;
+}
+
+.admin-consultation-price-preview dt,
+.admin-consultation-price-preview dd {
+  margin: 0;
+}
+
+.admin-consultation-price-preview dt {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.admin-consultation-price-preview dd {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.admin-consultation-price-preview > div:nth-child(3) dd {
+  color: var(--accent-deep);
 }
 
 .admin-consultation-checkout-actions {
@@ -712,6 +792,15 @@
   }
 
   .admin-consultation-checkout-actions button:only-child {
+    grid-column: auto;
+  }
+
+  .admin-consultation-price-preview {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-consultation-price-preview > div.is-reason {
     grid-column: auto;
   }
 }

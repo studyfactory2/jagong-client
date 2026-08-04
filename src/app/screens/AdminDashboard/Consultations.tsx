@@ -1,21 +1,29 @@
 import { useRef, useState } from "react";
 import type {
   ConsultationCheckoutLinkResult,
+  ConsultationCheckoutRequest,
   ConsultationRecord,
+  MembershipPlan,
   PageMeta,
+  ReplaceConsultationCheckoutRequest,
 } from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import {
   addDaysDateOnly,
   dateOnlyText,
   dateText,
+  discountInputError,
   money,
+  parseDiscountAmount,
   todayDateInputValue,
   toDateInputValue,
 } from "./admin.utils";
 
 type ConsultationsProps = {
   consultations: ConsultationRecord[];
+  membershipPlans: MembershipPlan[];
+  membershipPlansLoading: boolean;
+  membershipPlansError: string;
   searchText: string;
   onSearchChange: (value: string) => void;
   onConfirm: (
@@ -24,20 +32,22 @@ type ConsultationsProps = {
     meetingLink?: string,
   ) => void;
   onComplete: (id: string) => void;
-  onCreateCheckout: (input: {
-    consultationId: string;
-    planMonths: number;
-    startDate: string;
-  }) => Promise<ConsultationCheckoutLinkResult>;
-  onReplaceCheckout: (input: {
-    consultationId: string;
-    paymentId: string;
-    planMonths: number;
-    startDate: string;
-  }) => Promise<ConsultationCheckoutLinkResult>;
+  onCreateCheckout: (
+    input: ConsultationCheckoutRequest,
+  ) => Promise<ConsultationCheckoutLinkResult>;
+  onReplaceCheckout: (
+    input: ReplaceConsultationCheckoutRequest,
+  ) => Promise<ConsultationCheckoutLinkResult>;
   onPreparePreRegister: (id: string) => void;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
+};
+
+type CheckoutForm = {
+  months: number;
+  startDate: string;
+  discountAmount: string;
+  discountReason: string;
 };
 
 const CONSULT_TYPE_LABEL: Record<string, string> = {
@@ -81,6 +91,9 @@ function checkoutExpired(value?: string | null): boolean {
 export default function Consultations(props: ConsultationsProps) {
   const {
     consultations,
+    membershipPlans,
+    membershipPlansLoading,
+    membershipPlansError,
     searchText,
     onSearchChange,
     onConfirm,
@@ -94,7 +107,7 @@ export default function Consultations(props: ConsultationsProps) {
   const [selectedId, setSelectedId] = useState("");
   const [meetingLinks, setMeetingLinks] = useState<Record<string, string>>({});
   const [checkoutForms, setCheckoutForms] = useState<
-    Record<string, { months: number; startDate: string }>
+    Record<string, CheckoutForm>
   >({});
   const [provisionalCheckouts, setProvisionalCheckouts] = useState<
     Record<string, ConsultationCheckoutLinkResult>
@@ -108,6 +121,10 @@ export default function Consultations(props: ConsultationsProps) {
   );
   const startMin = todayDateInputValue();
   const startMax = addDaysDateOnly(startMin, 30) ?? startMin;
+  const defaultPlanMonths =
+    membershipPlans.find((plan) => plan.months === 1)?.months ??
+    membershipPlans[0]?.months ??
+    1;
   const selectedConsultation =
     consultations.find((item) => item.id === selectedId) ??
     consultations[0] ??
@@ -156,23 +173,30 @@ export default function Consultations(props: ConsultationsProps) {
     if (pending) {
       const storedStart = toDateInputValue(pending.periodStart);
       const pendingStart = storedStart || startMin;
+      const pendingDiscount = pending.discountAmount ?? 0;
       const replacementRequired = !storedStart || pendingStart < startMin;
-      const replacing =
-        replacementModeId === id || replacementRequired;
+      const replacing = replacementModeId === id || replacementRequired;
       if (saved && replacing) return saved;
       return {
         months: pending.planMonths,
-        startDate: replacing && pendingStart < startMin ? startMin : pendingStart,
+        startDate:
+          replacing && pendingStart < startMin ? startMin : pendingStart,
+        discountAmount: String(pendingDiscount),
+        discountReason: pending.discountReason ?? "",
       };
     }
 
-    return saved ?? { months: 1, startDate: startMin };
+    return (
+      saved ?? {
+        months: defaultPlanMonths,
+        startDate: startMin,
+        discountAmount: "0",
+        discountReason: "",
+      }
+    );
   }
 
-  function updateCheckoutForm(
-    id: string,
-    patch: Partial<{ months: number; startDate: string }>,
-  ) {
+  function updateCheckoutForm(id: string, patch: Partial<CheckoutForm>) {
     setCheckoutForms((current) => ({
       ...current,
       [id]: { ...checkoutForm(id), ...patch },
@@ -188,6 +212,8 @@ export default function Consultations(props: ConsultationsProps) {
       [id]: {
         months: pending.planMonths,
         startDate: pendingStart < startMin ? startMin : pendingStart,
+        discountAmount: String(pending.discountAmount ?? 0),
+        discountReason: pending.discountReason ?? "",
       },
     }));
     setCheckoutErrors((current) => ({ ...current, [id]: "" }));
@@ -209,6 +235,25 @@ export default function Consultations(props: ConsultationsProps) {
     const form = checkoutForm(id);
     const pending = pendingPayment(id);
     if (replace && !pending) return;
+    const plan = membershipPlans.find((item) => item.months === form.months);
+    const discountAmount = parseDiscountAmount(form.discountAmount);
+    const formError =
+      membershipPlansLoading || membershipPlansError
+        ? membershipPlansError || "이용권 가격을 확인하는 중입니다."
+        : plan
+          ? discountInputError(
+              form.discountAmount,
+              form.discountReason,
+              plan.total,
+            )
+          : "이용권 가격 정보가 없습니다.";
+    if (!plan || discountAmount === null || formError) {
+      setCheckoutErrors((current) => ({
+        ...current,
+        [id]: formError || "할인 정보를 확인해주세요.",
+      }));
+      return;
+    }
     if (
       replace &&
       !window.confirm(
@@ -216,7 +261,11 @@ export default function Consultations(props: ConsultationsProps) {
           "기존 결제링크는 즉시 사용할 수 없게 됩니다.",
           "",
           `기존 조건: ${pending!.planMonths}개월 · ${toDateInputValue(pending!.periodStart) || "시작일 미정"}`,
+          `기존 금액: ${money(pending!.amount + (pending!.discountAmount ?? 0))} - ${money(pending!.discountAmount ?? 0)} = ${money(pending!.amount)}`,
+          `기존 할인 사유: ${pending!.discountReason?.trim() || "없음"}`,
           `새 조건: ${form.months}개월 · ${form.startDate}`,
+          `새 금액: ${money(plan.total)} - ${money(discountAmount)} = ${money(plan.total - discountAmount)}`,
+          `새 할인 사유: ${discountAmount > 0 ? form.discountReason.trim() : "없음"}`,
           "",
           "새 링크로 교체하시겠습니까?",
         ].join("\n"),
@@ -229,17 +278,26 @@ export default function Consultations(props: ConsultationsProps) {
     setCheckoutErrors((current) => ({ ...current, [id]: "" }));
     setCheckoutBusyId(id);
     try {
+      const discountInput =
+        discountAmount > 0
+          ? {
+              discountAmount,
+              discountReason: form.discountReason.trim(),
+            }
+          : {};
       const checkout = replace
         ? await onReplaceCheckout({
             consultationId: id,
             paymentId: pending!.id,
             planMonths: form.months,
             startDate: form.startDate,
+            ...discountInput,
           })
         : await onCreateCheckout({
             consultationId: id,
             planMonths: form.months,
             startDate: form.startDate,
+            ...discountInput,
           });
       setProvisionalCheckouts((current) => ({
         ...current,
@@ -288,11 +346,35 @@ export default function Consultations(props: ConsultationsProps) {
       ? selectedProvisional.checkoutUrl
       : selectedPendingPayment
         ? `${window.location.origin}/checkout/${selectedPendingPayment.id}`
-      : ""
+        : ""
     : "";
   const selectedCheckoutForm = selectedConsultation
     ? checkoutForm(selectedConsultation.id)
-    : { months: 1, startDate: startMin };
+    : {
+        months: defaultPlanMonths,
+        startDate: startMin,
+        discountAmount: "0",
+        discountReason: "",
+      };
+  const selectedCheckoutPlan = membershipPlans.find(
+    (plan) => plan.months === selectedCheckoutForm.months,
+  );
+  const selectedCheckoutDiscount = parseDiscountAmount(
+    selectedCheckoutForm.discountAmount,
+  );
+  const selectedCheckoutDiscountError = selectedCheckoutPlan
+    ? discountInputError(
+        selectedCheckoutForm.discountAmount,
+        selectedCheckoutForm.discountReason,
+        selectedCheckoutPlan.total,
+      )
+    : "이용권 가격 정보가 없습니다.";
+  const selectedCheckoutFinalAmount =
+    selectedCheckoutPlan &&
+    selectedCheckoutDiscount !== null &&
+    !selectedCheckoutDiscountError
+      ? selectedCheckoutPlan.total - selectedCheckoutDiscount
+      : null;
   const isSelectedVideo = selectedConsultation?.consultType === "VIDEO";
   const selectedPaid = Boolean(selectedPaidPayment);
   const selectedPaymentPending = Boolean(
@@ -310,6 +392,23 @@ export default function Consultations(props: ConsultationsProps) {
   const selectedStartPassed = Boolean(
     !selectedPendingStart || selectedPendingStart < startMin,
   );
+  const selectedPendingPlan = selectedPendingPayment
+    ? membershipPlans.find(
+        (plan) => plan.months === selectedPendingPayment.planMonths,
+      )
+    : undefined;
+  const currentRefundMonthlyBase = membershipPlans.find(
+    (plan) => plan.months === 1,
+  )?.total;
+  const selectedPendingTermsChanged = Boolean(
+    !selectedProvisional &&
+    selectedPendingPayment &&
+    selectedPendingPlan &&
+    (selectedPendingPayment.amount +
+      (selectedPendingPayment.discountAmount ?? 0) !==
+      selectedPendingPlan.total ||
+      selectedPendingPayment.refundMonthlyBase !== currentRefundMonthlyBase),
+  );
   const replacementRequired = selectedPaymentPending && selectedStartPassed;
   const replacingSelected = Boolean(
     selectedConsultation &&
@@ -319,9 +418,59 @@ export default function Consultations(props: ConsultationsProps) {
     selectedConsultation && checkoutBusyId === selectedConsultation.id,
   );
   const anyCheckoutBusy = Boolean(checkoutBusyId);
+  const usesPendingPricingSnapshot = Boolean(
+    selectedPendingPayment && !replacingSelected,
+  );
+  const displayedCheckoutStandardAmount = usesPendingPricingSnapshot
+    ? selectedPendingPayment!.amount +
+      (selectedPendingPayment!.discountAmount ?? 0)
+    : selectedCheckoutPlan?.total;
+  const displayedCheckoutDiscountAmount = usesPendingPricingSnapshot
+    ? (selectedPendingPayment!.discountAmount ?? 0)
+    : selectedCheckoutDiscount;
+  const displayedCheckoutFinalAmount = usesPendingPricingSnapshot
+    ? selectedPendingPayment!.amount
+    : selectedCheckoutFinalAmount;
+  const activeCheckoutDiscountError = usesPendingPricingSnapshot
+    ? ""
+    : selectedCheckoutDiscountError;
+  const checkoutCatalogUnavailable = Boolean(
+    membershipPlansLoading || membershipPlansError || !selectedCheckoutPlan,
+  );
+  const selectedCheckoutAmountInvalid = Boolean(
+    !usesPendingPricingSnapshot &&
+      !checkoutCatalogUnavailable &&
+      selectedCheckoutPlan &&
+      (selectedCheckoutDiscount === null ||
+        selectedCheckoutDiscount >= selectedCheckoutPlan.total),
+  );
+  const selectedCheckoutReasonInvalid = Boolean(
+    !usesPendingPricingSnapshot &&
+      !checkoutCatalogUnavailable &&
+      selectedCheckoutPlan &&
+      selectedCheckoutDiscount !== null &&
+      selectedCheckoutDiscount > 0 &&
+      !selectedCheckoutForm.discountReason.trim(),
+  );
+  const checkoutFieldsDisabled = Boolean(
+    anyCheckoutBusy ||
+    checkoutCatalogUnavailable ||
+    (selectedPaymentPending && !replacingSelected),
+  );
+  const checkoutSubmitDisabled = Boolean(
+    anyCheckoutBusy ||
+    checkoutCatalogUnavailable ||
+    activeCheckoutDiscountError ||
+    displayedCheckoutFinalAmount === null ||
+    displayedCheckoutFinalAmount === undefined ||
+    (selectedPendingTermsChanged && !replacingSelected),
+  );
   const selectedCheckoutError = selectedConsultation
     ? (checkoutErrors[selectedConsultation.id] ?? "")
     : "";
+  const discountErrorId = selectedConsultation
+    ? `consultation-discount-error-${selectedConsultation.id}`
+    : undefined;
   const canConfirmSelected =
     selectedConsultation?.status === "PENDING" &&
     (!isSelectedVideo || Boolean(selectedMeetingLink.trim()));
@@ -552,7 +701,8 @@ export default function Consultations(props: ConsultationsProps) {
                 </div>
                 {selectedProvisional ? (
                   <small>
-                    {selectedProvisional.planMonths}개월 · 새 링크 발급됨
+                    {selectedProvisional.planMonths}개월 ·{" "}
+                    {money(selectedProvisional.amount)} · 새 링크 발급됨
                   </small>
                 ) : selectedPayment ? (
                   <small>
@@ -569,13 +719,47 @@ export default function Consultations(props: ConsultationsProps) {
                 </p>
               )}
 
+              {selectedPaidPayment && (
+                <dl className="admin-consultation-price-preview">
+                  <div>
+                    <dt>결제 당시 정상가</dt>
+                    <dd>
+                      {money(
+                        selectedPaidPayment.amount +
+                          (selectedPaidPayment.discountAmount ?? 0),
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>할인</dt>
+                    <dd>
+                      {(selectedPaidPayment.discountAmount ?? 0) > 0
+                        ? `-${money(selectedPaidPayment.discountAmount)}`
+                        : "없음"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>최종 결제금액</dt>
+                    <dd>{money(selectedPaidPayment.amount)}</dd>
+                  </div>
+                  {(selectedPaidPayment.discountAmount ?? 0) > 0 &&
+                    selectedPaidPayment.discountReason && (
+                      <div className="is-reason">
+                        <dt>할인 사유</dt>
+                        <dd>{selectedPaidPayment.discountReason}</dd>
+                      </div>
+                    )}
+                </dl>
+              )}
+
               {!selectedPaid &&
                 selectedProvisional &&
                 !selectedCheckoutExpired && (
-                <p className="admin-consultation-checkout-success">
-                  새 결제링크가 발급되었습니다. 아래 링크를 복사해 전달해주세요.
-                </p>
-              )}
+                  <p className="admin-consultation-checkout-success">
+                    새 결제링크가 발급되었습니다. 아래 링크를 복사해
+                    전달해주세요.
+                  </p>
+                )}
 
               {!selectedPaid &&
                 selectedProvisional &&
@@ -586,12 +770,47 @@ export default function Consultations(props: ConsultationsProps) {
                   </p>
                 )}
 
+              {!selectedPaid && selectedProvisional && (
+                <dl className="admin-consultation-price-preview">
+                  <div>
+                    <dt>정상가</dt>
+                    <dd>{money(selectedProvisional.standardAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt>할인</dt>
+                    <dd>
+                      {selectedProvisional.discountAmount > 0
+                        ? `-${money(selectedProvisional.discountAmount)}`
+                        : "없음"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>최종 결제금액</dt>
+                    <dd>{money(selectedProvisional.amount)}</dd>
+                  </div>
+                  {selectedProvisional.discountAmount > 0 &&
+                    selectedProvisional.discountReason && (
+                      <div className="is-reason">
+                        <dt>할인 사유</dt>
+                        <dd>{selectedProvisional.discountReason}</dd>
+                      </div>
+                    )}
+                </dl>
+              )}
+
               {!selectedPaid && !selectedProvisional && (
                 <>
-                  {replacementRequired && (
+                  {replacementRequired && selectedStartPassed && (
                     <p className="admin-consultation-checkout-warning">
                       기존 시작일이 지났습니다. 새 시작일을 선택해 링크를
                       교체해주세요.
+                    </p>
+                  )}
+                  {selectedPendingTermsChanged && !replacingSelected && (
+                    <p className="admin-consultation-checkout-warning">
+                      이 링크는 현재 가격 또는 환불 기준과 다른 조건으로
+                      발급되었습니다. 기존 링크는 그대로 사용할 수 있으며,
+                      재발급하려면 조건 변경 후 현재 기준으로 교체해주세요.
                     </p>
                   )}
                   {replacingSelected && !replacementRequired && (
@@ -600,14 +819,21 @@ export default function Consultations(props: ConsultationsProps) {
                       확인해주세요.
                     </p>
                   )}
+                  {membershipPlansLoading && (
+                    <p className="admin-consultation-checkout-warning">
+                      이용권 가격을 확인하는 중입니다.
+                    </p>
+                  )}
+                  {membershipPlansError && (
+                    <p className="admin-consultation-checkout-error">
+                      {membershipPlansError}
+                    </p>
+                  )}
                   <div className="admin-consultation-checkout-form">
                     <label>
                       <span>이용권</span>
                       <select
-                        disabled={
-                          anyCheckoutBusy ||
-                          (selectedPaymentPending && !replacingSelected)
-                        }
+                        disabled={checkoutFieldsDisabled}
                         value={selectedCheckoutForm.months}
                         onChange={(event) =>
                           updateCheckoutForm(selectedConsultation.id, {
@@ -615,18 +841,22 @@ export default function Consultations(props: ConsultationsProps) {
                           })
                         }
                       >
-                        <option value={1}>1개월</option>
-                        <option value={2}>2개월</option>
-                        <option value={3}>3개월</option>
+                        {membershipPlans.length === 0 && (
+                          <option value={selectedCheckoutForm.months}>
+                            가격 확인 필요
+                          </option>
+                        )}
+                        {membershipPlans.map((plan) => (
+                          <option key={plan.months} value={plan.months}>
+                            {plan.months}개월 · {money(plan.total)}
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>
                       <span>시작일</span>
                       <input
-                        disabled={
-                          anyCheckoutBusy ||
-                          (selectedPaymentPending && !replacingSelected)
-                        }
+                        disabled={checkoutFieldsDisabled}
                         min={startMin}
                         max={startMax}
                         type="date"
@@ -638,9 +868,122 @@ export default function Consultations(props: ConsultationsProps) {
                         }
                       />
                     </label>
+                    <label>
+                      <span>할인 금액</span>
+                      <span className="admin-consultation-money-input">
+                        <input
+                          aria-describedby={
+                            selectedCheckoutAmountInvalid
+                              ? discountErrorId
+                              : undefined
+                          }
+                          aria-invalid={selectedCheckoutAmountInvalid}
+                          disabled={checkoutFieldsDisabled}
+                          inputMode="numeric"
+                          max={
+                            selectedCheckoutPlan
+                              ? selectedCheckoutPlan.total - 1
+                              : undefined
+                          }
+                          min={0}
+                          onChange={(event) => {
+                            const discountAmount = event.target.value;
+                            const parsed = parseDiscountAmount(discountAmount);
+                            updateCheckoutForm(selectedConsultation.id, {
+                              discountAmount,
+                              ...(parsed !== null && parsed <= 0
+                                ? { discountReason: "" }
+                                : {}),
+                            });
+                          }}
+                          step={10000}
+                          type="number"
+                          value={selectedCheckoutForm.discountAmount}
+                        />
+                        <span>KRW</span>
+                      </span>
+                    </label>
+                    {!usesPendingPricingSnapshot && (
+                      <label>
+                        <span>할인 사유</span>
+                        <input
+                          aria-describedby={
+                            selectedCheckoutReasonInvalid
+                              ? discountErrorId
+                              : undefined
+                          }
+                          aria-invalid={selectedCheckoutReasonInvalid}
+                          aria-required={Boolean(
+                            selectedCheckoutDiscount &&
+                              selectedCheckoutDiscount > 0,
+                          )}
+                          disabled={
+                            checkoutFieldsDisabled ||
+                            selectedCheckoutDiscount === null ||
+                            selectedCheckoutDiscount <= 0
+                          }
+                          maxLength={200}
+                          onChange={(event) =>
+                            updateCheckoutForm(selectedConsultation.id, {
+                              discountReason: event.target.value,
+                            })
+                          }
+                          placeholder="할인 적용 시 필수"
+                          value={selectedCheckoutForm.discountReason}
+                        />
+                      </label>
+                    )}
+                    {!checkoutCatalogUnavailable &&
+                      activeCheckoutDiscountError && (
+                        <p
+                          className="admin-consultation-checkout-error admin-consultation-discount-error"
+                          id={discountErrorId}
+                          role="alert"
+                        >
+                          {activeCheckoutDiscountError}
+                        </p>
+                      )}
+                    <dl className="admin-consultation-price-preview">
+                      <div>
+                        <dt>정상가</dt>
+                        <dd>
+                          {displayedCheckoutStandardAmount !== null &&
+                          displayedCheckoutStandardAmount !== undefined
+                            ? money(displayedCheckoutStandardAmount)
+                            : "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>할인</dt>
+                        <dd>
+                          {displayedCheckoutDiscountAmount &&
+                          displayedCheckoutDiscountAmount > 0
+                            ? `-${money(displayedCheckoutDiscountAmount)}`
+                            : "없음"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>최종 결제금액</dt>
+                        <dd aria-atomic="true" aria-live="polite">
+                          {displayedCheckoutFinalAmount !== null &&
+                          displayedCheckoutFinalAmount !== undefined
+                            ? money(displayedCheckoutFinalAmount)
+                            : "-"}
+                        </dd>
+                      </div>
+                      {usesPendingPricingSnapshot &&
+                        displayedCheckoutDiscountAmount &&
+                        displayedCheckoutDiscountAmount > 0 &&
+                        selectedPendingPayment?.discountReason && (
+                          <div className="is-reason">
+                            <dt>할인 사유</dt>
+                            <dd>{selectedPendingPayment.discountReason}</dd>
+                          </div>
+                        )}
+                    </dl>
                     <div className="admin-consultation-checkout-actions">
                       <button
-                        disabled={anyCheckoutBusy}
+                        disabled={checkoutSubmitDisabled}
                         onClick={() =>
                           void createLink(
                             selectedConsultation.id,
@@ -662,7 +1005,9 @@ export default function Consultations(props: ConsultationsProps) {
                       {selectedPaymentPending && !replacingSelected && (
                         <button
                           className="is-secondary"
-                          disabled={anyCheckoutBusy}
+                          disabled={
+                            anyCheckoutBusy || checkoutCatalogUnavailable
+                          }
                           onClick={() =>
                             beginReplacement(selectedConsultation.id)
                           }
@@ -698,17 +1043,17 @@ export default function Consultations(props: ConsultationsProps) {
                 !selectedPaid &&
                 !selectedCheckoutExpired &&
                 !replacingSelected && (
-                <button
-                  className="admin-consultation-copy-link"
-                  onClick={() =>
-                    copyLink(selectedConsultation.id, selectedCheckoutLink)
-                  }
-                  type="button"
-                >
-                  {copiedId === selectedConsultation.id
-                    ? "링크 복사됨"
-                    : "결제링크 복사"}
-                </button>
+                  <button
+                    className="admin-consultation-copy-link"
+                    onClick={() =>
+                      copyLink(selectedConsultation.id, selectedCheckoutLink)
+                    }
+                    type="button"
+                  >
+                    {copiedId === selectedConsultation.id
+                      ? "링크 복사됨"
+                      : "결제링크 복사"}
+                  </button>
                 )}
 
               {selectedPaid && (

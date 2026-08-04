@@ -128,12 +128,42 @@ export interface MembershipStatus {
   reEnrollPeriod: boolean;
 }
 
+export interface AdminDiscountRequest {
+  discountAmount?: number;
+  discountReason?: string;
+}
+
+export interface ConsultationCheckoutRequest extends AdminDiscountRequest {
+  consultationId: string;
+  planMonths: number;
+  startDate: string;
+}
+
+export interface ReplaceConsultationCheckoutRequest
+  extends ConsultationCheckoutRequest {
+  paymentId: string;
+}
+
+export interface ManualPaymentRequest extends AdminDiscountRequest {
+  requestId: string;
+  userId: string;
+  planMonths: number;
+  depositorName: string;
+  paidAt: string;
+  startDate: string;
+  adminMemo?: string;
+}
+
 export interface PaymentRecord {
   id: string;
   userId?: string | null;
   consultationId?: string | null;
   planMonths: number;
   amount: number;
+  discountAmount: number;
+  discountReason: string | null;
+  discountedById: string | null;
+  refundMonthlyBase: number;
   method: string | null;
   status:
     | "PENDING"
@@ -188,6 +218,8 @@ export interface CheckoutResult {
 }
 
 export interface ConsultationCheckoutResult extends CheckoutResult {
+  standardAmount: number;
+  discountAmount: number;
   periodStart: string;
   periodEnd: string;
   checkoutIssuedAt?: string | null;
@@ -198,6 +230,7 @@ export interface ConsultationCheckoutResult extends CheckoutResult {
 export interface ConsultationCheckoutLinkResult
   extends ConsultationCheckoutResult {
   checkoutUrl: string;
+  discountReason: string | null;
 }
 
 export interface ConsultationCheckoutRecord {

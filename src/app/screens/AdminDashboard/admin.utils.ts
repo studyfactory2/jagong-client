@@ -75,7 +75,9 @@ export function formatDateInputForDisplay(value?: string | null) {
 export function addDaysDateOnly(value: string, days: number): string | null {
   const parts = parseDateOnlyParts(value);
   if (!parts) return null;
-  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + days));
+  const date = new Date(
+    Date.UTC(parts.year, parts.month - 1, parts.day + days),
+  );
   return dateOnlyFromParts(
     date.getUTCFullYear(),
     date.getUTCMonth() + 1,
@@ -143,6 +145,29 @@ export function membershipEndText(value?: string | null) {
 
 export function money(value: number) {
   return value.toLocaleString("ko-KR") + "원";
+}
+
+export function parseDiscountAmount(value: string): number | null {
+  const normalized = value.trim();
+  if (!normalized) return 0;
+  const amount = Number(normalized);
+  return Number.isInteger(amount) && amount >= 0 ? amount : null;
+}
+
+export function discountInputError(
+  value: string,
+  reason: string,
+  standardAmount: number,
+): string {
+  const amount = parseDiscountAmount(value);
+  if (amount === null) return "할인 금액은 0원 이상의 정수여야 합니다.";
+  if (amount >= standardAmount) {
+    return "할인 금액은 정상가보다 작아야 합니다. 무료 이용은 무료 기간으로 등록해주세요.";
+  }
+  if (amount > 0 && !reason.trim()) {
+    return "할인을 적용하려면 할인 사유를 입력해주세요.";
+  }
+  return "";
 }
 
 export function userName(users: AdminUser[], userId: string) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
@@ -37,10 +37,7 @@ import {
 } from "../../services/membership.service";
 import { getAdminLeaves } from "../../services/leave.service";
 import { getAdminChatRooms } from "../../services/chat.service";
-import {
-  getCamSessions,
-  warnStudent,
-} from "../../services/cam.service";
+import { getCamSessions, warnStudent } from "../../services/cam.service";
 import { createNotice, getNotices } from "../../services/notice.service";
 import { getBranches } from "../../services/branch.service";
 import { getTimetable } from "../../services/timetable.service";
@@ -56,7 +53,10 @@ import type {
   AdminUser,
   Branch,
   ConsultationCheckoutLinkResult,
+  ConsultationCheckoutRequest,
+  ManualPaymentRequest,
   MembershipPlan,
+  ReplaceConsultationCheckoutRequest,
   TimetableSlot,
 } from "../../../lib/types";
 import {
@@ -72,7 +72,11 @@ import {
   type AdminTabKey,
   type MemberRegistrationTarget,
 } from "./admin.types";
-import { todayDateInputValue } from "./admin.utils";
+import {
+  discountInputError,
+  parseDiscountAmount,
+  todayDateInputValue,
+} from "./admin.utils";
 import "./admin-dashboard.css";
 
 function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
@@ -153,10 +157,10 @@ export default function AdminDashboard() {
   const [noticeContent, setNoticeContent] = useState("");
   const [manualUserId, setManualUserId] = useState("");
   const [manualMonths, setManualMonths] = useState(1);
+  const [manualDiscountAmount, setManualDiscountAmount] = useState("0");
+  const [manualDiscountReason, setManualDiscountReason] = useState("");
   const [manualName, setManualName] = useState("");
-  const [manualPaidAt, setManualPaidAt] = useState(() =>
-    todayDateInputValue(),
-  );
+  const [manualPaidAt, setManualPaidAt] = useState(() => todayDateInputValue());
   const [manualStartDate, setManualStartDate] = useState(() =>
     todayDateInputValue(),
   );
@@ -173,6 +177,10 @@ export default function AdminDashboard() {
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [manualReceiptFile, setManualReceiptFile] = useState<File | null>(null);
   const [savingManualPayment, setSavingManualPayment] = useState(false);
+  const manualPaymentRequestRef = useRef<{
+    fingerprint: string;
+    requestId: string;
+  } | null>(null);
   const [savingFreeTrial, setSavingFreeTrial] = useState(false);
   const [preRegister, setPreRegister] = useState({
     consultationId: "",
@@ -356,16 +364,15 @@ export default function AdminDashboard() {
   const refreshLiveData = useCallback(async () => {
     if (!allowed) return;
     try {
-      const [camSessions, chatsResult, statsResult] =
-        await Promise.all([
-          getCamSessions(),
-          getAdminChatRooms({
-            page: pages.chats,
-            limit: 12,
-            text: debouncedSearch.chats,
-          }),
-          getAdminStats(),
-        ]);
+      const [camSessions, chatsResult, statsResult] = await Promise.all([
+        getCamSessions(),
+        getAdminChatRooms({
+          page: pages.chats,
+          limit: 12,
+          text: debouncedSearch.chats,
+        }),
+        getAdminStats(),
+      ]);
       setStats(statsResult);
       setData((current) => ({
         ...current,
@@ -468,6 +475,17 @@ export default function AdminDashboard() {
   }
 
   async function saveManualPayment() {
+    const selectedPlan = membershipPlans.find(
+      (plan) => plan.months === manualMonths,
+    );
+    const discountAmount = parseDiscountAmount(manualDiscountAmount);
+    const discountError = selectedPlan
+      ? discountInputError(
+          manualDiscountAmount,
+          manualDiscountReason,
+          selectedPlan.total,
+        )
+      : "이용권 가격 정보가 없습니다.";
     if (
       !isAdmin ||
       !manualUserId ||
@@ -476,21 +494,42 @@ export default function AdminDashboard() {
       !manualStartDate ||
       membershipPlansLoading ||
       membershipPlansError ||
-      !membershipPlans.some((plan) => plan.months === manualMonths) ||
+      !selectedPlan ||
+      discountAmount === null ||
+      discountError ||
       savingManualPayment
     )
       return;
     setSavingManualPayment(true);
     try {
       await runAdminAction(async () => {
-        const payment = await recordManualPayment({
+        const paymentDraft: Omit<ManualPaymentRequest, "requestId"> = {
           userId: manualUserId,
           planMonths: manualMonths,
-          depositorName: manualName,
+          depositorName: manualName.trim(),
           paidAt: manualPaidAt,
           startDate: manualStartDate,
           adminMemo: manualMemo.trim() || undefined,
+          ...(discountAmount > 0
+            ? {
+                discountAmount,
+                discountReason: manualDiscountReason.trim(),
+              }
+            : {}),
+        };
+        const fingerprint = JSON.stringify(paymentDraft);
+        const previousRequest = manualPaymentRequestRef.current;
+        const requestId =
+          previousRequest?.fingerprint === fingerprint
+            ? previousRequest.requestId
+            : window.crypto.randomUUID();
+        manualPaymentRequestRef.current = { fingerprint, requestId };
+
+        const payment = await recordManualPayment({
+          requestId,
+          ...paymentDraft,
         });
+        manualPaymentRequestRef.current = null;
         let receiptUploadFailed = false;
         if (manualReceiptFile) {
           try {
@@ -500,6 +539,8 @@ export default function AdminDashboard() {
           }
         }
         setManualName("");
+        setManualDiscountAmount("0");
+        setManualDiscountReason("");
         setManualMemo("");
         setManualPaidAt(todayDateInputValue());
         setManualStartDate(todayDateInputValue());
@@ -537,11 +578,9 @@ export default function AdminDashboard() {
     }
   }
 
-  async function createConsultationPaymentLink(input: {
-    consultationId: string;
-    planMonths: number;
-    startDate: string;
-  }): Promise<ConsultationCheckoutLinkResult> {
+  async function createConsultationPaymentLink(
+    input: ConsultationCheckoutRequest,
+  ): Promise<ConsultationCheckoutLinkResult> {
     if (!isAdmin) throw new Error("관리자 권한이 필요합니다.");
     setError("");
     try {
@@ -549,25 +588,20 @@ export default function AdminDashboard() {
       await load();
       return {
         ...checkout,
-        checkoutUrl:
-          window.location.origin + "/checkout/" + checkout.paymentId,
+        checkoutUrl: window.location.origin + "/checkout/" + checkout.paymentId,
+        discountReason: input.discountReason?.trim() || null,
       };
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "결제링크를 만들지 못했습니다.",
+        err instanceof Error ? err.message : "결제링크를 만들지 못했습니다.",
       );
       throw err;
     }
   }
 
-  async function replaceConsultationPaymentLink(input: {
-    consultationId: string;
-    paymentId: string;
-    planMonths: number;
-    startDate: string;
-  }): Promise<ConsultationCheckoutLinkResult> {
+  async function replaceConsultationPaymentLink(
+    input: ReplaceConsultationCheckoutRequest,
+  ): Promise<ConsultationCheckoutLinkResult> {
     if (!isAdmin) throw new Error("관리자 권한이 필요합니다.");
     setError("");
     try {
@@ -575,14 +609,12 @@ export default function AdminDashboard() {
       await load();
       return {
         ...checkout,
-        checkoutUrl:
-          window.location.origin + "/checkout/" + checkout.paymentId,
+        checkoutUrl: window.location.origin + "/checkout/" + checkout.paymentId,
+        discountReason: input.discountReason?.trim() || null,
       };
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "결제링크를 교체하지 못했습니다.",
+        err instanceof Error ? err.message : "결제링크를 교체하지 못했습니다.",
       );
       throw err;
     }
@@ -900,9 +932,7 @@ export default function AdminDashboard() {
                 onSave={saveMyProfile}
                 preRegister={isAdmin ? preRegister : undefined}
                 staffForm={isAdmin ? staffForm : undefined}
-                onPreRegisterChange={
-                  isAdmin ? updatePreRegister : undefined
-                }
+                onPreRegisterChange={isAdmin ? updatePreRegister : undefined}
                 onPreRegisterSubmit={isAdmin ? savePreRegister : undefined}
                 onStaffChange={isAdmin ? updateStaffForm : undefined}
                 onStaffSubmit={isAdmin ? saveStaff : undefined}
@@ -927,6 +957,8 @@ export default function AdminDashboard() {
                 membershipPlansError={membershipPlansError}
                 manualUserId={manualUserId}
                 manualMonths={manualMonths}
+                manualDiscountAmount={manualDiscountAmount}
+                manualDiscountReason={manualDiscountReason}
                 manualName={manualName}
                 manualPaidAt={manualPaidAt}
                 manualStartDate={manualStartDate}
@@ -941,6 +973,8 @@ export default function AdminDashboard() {
                 onNoticeContentChange={setNoticeContent}
                 onManualUserChange={setManualUserId}
                 onManualMonthsChange={setManualMonths}
+                onManualDiscountAmountChange={setManualDiscountAmount}
+                onManualDiscountReasonChange={setManualDiscountReason}
                 onManualNameChange={setManualName}
                 onManualPaidAtChange={setManualPaidAt}
                 onManualStartDateChange={setManualStartDate}
@@ -971,6 +1005,9 @@ export default function AdminDashboard() {
             {isAdmin && activeTab === "consultations" && (
               <Consultations
                 consultations={data.consultations}
+                membershipPlans={membershipPlans}
+                membershipPlansLoading={membershipPlansLoading}
+                membershipPlansError={membershipPlansError}
                 searchText={search.consultations}
                 onSearchChange={(value) => changeSearch("consultations", value)}
                 onConfirm={confirmConsultation}

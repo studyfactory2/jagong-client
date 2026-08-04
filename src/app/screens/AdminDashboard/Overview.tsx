@@ -17,9 +17,11 @@ import type { AdminStats, AdminTabKey } from "./admin.types";
 import {
   addCalendarMonthsDateOnly,
   addDaysDateOnly,
+  discountInputError,
   formatDateInputForDisplay,
   membershipEndText,
   money,
+  parseDiscountAmount,
   resolveEffectiveStartDateOnly,
   todayDateInputValue,
   toDateInputValue,
@@ -36,6 +38,8 @@ type OverviewProps = {
   membershipPlansError: string;
   manualUserId: string;
   manualMonths: number;
+  manualDiscountAmount: string;
+  manualDiscountReason: string;
   manualName: string;
   manualPaidAt: string;
   manualStartDate: string;
@@ -50,6 +54,8 @@ type OverviewProps = {
   onNoticeContentChange: (value: string) => void;
   onManualUserChange: (value: string) => void;
   onManualMonthsChange: (value: number) => void;
+  onManualDiscountAmountChange: (value: string) => void;
+  onManualDiscountReasonChange: (value: string) => void;
   onManualNameChange: (value: string) => void;
   onManualPaidAtChange: (value: string) => void;
   onManualStartDateChange: (value: string) => void;
@@ -129,6 +135,8 @@ export default function Overview(props: OverviewProps) {
     membershipPlansError,
     manualUserId,
     manualMonths,
+    manualDiscountAmount,
+    manualDiscountReason,
     manualName,
     manualPaidAt,
     manualStartDate,
@@ -143,6 +151,8 @@ export default function Overview(props: OverviewProps) {
     onNoticeContentChange,
     onManualUserChange,
     onManualMonthsChange,
+    onManualDiscountAmountChange,
+    onManualDiscountReasonChange,
     onManualNameChange,
     onManualPaidAtChange,
     onManualStartDateChange,
@@ -204,6 +214,31 @@ export default function Overview(props: OverviewProps) {
   const selectedManualPlan = membershipPlans.find(
     (plan) => plan.months === manualMonths,
   );
+  const parsedManualDiscount = parseDiscountAmount(manualDiscountAmount);
+  const manualDiscountError = selectedManualPlan
+    ? discountInputError(
+        manualDiscountAmount,
+        manualDiscountReason,
+        selectedManualPlan.total,
+      )
+    : "";
+  const manualFinalAmount =
+    selectedManualPlan &&
+    parsedManualDiscount !== null &&
+    !manualDiscountError
+      ? selectedManualPlan.total - parsedManualDiscount
+      : null;
+  const manualDiscountAmountInvalid = Boolean(
+    selectedManualPlan &&
+      (parsedManualDiscount === null ||
+        parsedManualDiscount >= selectedManualPlan.total),
+  );
+  const manualDiscountReasonInvalid = Boolean(
+    selectedManualPlan &&
+      parsedManualDiscount !== null &&
+      parsedManualDiscount > 0 &&
+      !manualDiscountReason.trim(),
+  );
   const selectedManualUserMeta = selectedManualUser
     ? [selectedManualUser.examType, selectedManualUser.phone]
         .filter(Boolean)
@@ -258,6 +293,8 @@ export default function Overview(props: OverviewProps) {
 
   function selectManualUser(userId: string) {
     onManualUserChange(userId);
+    onManualDiscountAmountChange("0");
+    onManualDiscountReasonChange("");
     setExtendMode("new");
     setFreeExtendMode("new");
     const today = todayDateInputValue();
@@ -270,6 +307,8 @@ export default function Overview(props: OverviewProps) {
     membershipPlansLoading ||
     Boolean(membershipPlansError) ||
     !selectedManualPlan ||
+    Boolean(manualDiscountError) ||
+    manualFinalAmount === null ||
     !selectedManualUser ||
     !manualName.trim() ||
     !manualPaidAt ||
@@ -295,8 +334,28 @@ export default function Overview(props: OverviewProps) {
           [
             "이용권",
             selectedManualPlan
-              ? `${selectedManualPlan.months}개월 · ${money(selectedManualPlan.total)}`
+              ? `${selectedManualPlan.months}개월`
               : "가격 정보 없음",
+          ],
+          [
+            "정상가",
+            selectedManualPlan ? money(selectedManualPlan.total) : "-",
+          ],
+          [
+            "할인",
+            parsedManualDiscount && parsedManualDiscount > 0
+              ? `-${money(parsedManualDiscount)}`
+              : "없음",
+          ],
+          [
+            "할인 사유",
+            parsedManualDiscount && parsedManualDiscount > 0
+              ? manualDiscountReason.trim()
+              : "할인 없음",
+          ],
+          [
+            "최종 결제금액",
+            manualFinalAmount !== null ? money(manualFinalAmount) : "-",
           ],
           ["입금자명", manualName.trim() || "-"],
           ["입금일", formatDateInputForDisplay(manualPaidAt)],
@@ -323,7 +382,14 @@ export default function Overview(props: OverviewProps) {
   function confirmPendingAction() {
     const action = pendingConfirm;
     setPendingConfirm(null);
-    if (action === "payment" && selectedManualPlan) onSaveManualPayment();
+    if (
+      action === "payment" &&
+      selectedManualPlan &&
+      !manualDiscountError &&
+      manualFinalAmount !== null
+    ) {
+      onSaveManualPayment();
+    }
     if (action === "free") onSaveFreeTrial();
   }
 
@@ -559,6 +625,114 @@ export default function Overview(props: OverviewProps) {
                           ))}
                         </div>
                       )}
+                  </div>
+
+                  <div className="admin-access-section">
+                    <h3>할인 정보</h3>
+                    <div className="admin-access-form-grid is-two">
+                      <label className="admin-overview-field">
+                        <span>할인 금액</span>
+                        <span className="admin-overview-money-input">
+                          <input
+                            aria-describedby={
+                              manualDiscountAmountInvalid
+                                ? "manual-payment-discount-error"
+                                : undefined
+                            }
+                            aria-invalid={manualDiscountAmountInvalid}
+                            disabled={
+                              membershipPlansLoading ||
+                              Boolean(membershipPlansError) ||
+                              !selectedManualPlan
+                            }
+                            inputMode="numeric"
+                            max={
+                              selectedManualPlan
+                                ? selectedManualPlan.total - 1
+                                : undefined
+                            }
+                            min={0}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              onManualDiscountAmountChange(value);
+                              const amount = parseDiscountAmount(value);
+                              if (amount !== null && amount <= 0) {
+                                onManualDiscountReasonChange("");
+                              }
+                            }}
+                            step={10000}
+                            type="number"
+                            value={manualDiscountAmount}
+                          />
+                          <span>KRW</span>
+                        </span>
+                        <small>원 단위 정수로 입력해주세요.</small>
+                      </label>
+                      <label className="admin-overview-field">
+                        <span>할인 사유</span>
+                        <input
+                          aria-describedby={
+                            manualDiscountReasonInvalid
+                              ? "manual-payment-discount-error"
+                              : undefined
+                          }
+                          aria-invalid={manualDiscountReasonInvalid}
+                          aria-required={Boolean(
+                            parsedManualDiscount &&
+                              parsedManualDiscount > 0,
+                          )}
+                          disabled={
+                            membershipPlansLoading ||
+                            Boolean(membershipPlansError) ||
+                            !selectedManualPlan ||
+                            parsedManualDiscount === null ||
+                            parsedManualDiscount <= 0
+                          }
+                          maxLength={200}
+                          onChange={(event) =>
+                            onManualDiscountReasonChange(event.target.value)
+                          }
+                          placeholder="예: 장기등록 상담 할인"
+                          value={manualDiscountReason}
+                        />
+                        <small>할인 적용 시 필수입니다.</small>
+                      </label>
+                    </div>
+                    {manualDiscountError && (
+                      <p
+                        className="admin-inline-error"
+                        id="manual-payment-discount-error"
+                        role="alert"
+                      >
+                        {manualDiscountError}
+                      </p>
+                    )}
+                    <dl className="admin-overview-price-preview">
+                      <div>
+                        <dt>정상가</dt>
+                        <dd>
+                          {selectedManualPlan
+                            ? money(selectedManualPlan.total)
+                            : "-"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>할인</dt>
+                        <dd>
+                          {parsedManualDiscount && parsedManualDiscount > 0
+                            ? `-${money(parsedManualDiscount)}`
+                            : "없음"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>최종 결제금액</dt>
+                        <dd aria-atomic="true" aria-live="polite">
+                          {manualFinalAmount !== null
+                            ? money(manualFinalAmount)
+                            : "-"}
+                        </dd>
+                      </div>
+                    </dl>
                   </div>
 
                   <div className="admin-access-section">
@@ -844,11 +1018,27 @@ export default function Overview(props: OverviewProps) {
                         : "-"}
                     </dd>
                   </div>
-                  <div className="is-emphasis">
-                    <dt>결제 금액</dt>
+                  <div>
+                    <dt>정상가</dt>
                     <dd>
                       {selectedManualPlan
                         ? money(selectedManualPlan.total)
+                        : "-"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>할인</dt>
+                    <dd>
+                      {parsedManualDiscount && parsedManualDiscount > 0
+                        ? `-${money(parsedManualDiscount)}`
+                        : "없음"}
+                    </dd>
+                  </div>
+                  <div className="is-emphasis">
+                    <dt>최종 결제금액</dt>
+                    <dd>
+                      {manualFinalAmount !== null
+                        ? money(manualFinalAmount)
                         : "-"}
                     </dd>
                   </div>
