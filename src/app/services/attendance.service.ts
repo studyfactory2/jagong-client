@@ -35,6 +35,11 @@ export async function markAttendance(input: {
   return data;
 }
 
-export async function syncCamAttendance(slot?: number): Promise<void> {
-  await http.post("/cam/attendance", slot === undefined ? {} : { slot });
+export async function syncCamAttendance(
+  slot?: number,
+  signal?: AbortSignal,
+): Promise<void> {
+  await http.post("/cam/attendance", slot === undefined ? {} : { slot }, {
+    signal,
+  });
 }

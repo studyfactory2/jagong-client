@@ -7,6 +7,8 @@ import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlin
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
+import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
@@ -18,7 +20,7 @@ import {
   setScheduleSoundEnabled,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
-import type { TimetableSlot } from "../../../lib/types";
+import type { StudyTimeStatus, TimetableSlot } from "../../../lib/types";
 import "./study-line.css";
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
@@ -109,6 +111,22 @@ const toSec = (time: string) => {
   return Number(hour) * 3600 + Number(minute) * 60;
 };
 
+const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function seoulSecondsSinceMidnight(date: Date): number {
+  const parts = seoulClockFormatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  return value("hour") * 3600 + value("minute") * 60 + value("second");
+}
+
 const formatCountdown = (seconds: number) => {
   const safe = Math.max(0, seconds);
   const hours = Math.floor(safe / 3600);
@@ -131,11 +149,108 @@ function slotState(
   return "대기";
 }
 
+type StudyStateView = {
+  action: "BREAK" | "RESUME" | null;
+  detail: string;
+  label: string;
+  tone: "study" | "break" | "schedule" | "system" | "syncing";
+};
+
+const studyStateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function studyStateStartedAt(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? ""
+    : `${studyStateTimeFormatter.format(date)}부터`;
+}
+
+function studyStateView(
+  status: StudyTimeStatus | null,
+  loading: boolean,
+  canResume: boolean,
+): StudyStateView {
+  if (!status?.active || !status.state || !status.source) {
+    return {
+      action: null,
+      detail: loading
+        ? "서버 기록을 연결하고 있습니다."
+        : "새로고침이 필요합니다.",
+      label: loading ? "공부 상태 연결 중" : "공부 상태 확인 필요",
+      tone: "syncing",
+    };
+  }
+
+  const startedAt = studyStateStartedAt(status.stateStartedAt);
+  if (status.state === "STUDY") {
+    return {
+      action: "BREAK",
+      detail: startedAt || "실제 공부시간에 포함됩니다.",
+      label: "공부 중",
+      tone: "study",
+    };
+  }
+
+  if (status.source === "MEMBER") {
+    return {
+      action: canResume ? "RESUME" : null,
+      detail: canResume
+        ? startedAt || "공부시간 집계를 쉬고 있습니다."
+        : "공부 교시가 시작되면 재개할 수 있습니다.",
+      label: "휴식 중",
+      tone: "break",
+    };
+  }
+
+  if (status.source === "SCHEDULE") {
+    return {
+      action: null,
+      detail: "시간표에 따른 쉬는시간입니다.",
+      label: "정규 휴식",
+      tone: "schedule",
+    };
+  }
+
+  if (status.source === "SYSTEM") {
+    return {
+      action: null,
+      detail: "카메라 연결을 복구해 주세요.",
+      label: "카메라 확인 필요",
+      tone: "system",
+    };
+  }
+
+  return {
+    action: null,
+    detail: "관리자 상태를 확인해 주세요.",
+    label: "공부시간 일시정지",
+    tone: "system",
+  };
+}
+
 export default function StudyLine() {
   const navigate = useNavigate();
   const { socket } = useSocket();
-  const { joined, joining, cameraReady, error, startSession } =
-    useWorkroomSession();
+  const {
+    joined,
+    joining,
+    cameraReady,
+    error,
+    studyStatus,
+    studyStatusLoading,
+    studyStatusError,
+    studyActionPending,
+    startSession,
+    syncAttendanceSlot,
+    refreshStudyStatus,
+    startStudyBreak,
+    resumeStudy,
+  } = useWorkroomSession();
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
@@ -191,8 +306,7 @@ export default function StudyLine() {
     };
   }, [socket]);
 
-  const nowSec =
-    now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const nowSec = seoulSecondsSinceMidnight(now);
 
   const current = useMemo(
     () =>
@@ -231,6 +345,11 @@ export default function StudyLine() {
       ? current.slot
       : undefined;
 
+  useEffect(() => {
+    if (!joined) return;
+    syncAttendanceSlot(activeAttendanceSlot);
+  }, [activeAttendanceSlot, joined, syncAttendanceSlot]);
+
   const cameraStatus = joined
     ? "연결됨"
     : joining
@@ -238,9 +357,26 @@ export default function StudyLine() {
       : cameraReady
         ? "미리보기"
         : "설정 필요";
+  const currentStudyState = studyStateView(
+    studyStatus,
+    studyStatusLoading,
+    Boolean(current && !current.isBreak && current.slot !== 0),
+  );
+  const studyActionDisabled =
+    studyStatusLoading ||
+    Boolean(studyStatusError) ||
+    studyActionPending !== null;
 
   const handleJoin = async () => {
     await startSession(activeAttendanceSlot);
+  };
+
+  const handleStudyAction = async () => {
+    if (currentStudyState.action === "BREAK") {
+      await startStudyBreak();
+    } else if (currentStudyState.action === "RESUME") {
+      await resumeStudy();
+    }
   };
 
   const toggleScheduleSound = () => {
@@ -266,11 +402,53 @@ export default function StudyLine() {
       </header>
 
       <main className="sl-body">
-        <section className="sl-camera-session" aria-live="polite">
+        <section
+          aria-busy={studyStatusLoading || studyActionPending !== null}
+          className={`sl-camera-session${joined ? " is-joined" : ""}`}
+        >
           <div className="sl-camera-status">
             <VideocamOutlinedIcon />
             <strong>{cameraStatus}</strong>
           </div>
+          {joined && (
+            <div className={`sl-study-control is-${currentStudyState.tone}`}>
+              <div
+                aria-atomic="true"
+                aria-live="polite"
+                className="sl-study-copy"
+                role="status"
+              >
+                <i aria-hidden="true" />
+                <span>
+                  <strong>{currentStudyState.label}</strong>
+                  <small>{currentStudyState.detail}</small>
+                </span>
+              </div>
+              {currentStudyState.action ? (
+                <button
+                  className={`sl-study-action is-${currentStudyState.action.toLowerCase()}`}
+                  disabled={studyActionDisabled}
+                  onClick={() => void handleStudyAction()}
+                  type="button"
+                >
+                  {currentStudyState.action === "BREAK" ? (
+                    <PauseCircleOutlineRoundedIcon />
+                  ) : (
+                    <PlayArrowRoundedIcon />
+                  )}
+                  {studyActionPending
+                    ? "변경 중…"
+                    : studyStatusLoading
+                      ? "확인 중…"
+                      : currentStudyState.action === "BREAK"
+                        ? "휴식 시작"
+                        : "공부 재개"}
+                </button>
+              ) : studyStatusLoading ? (
+                <span className="sl-study-waiting">확인 중…</span>
+              ) : null}
+            </div>
+          )}
           <button
             className={`sl-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
             type="button"
@@ -293,6 +471,27 @@ export default function StudyLine() {
             )}
           </button>
         </section>
+
+        {joined && studyStatusError && (
+          <div
+            aria-live="assertive"
+            className="sl-study-error"
+            role={studyStatusLoading ? "status" : "alert"}
+          >
+            <span>
+              {studyStatusLoading
+                ? "최신 공부 상태를 다시 확인하고 있습니다."
+                : studyStatusError}
+            </span>
+            <button
+              disabled={studyStatusLoading || studyActionPending !== null}
+              onClick={() => void refreshStudyStatus()}
+              type="button"
+            >
+              {studyStatusLoading ? "확인 중…" : "다시 확인"}
+            </button>
+          </div>
+        )}
 
         {!joined && (
           <WorkroomCameraSetup

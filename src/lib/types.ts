@@ -522,6 +522,24 @@ export interface CamRoomMember {
   joinedAt?: string | null;
 }
 
+export type StudyIntervalState = "STUDY" | "BREAK";
+
+export type StudyTransitionSource =
+  | "ROOM"
+  | "SCHEDULE"
+  | "MEMBER"
+  | "ADMIN"
+  | "SYSTEM";
+
+export interface StudyTimeStatus {
+  active: boolean;
+  sessionId?: string | null;
+  state?: StudyIntervalState | null;
+  source?: StudyTransitionSource | null;
+  sessionStartedAt?: string | null;
+  stateStartedAt?: string | null;
+}
+
 export interface StudyStatisticsWindow {
   startsAt: string;
   endsAtExclusive: string;

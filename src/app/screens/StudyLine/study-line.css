@@ -93,6 +93,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 0 2px;
 }
 
@@ -101,6 +102,7 @@
 }
 
 .sl-camera-status {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -110,6 +112,164 @@
   border-radius: 8px;
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.sl-study-control {
+  min-width: 0;
+  min-height: 40px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card);
+  padding: 4px 5px 4px 10px;
+}
+
+.sl-study-control.is-study {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+}
+
+.sl-study-control.is-break,
+.sl-study-control.is-schedule {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.sl-study-control.is-system {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.sl-study-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sl-study-copy > i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.sl-study-control.is-study .sl-study-copy > i {
+  background: var(--mint-deep);
+}
+
+.sl-study-control.is-break .sl-study-copy > i,
+.sl-study-control.is-schedule .sl-study-copy > i {
+  background: var(--gold);
+}
+
+.sl-study-control.is-system .sl-study-copy > i {
+  background: var(--accent-deep);
+}
+
+.sl-study-copy > span {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.sl-study-copy strong,
+.sl-study-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sl-study-copy strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.sl-study-copy small {
+  color: var(--ink-2);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.sl-study-action {
+  min-width: 88px;
+  min-height: 44px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--gold);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 9px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.sl-study-action.is-resume {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--card);
+}
+
+.sl-study-action svg {
+  font-size: 17px;
+}
+
+.sl-study-action:focus-visible,
+.sl-study-error button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sl-study-action:disabled,
+.sl-study-error button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.sl-study-waiting {
+  flex: 0 0 auto;
+  color: var(--ink-2);
+  padding-right: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sl-study-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 11px;
+  background: var(--accent-soft);
+  color: var(--bad);
+  padding: 8px 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.sl-study-error button {
+  min-height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 9px;
+  font-size: 9.5px;
+  font-weight: 900;
 }
 
 .sl-camera-status svg {
@@ -123,6 +283,7 @@
 }
 
 .sl-sound-btn {
+  flex: 0 0 auto;
   width: 32px;
   height: 32px;
   display: grid;
@@ -488,6 +649,18 @@
 
   .sl-body {
     padding-inline: 12px;
+  }
+
+  .sl-camera-session.is-joined {
+    flex-wrap: wrap;
+  }
+
+  .sl-camera-session.is-joined .sl-camera-status {
+    flex-basis: 100%;
+  }
+
+  .sl-camera-session.is-joined .sl-study-control {
+    flex: 1;
   }
 
   .sl-line-grid {

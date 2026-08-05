@@ -15,8 +15,17 @@ import {
   issueCamToken,
   leaveCam,
 } from "../services/cam.service";
+import {
+  getMyStudyTimeStatus,
+  resumeMyStudy,
+  startMyStudyBreak,
+} from "../services/study-time.service";
 import { syncCamAttendance } from "../services/attendance.service";
-import type { CamRoomMember, CamTokenDto } from "../../lib/types";
+import type {
+  CamRoomMember,
+  CamTokenDto,
+  StudyTimeStatus,
+} from "../../lib/types";
 import { useSocket } from "./SocketContext";
 import type {
   FaceEffectOptions,
@@ -69,6 +78,47 @@ const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
 
 const CAMERA_DIMENSION_SAMPLE_INTERVAL_MS = 60;
 const CAMERA_DIMENSION_WAIT_MS = 1200;
+const STUDY_STATUS_REFRESH_INTERVAL_MS = 60000;
+const STUDY_STATUS_STARTUP_RETRY_MS = [
+  0, 250, 500, 1000, 1500, 2000, 3000, 4000,
+];
+const ATTENDANCE_SYNC_RETRY_MS = [500, 1000, 2000, 4000];
+const ATTENDANCE_SYNC_TIMEOUT_MS = 8000;
+
+const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function seoulDateKey(date = new Date()): string {
+  const parts = seoulDateFormatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+type StudyAction = "BREAK" | "RESUME";
+
+type PendingStudyAction = {
+  action: StudyAction;
+  connectionGeneration: number;
+  requestId: number;
+};
+
+type AttendanceSyncTarget = {
+  connectionGeneration: number;
+  key: string;
+  slot: number;
+};
+
+type AttendanceSyncFlight = {
+  controller: AbortController;
+  target: AttendanceSyncTarget;
+  timeoutId: number | null;
+};
 
 class WorkroomConnectionCancelledError extends Error {
   constructor() {
@@ -129,11 +179,19 @@ type WorkroomSessionValue = {
   effectError: string;
   roomMembers: CamRoomMember[];
   remoteVideos: RemoteVideo[];
+  studyStatus: StudyTimeStatus | null;
+  studyStatusLoading: boolean;
+  studyStatusError: string;
+  studyActionPending: StudyAction | null;
   previewCamera: (deviceId?: string) => Promise<void>;
   selectCamera: (deviceId: string) => Promise<void>;
   selectCameraEffect: (effect: CameraEffect) => Promise<void>;
   startSession: (slot?: number) => Promise<boolean>;
   leaveSession: () => Promise<void>;
+  syncAttendanceSlot: (slot?: number, force?: boolean) => void;
+  refreshStudyStatus: () => Promise<void>;
+  startStudyBreak: () => Promise<boolean>;
+  resumeStudy: () => Promise<boolean>;
   setVisibleRemoteUserIds: (userIds: string[]) => void;
 };
 
@@ -158,6 +216,11 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [effectError, setEffectError] = useState("");
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[]>([]);
   const [remoteVideos, setRemoteVideos] = useState<RemoteVideo[]>([]);
+  const [studyStatus, setStudyStatus] = useState<StudyTimeStatus | null>(null);
+  const [studyStatusLoading, setStudyStatusLoading] = useState(false);
+  const [studyStatusError, setStudyStatusError] = useState("");
+  const [studyActionPending, setStudyActionPending] =
+    useState<StudyAction | null>(null);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
   const faceEffectProcessorRef =
     useRef<ProcessorWrapper<FaceEffectOptions> | null>(null);
@@ -166,7 +229,369 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const connectionGenerationRef = useRef(0);
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
+  const leavingRef = useRef(false);
   const visibleRemoteUserIdsRef = useRef<string[]>([]);
+  const studyStatusRequestRef = useRef(0);
+  const studyStatusLoadingRequestRef = useRef<number | null>(null);
+  const studyActionPendingRef = useRef<PendingStudyAction | null>(null);
+  const attendanceTargetRef = useRef<AttendanceSyncTarget | null>(null);
+  const attendanceInFlightRef = useRef<AttendanceSyncFlight | null>(null);
+  const attendanceRetryTimerRef = useRef<number | null>(null);
+  const attendanceRetryIndexRef = useRef(0);
+  const attendanceBindingReadyRef = useRef(false);
+  const lastSyncedAttendanceKeyRef = useRef<string | null>(null);
+  const flushAttendanceSyncRef = useRef<() => void>(() => undefined);
+  const mountedRef = useRef(true);
+
+  const clearAttendanceRetry = useCallback(() => {
+    if (attendanceRetryTimerRef.current !== null) {
+      window.clearTimeout(attendanceRetryTimerRef.current);
+      attendanceRetryTimerRef.current = null;
+    }
+  }, []);
+
+  const cancelAttendanceFlight = useCallback(() => {
+    const flight = attendanceInFlightRef.current;
+    if (!flight) return;
+
+    attendanceInFlightRef.current = null;
+    if (flight.timeoutId !== null) window.clearTimeout(flight.timeoutId);
+    flight.controller.abort();
+  }, []);
+
+  const resetAttendanceSync = useCallback(() => {
+    clearAttendanceRetry();
+    cancelAttendanceFlight();
+    attendanceTargetRef.current = null;
+    attendanceRetryIndexRef.current = 0;
+    attendanceBindingReadyRef.current = false;
+    lastSyncedAttendanceKeyRef.current = null;
+  }, [cancelAttendanceFlight, clearAttendanceRetry]);
+
+  const flushAttendanceSync = useCallback(() => {
+    const target = attendanceTargetRef.current;
+    if (
+      !target ||
+      !mountedRef.current ||
+      !joinedRef.current ||
+      !attendanceBindingReadyRef.current ||
+      target.connectionGeneration !== connectionGenerationRef.current ||
+      lastSyncedAttendanceKeyRef.current === target.key ||
+      attendanceRetryTimerRef.current !== null ||
+      attendanceInFlightRef.current
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const flight: AttendanceSyncFlight = {
+      controller,
+      target,
+      timeoutId: null,
+    };
+    attendanceInFlightRef.current = flight;
+    flight.timeoutId = window.setTimeout(() => {
+      flight.timeoutId = null;
+      controller.abort();
+    }, ATTENDANCE_SYNC_TIMEOUT_MS);
+
+    void syncCamAttendance(target.slot, controller.signal)
+      .then(() => {
+        if (
+          attendanceInFlightRef.current !== flight ||
+          attendanceTargetRef.current !== target ||
+          connectionGenerationRef.current !== target.connectionGeneration
+        ) {
+          return;
+        }
+
+        lastSyncedAttendanceKeyRef.current = target.key;
+        attendanceRetryIndexRef.current = 0;
+        clearAttendanceRetry();
+      })
+      .catch(() => {
+        if (
+          attendanceInFlightRef.current !== flight ||
+          attendanceTargetRef.current !== target ||
+          connectionGenerationRef.current !== target.connectionGeneration ||
+          !attendanceBindingReadyRef.current
+        ) {
+          return;
+        }
+
+        const delay = ATTENDANCE_SYNC_RETRY_MS[attendanceRetryIndexRef.current];
+        if (delay === undefined) return;
+
+        attendanceRetryIndexRef.current += 1;
+        clearAttendanceRetry();
+        attendanceRetryTimerRef.current = window.setTimeout(() => {
+          attendanceRetryTimerRef.current = null;
+          flushAttendanceSyncRef.current();
+        }, delay);
+      })
+      .finally(() => {
+        if (flight.timeoutId !== null) window.clearTimeout(flight.timeoutId);
+        if (attendanceInFlightRef.current === flight) {
+          attendanceInFlightRef.current = null;
+        }
+
+        if (
+          attendanceTargetRef.current &&
+          attendanceTargetRef.current !== target
+        ) {
+          flushAttendanceSyncRef.current();
+        }
+      });
+  }, [clearAttendanceRetry]);
+
+  useEffect(() => {
+    flushAttendanceSyncRef.current = flushAttendanceSync;
+    return () => {
+      flushAttendanceSyncRef.current = () => undefined;
+    };
+  }, [flushAttendanceSync]);
+
+  const syncAttendanceSlot = useCallback(
+    (slot?: number, force = false) => {
+      if (!slot || slot <= 0) {
+        cancelAttendanceFlight();
+        attendanceTargetRef.current = null;
+        attendanceRetryIndexRef.current = 0;
+        clearAttendanceRetry();
+        return;
+      }
+
+      const connectionGeneration = connectionGenerationRef.current;
+      const key = `${seoulDateKey()}:${slot}`;
+      const current = attendanceTargetRef.current;
+      if (
+        !force &&
+        current?.key === key &&
+        current.connectionGeneration === connectionGeneration
+      ) {
+        flushAttendanceSync();
+        return;
+      }
+
+      clearAttendanceRetry();
+      cancelAttendanceFlight();
+      attendanceRetryIndexRef.current = 0;
+      if (force) lastSyncedAttendanceKeyRef.current = null;
+      attendanceTargetRef.current = { connectionGeneration, key, slot };
+      flushAttendanceSync();
+    },
+    [cancelAttendanceFlight, clearAttendanceRetry, flushAttendanceSync],
+  );
+
+  const setAttendanceBindingReady = useCallback(
+    (
+      ready: boolean,
+      expectedConnectionGeneration = connectionGenerationRef.current,
+    ) => {
+      if (expectedConnectionGeneration !== connectionGenerationRef.current) {
+        return;
+      }
+
+      attendanceBindingReadyRef.current = ready;
+      if (ready) {
+        flushAttendanceSync();
+      } else {
+        cancelAttendanceFlight();
+        clearAttendanceRetry();
+      }
+    },
+    [cancelAttendanceFlight, clearAttendanceRetry, flushAttendanceSync],
+  );
+
+  const commitStudyStatus = useCallback((status: StudyTimeStatus) => {
+    if (mountedRef.current) setStudyStatus(status);
+  }, []);
+
+  const resetStudyStatus = useCallback(() => {
+    studyStatusRequestRef.current += 1;
+    studyStatusLoadingRequestRef.current = null;
+    studyActionPendingRef.current = null;
+    if (!mountedRef.current) return;
+    setStudyStatus(null);
+    setStudyStatusLoading(false);
+    setStudyStatusError("");
+    setStudyActionPending(null);
+  }, []);
+
+  const loadStudyStatus = useCallback(
+    async (
+      showLoading = false,
+      expectedConnectionGeneration = connectionGenerationRef.current,
+    ): Promise<StudyTimeStatus | null> => {
+      if (!joinedRef.current) return null;
+      if (studyActionPendingRef.current) return null;
+
+      const requestId = studyStatusRequestRef.current + 1;
+      studyStatusRequestRef.current = requestId;
+      if (showLoading || studyStatusLoadingRequestRef.current !== null) {
+        studyStatusLoadingRequestRef.current = requestId;
+      }
+      if (showLoading && mountedRef.current) {
+        setStudyStatusLoading(true);
+      }
+
+      try {
+        const status = await getMyStudyTimeStatus();
+        if (
+          !mountedRef.current ||
+          !joinedRef.current ||
+          connectionGenerationRef.current !== expectedConnectionGeneration ||
+          studyStatusRequestRef.current !== requestId
+        ) {
+          return null;
+        }
+        setAttendanceBindingReady(
+          Boolean(
+            status.active &&
+              status.state &&
+              status.source &&
+              status.source !== "SYSTEM",
+          ),
+          expectedConnectionGeneration,
+        );
+        commitStudyStatus(status);
+        setStudyStatusError("");
+        return status;
+      } catch (requestError) {
+        if (
+          mountedRef.current &&
+          joinedRef.current &&
+          connectionGenerationRef.current === expectedConnectionGeneration &&
+          studyStatusRequestRef.current === requestId
+        ) {
+          setStudyStatusError(
+            requestError instanceof Error
+              ? requestError.message
+              : "공부 상태를 확인하지 못했습니다.",
+          );
+        }
+        return null;
+      } finally {
+        if (
+          mountedRef.current &&
+          studyStatusLoadingRequestRef.current === requestId
+        ) {
+          studyStatusLoadingRequestRef.current = null;
+          setStudyStatusLoading(false);
+        }
+      }
+    },
+    [commitStudyStatus, setAttendanceBindingReady],
+  );
+
+  const refreshStudyStatus = useCallback(async () => {
+    await loadStudyStatus(true);
+  }, [loadStudyStatus]);
+
+  const runStudyAction = useCallback(
+    async (
+      action: StudyAction,
+      request: () => Promise<StudyTimeStatus>,
+      fallbackError: string,
+    ): Promise<boolean> => {
+      if (!joinedRef.current || studyActionPendingRef.current) return false;
+
+      const expectedConnectionGeneration = connectionGenerationRef.current;
+      const requestId = studyStatusRequestRef.current + 1;
+      studyStatusRequestRef.current = requestId;
+      const pendingAction: PendingStudyAction = {
+        action,
+        connectionGeneration: expectedConnectionGeneration,
+        requestId,
+      };
+      studyActionPendingRef.current = pendingAction;
+      if (mountedRef.current) {
+        setStudyActionPending(action);
+        setStudyStatusError("");
+      }
+
+      let actionSucceeded = false;
+
+      try {
+        const status = await request();
+        if (
+          !mountedRef.current ||
+          !joinedRef.current ||
+          connectionGenerationRef.current !== expectedConnectionGeneration ||
+          studyStatusRequestRef.current !== requestId
+        ) {
+          return false;
+        }
+        commitStudyStatus(status);
+        actionSucceeded = true;
+        return true;
+      } catch (requestError) {
+        const message =
+          requestError instanceof Error ? requestError.message : fallbackError;
+
+        try {
+          const reconciled = await getMyStudyTimeStatus();
+          if (
+            mountedRef.current &&
+            joinedRef.current &&
+            connectionGenerationRef.current === expectedConnectionGeneration &&
+            studyStatusRequestRef.current === requestId
+          ) {
+            commitStudyStatus(reconciled);
+          }
+        } catch {
+          // Keep the last authoritative status when reconciliation also fails.
+        }
+
+        if (
+          mountedRef.current &&
+          joinedRef.current &&
+          connectionGenerationRef.current === expectedConnectionGeneration &&
+          studyStatusRequestRef.current === requestId
+        ) {
+          setStudyStatusError(message);
+        }
+        return false;
+      } finally {
+        if (studyActionPendingRef.current === pendingAction) {
+          studyActionPendingRef.current = null;
+          if (mountedRef.current) setStudyActionPending(null);
+          if (
+            actionSucceeded &&
+            mountedRef.current &&
+            joinedRef.current &&
+            connectionGenerationRef.current === expectedConnectionGeneration
+          ) {
+            // A schedule or LiveKit transition can supersede the POST response
+            // immediately. Always reconcile once; queued events make this
+            // especially important.
+            void loadStudyStatus(false, expectedConnectionGeneration);
+          }
+        }
+      }
+    },
+    [commitStudyStatus, loadStudyStatus],
+  );
+
+  const startStudyBreak = useCallback(
+    async () =>
+      await runStudyAction(
+        "BREAK",
+        startMyStudyBreak,
+        "휴식 상태로 변경하지 못했습니다.",
+      ),
+    [runStudyAction],
+  );
+
+  const resumeStudy = useCallback(
+    async () =>
+      await runStudyAction(
+        "RESUME",
+        resumeMyStudy,
+        "공부 상태로 돌아가지 못했습니다.",
+      ),
+    [runStudyAction],
+  );
 
   const refreshRoomMembers = useCallback(async () => {
     try {
@@ -516,9 +941,12 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           participantSidRef.current = null;
           joinedRef.current = false;
           joiningRef.current = false;
+          leavingRef.current = false;
           setJoined(false);
           setJoining(false);
           setRemoteVideos([]);
+          resetStudyStatus();
+          resetAttendanceSync();
           setError(
             "실시간 작업장 연결이 종료되었습니다. 카메라를 확인한 뒤 다시 입장해 주세요.",
           );
@@ -561,7 +989,13 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    [refreshRoomMembers, stopLocalCamera, syncRemoteCameraSubscriptions],
+    [
+      refreshRoomMembers,
+      resetAttendanceSync,
+      resetStudyStatus,
+      stopLocalCamera,
+      syncRemoteCameraSubscriptions,
+    ],
   );
 
   const previewCamera = useCallback(
@@ -609,38 +1043,60 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const leaveSession = useCallback(async () => {
+    if (leavingRef.current) return;
+
     const participantSid = participantSidRef.current;
-    connectionGenerationRef.current += 1;
-    joiningRef.current = false;
+    const leaveGeneration = connectionGenerationRef.current + 1;
+    connectionGenerationRef.current = leaveGeneration;
+    leavingRef.current = true;
+    joiningRef.current = true;
     joinedRef.current = false;
     participantSidRef.current = null;
-    setJoining(false);
+    setJoining(true);
     setJoined(false);
     setError("");
+    resetStudyStatus();
+    resetAttendanceSync();
 
-    await disconnectLiveKit();
-    await stopLocalCamera();
+    try {
+      await disconnectLiveKit();
+      await stopLocalCamera();
 
-    if (participantSid) {
-      try {
-        await leaveCam({ participantSid });
-      } catch {
-        // The participant-left webhook remains authoritative if fallback fails.
+      if (participantSid) {
+        void leaveCam({ participantSid })
+          .catch(() => undefined)
+          .finally(() => void refreshRoomMembers());
+      } else {
+        void refreshRoomMembers();
+      }
+    } finally {
+      leavingRef.current = false;
+      if (connectionGenerationRef.current === leaveGeneration) {
+        joiningRef.current = false;
+        if (mountedRef.current) setJoining(false);
       }
     }
-    await refreshRoomMembers();
-  }, [disconnectLiveKit, refreshRoomMembers, stopLocalCamera]);
+  }, [
+    disconnectLiveKit,
+    refreshRoomMembers,
+    resetAttendanceSync,
+    resetStudyStatus,
+    stopLocalCamera,
+  ]);
 
   const startSession = useCallback(
     async (slot?: number) => {
       if (joinedRef.current) return true;
-      if (joiningRef.current) return false;
+      if (joiningRef.current || leavingRef.current) return false;
 
       const connectionGeneration = connectionGenerationRef.current + 1;
       connectionGenerationRef.current = connectionGeneration;
       setError("");
       joiningRef.current = true;
       setJoining(true);
+      resetStudyStatus();
+      resetAttendanceSync();
+      syncAttendanceSlot(slot);
       try {
         const token = await issueCamToken();
         if (connectionGenerationRef.current !== connectionGeneration) {
@@ -664,19 +1120,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         }
         joinedRef.current = true;
         setJoined(true);
-        if (slot) {
-          for (let attempt = 0; attempt < 5; attempt += 1) {
-            if (connectionGenerationRef.current !== connectionGeneration) {
-              break;
-            }
-            try {
-              await syncCamAttendance(slot);
-              break;
-            } catch {
-              await new Promise((resolve) => window.setTimeout(resolve, 300));
-            }
-          }
-        }
+        flushAttendanceSync();
         await refreshRoomMembers();
         return connectionGenerationRef.current === connectionGeneration;
       } catch (err) {
@@ -689,6 +1133,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         joinedRef.current = false;
         participantSidRef.current = null;
         setJoined(false);
+        resetStudyStatus();
+        resetAttendanceSync();
         if (!(err instanceof WorkroomConnectionCancelledError)) {
           setError(
             err instanceof Error
@@ -707,12 +1153,105 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     [
       connectLiveKit,
       disconnectLiveKit,
+      flushAttendanceSync,
       refreshRoomMembers,
+      resetAttendanceSync,
+      resetStudyStatus,
       selectedDeviceId,
       startLocalCamera,
       stopLocalCamera,
+      syncAttendanceSlot,
     ],
   );
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      studyStatusRequestRef.current += 1;
+      resetAttendanceSync();
+    };
+  }, [resetAttendanceSync]);
+
+  useEffect(() => {
+    if (!joined) return;
+
+    const expectedConnectionGeneration = connectionGenerationRef.current;
+    let cancelled = false;
+    let retryIndex = 0;
+    let retryTimer: number | null = null;
+
+    const finishStartupSync = (message?: string) => {
+      if (cancelled || !mountedRef.current) return;
+      setStudyStatusLoading(false);
+      if (message) {
+        setStudyStatusError((current) => current || message);
+      }
+    };
+
+    const syncUntilReady = async () => {
+      if (
+        cancelled ||
+        !joinedRef.current ||
+        connectionGenerationRef.current !== expectedConnectionGeneration
+      ) {
+        return;
+      }
+
+      if (retryIndex === 0 && mountedRef.current) {
+        setStudyStatusLoading(true);
+        setStudyStatusError("");
+      }
+
+      const status = await loadStudyStatus(false, expectedConnectionGeneration);
+      if (cancelled) return;
+
+      if (status?.active && status.state && status.source) {
+        finishStartupSync();
+        return;
+      }
+
+      retryIndex += 1;
+      if (retryIndex < STUDY_STATUS_STARTUP_RETRY_MS.length) {
+        retryTimer = window.setTimeout(
+          () => void syncUntilReady(),
+          STUDY_STATUS_STARTUP_RETRY_MS[retryIndex],
+        );
+        return;
+      }
+
+      finishStartupSync(
+        "공부시간 기록 상태를 확인하지 못했습니다. 다시 시도해주세요.",
+      );
+    };
+
+    retryTimer = window.setTimeout(
+      () => void syncUntilReady(),
+      STUDY_STATUS_STARTUP_RETRY_MS[0],
+    );
+    const refreshTimer = window.setInterval(() => {
+      void loadStudyStatus(false, expectedConnectionGeneration);
+    }, STUDY_STATUS_REFRESH_INTERVAL_MS);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void loadStudyStatus(false, expectedConnectionGeneration);
+    };
+    const refreshWhenFocused = () => {
+      void loadStudyStatus(false, expectedConnectionGeneration);
+    };
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenFocused);
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenFocused);
+      studyStatusRequestRef.current += 1;
+    };
+  }, [joined, loadStudyStatus]);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
@@ -727,13 +1266,81 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on("cam:join", refreshRoomMembers);
-    socket.on("cam:leave", refreshRoomMembers);
-    return () => {
-      socket.off("cam:join", refreshRoomMembers);
-      socket.off("cam:leave", refreshRoomMembers);
+
+    type CameraPresencePayload = {
+      userId?: string;
+      liveKitParticipantSid?: string | null;
     };
-  }, [refreshRoomMembers, socket]);
+    type BellPayload = {
+      type?: string;
+      slot?: number;
+    };
+
+    const isCurrentLocalMember = (payload?: CameraPresencePayload) => {
+      const localIdentity = roomRef.current?.localParticipant.identity;
+      return Boolean(
+        payload?.userId &&
+        localIdentity &&
+        payload.userId === localIdentity,
+      );
+    };
+    const isCurrentLocalJoin = (payload?: CameraPresencePayload) => {
+      const localParticipantSid = participantSidRef.current;
+      return Boolean(
+        isCurrentLocalMember(payload) &&
+        payload?.liveKitParticipantSid &&
+        localParticipantSid &&
+        payload.liveKitParticipantSid === localParticipantSid,
+      );
+    };
+    const refreshJoinedPresence = (payload?: CameraPresencePayload) => {
+      void refreshRoomMembers();
+      if (!isCurrentLocalJoin(payload)) return;
+
+      const expectedConnectionGeneration = connectionGenerationRef.current;
+      setAttendanceBindingReady(true, expectedConnectionGeneration);
+      if (joinedRef.current) {
+        void loadStudyStatus(false, expectedConnectionGeneration);
+      }
+    };
+    const refreshLeftPresence = (payload?: CameraPresencePayload) => {
+      void refreshRoomMembers();
+      if (!isCurrentLocalMember(payload)) return;
+
+      setAttendanceBindingReady(false);
+      if (joinedRef.current) void loadStudyStatus(false);
+    };
+    const refreshForSchedule = (payload?: BellPayload) => {
+      if (!joinedRef.current) return;
+
+      if (payload?.type === "periodStart") {
+        // The server bell is authoritative at slot boundaries. Force one
+        // fresh sync even if the browser clock reached this slot first and a
+        // previous 2xx response represented a server-side no-op.
+        syncAttendanceSlot(payload.slot, true);
+      } else if (payload?.type === "breakStart") {
+        syncAttendanceSlot();
+      }
+      void loadStudyStatus(false);
+    };
+
+    socket.on("cam:join", refreshJoinedPresence);
+    socket.on("cam:leave", refreshLeftPresence);
+    socket.on("bell", refreshForSchedule);
+    socket.on("connect", refreshForSchedule);
+    return () => {
+      socket.off("cam:join", refreshJoinedPresence);
+      socket.off("cam:leave", refreshLeftPresence);
+      socket.off("bell", refreshForSchedule);
+      socket.off("connect", refreshForSchedule);
+    };
+  }, [
+    loadStudyStatus,
+    refreshRoomMembers,
+    setAttendanceBindingReady,
+    socket,
+    syncAttendanceSlot,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -757,11 +1364,19 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         effectError,
         roomMembers,
         remoteVideos,
+        studyStatus,
+        studyStatusLoading,
+        studyStatusError,
+        studyActionPending,
         previewCamera,
         selectCamera,
         selectCameraEffect,
         startSession,
         leaveSession,
+        syncAttendanceSlot,
+        refreshStudyStatus,
+        startStudyBreak,
+        resumeStudy,
         setVisibleRemoteUserIds,
       }}
     >

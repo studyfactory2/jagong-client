@@ -12,8 +12,9 @@ import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftR
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
 import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
+import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
-import { syncCamAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
@@ -126,6 +127,21 @@ const toMin = (time: string) => {
   return hour * 60 + minute;
 };
 
+const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+function seoulMinutesSinceMidnight(date: Date): number {
+  const parts = seoulClockFormatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  return value("hour") * 60 + value("minute");
+}
+
 function isClockInSlot(slot: TimetableSlot) {
   return slot.slot === 0 || slot.label.includes("출근");
 }
@@ -134,9 +150,11 @@ function isAttendanceSlot(slot: TimetableSlot) {
   return !slot.isBreak && !isClockInSlot(slot);
 }
 
-function currentSlot(timetable: TimetableSlot[]): number | null {
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+function currentSlot(
+  timetable: TimetableSlot[],
+  referenceAt = new Date(),
+): number | null {
+  const nowMin = seoulMinutesSinceMidnight(referenceAt);
   const period = timetable.find((slot) => {
     if (!isAttendanceSlot(slot)) return false;
     return toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime);
@@ -192,9 +210,17 @@ export default function StudyRoom() {
     selectedDeviceId,
     roomMembers,
     remoteVideos,
+    studyStatus,
+    studyStatusLoading,
+    studyStatusError,
+    studyActionPending,
     selectCamera,
     startSession,
     leaveSession,
+    syncAttendanceSlot,
+    refreshStudyStatus,
+    startStudyBreak,
+    resumeStudy,
     setVisibleRemoteUserIds,
   } = useWorkroomSession();
   const [compactWall, setCompactWall] = useState(true);
@@ -209,7 +235,6 @@ export default function StudyRoom() {
     getScheduleSoundEnabled,
   );
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
-  const syncedAttendanceSlotRef = useRef<number | null>(null);
   const bellTimerRef = useRef<number | null>(null);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const myId = session?.user.userId ?? session?.user.id ?? "";
@@ -278,17 +303,15 @@ export default function StudyRoom() {
     return () => window.clearInterval(timer);
   }, []);
 
+  const attendanceSlot = useMemo(
+    () => currentSlot(timetable, now),
+    [now, timetable],
+  );
+
   useEffect(() => {
     if (!joined) return;
-    const slot = currentSlot(timetable);
-    if (!slot || syncedAttendanceSlotRef.current === slot) return;
-
-    syncCamAttendance(slot)
-      .then(() => {
-        syncedAttendanceSlotRef.current = slot;
-      })
-      .catch(() => undefined);
-  }, [joined, now, timetable]);
+    syncAttendanceSlot(attendanceSlot ?? undefined);
+  }, [attendanceSlot, joined, syncAttendanceSlot]);
 
   const attachSelfTileVideo = useCallback(
     (element: HTMLVideoElement | null) => {
@@ -307,7 +330,7 @@ export default function StudyRoom() {
     [joined, localVideoTrack],
   );
 
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = seoulMinutesSinceMidnight(now);
   const current = useMemo(
     () =>
       timetable.find(
@@ -348,6 +371,63 @@ export default function StudyRoom() {
         : nextSlot
           ? `${nextSlot.label} 시작 전입니다. 입장 상태와 카메라를 확인해 주세요.`
           : "오늘 작업장 일정이 종료되었습니다.");
+  const isStudying =
+    studyStatus?.active === true && studyStatus.state === "STUDY";
+  const isMemberBreak =
+    studyStatus?.active === true &&
+    studyStatus.state === "BREAK" &&
+    studyStatus.source === "MEMBER";
+  const isScheduleBreak =
+    studyStatus?.active === true &&
+    studyStatus.state === "BREAK" &&
+    studyStatus.source === "SCHEDULE";
+  const isSystemBreak =
+    studyStatus?.active === true &&
+    studyStatus.state === "BREAK" &&
+    studyStatus.source === "SYSTEM";
+  const canResumeStudyNow = Boolean(current && isAttendanceSlot(current));
+  const studyAction = isStudying
+    ? "BREAK"
+    : isMemberBreak && canResumeStudyNow
+      ? "RESUME"
+      : null;
+  const studyStateLabel = isStudying
+    ? "공부 중"
+    : isMemberBreak
+      ? "휴식 중"
+      : isScheduleBreak
+        ? "정규 휴식"
+        : isSystemBreak
+          ? "카메라 확인 필요"
+          : studyStatusLoading
+            ? "공부 상태 연결 중"
+            : "공부 상태 확인 필요";
+  const studyStateDescription = isStudying
+    ? "실제 공부시간에 포함되고 있습니다."
+    : isMemberBreak
+      ? canResumeStudyNow
+        ? "휴식 중에는 공부시간에 포함되지 않습니다."
+        : "공부 교시가 시작되면 재개할 수 있습니다."
+      : isScheduleBreak
+        ? "시간표에 따른 정규 쉬는시간입니다."
+        : isSystemBreak
+          ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
+          : studyStatusLoading
+            ? "서버 기록을 연결하고 있습니다."
+            : "서버의 공부시간 기록 상태를 다시 확인해 주세요.";
+  const studyStateTone = isStudying
+    ? "study"
+    : isMemberBreak
+      ? "break"
+      : isScheduleBreak
+        ? "schedule"
+        : isSystemBreak
+          ? "system"
+          : "syncing";
+  const studyActionDisabled =
+    studyStatusLoading ||
+    Boolean(studyStatusError) ||
+    studyActionPending !== null;
 
   const toggleScheduleSound = () => {
     const next = !scheduleSoundEnabled;
@@ -396,25 +476,17 @@ export default function StudyRoom() {
     Math.ceil(pageableMembers.length / pageableCameraCount),
   );
   const activeCameraPage = Math.min(cameraPage, cameraPageCount - 1);
-  const visibleMembers = useMemo(
-    () => {
-      const pageStart = activeCameraPage * pageableCameraCount;
-      const currentPageMembers = pageableMembers.slice(
-        pageStart,
-        pageStart + pageableCameraCount,
-      );
+  const visibleMembers = useMemo(() => {
+    const pageStart = activeCameraPage * pageableCameraCount;
+    const currentPageMembers = pageableMembers.slice(
+      pageStart,
+      pageStart + pageableCameraCount,
+    );
 
-      return selfMember
-        ? [selfMember, ...currentPageMembers]
-        : currentPageMembers;
-    },
-    [
-      activeCameraPage,
-      pageableCameraCount,
-      pageableMembers,
-      selfMember,
-    ],
-  );
+    return selfMember
+      ? [selfMember, ...currentPageMembers]
+      : currentPageMembers;
+  }, [activeCameraPage, pageableCameraCount, pageableMembers, selfMember]);
   const visibleCameraIds = useMemo(
     () =>
       visibleMembers
@@ -441,12 +513,19 @@ export default function StudyRoom() {
     if (joined && !window.confirm("작업실에서 퇴장하시겠습니까?")) return;
 
     if (joined) {
-      syncedAttendanceSlotRef.current = null;
       await leaveSession();
       return;
     }
 
-    await startSession(currentSlot(timetable) ?? undefined);
+    await startSession(attendanceSlot ?? undefined);
+  }
+
+  async function handleStudyAction() {
+    if (studyAction === "BREAK") {
+      await startStudyBreak();
+    } else if (studyAction === "RESUME") {
+      await resumeStudy();
+    }
   }
 
   function goWaitingRoom() {
@@ -491,7 +570,9 @@ export default function StudyRoom() {
                 onClick={() => setCompactWall((value) => !value)}
                 type="button"
                 title={compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"}
-                aria-label={compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"}
+                aria-label={
+                  compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"
+                }
               >
                 <GridViewOutlinedIcon />
                 <span className="sr-view-label">
@@ -558,6 +639,70 @@ export default function StudyRoom() {
               onConfirm={toggleJoin}
             />
           ) : null}
+
+          {joined && (
+            <div
+              aria-busy={studyStatusLoading || studyActionPending !== null}
+              className={`sr-study-control is-${studyStateTone}`}
+            >
+              <div
+                aria-atomic="true"
+                aria-live="polite"
+                className="sr-study-copy"
+                role="status"
+              >
+                <i aria-hidden="true" />
+                <span>
+                  <strong>{studyStateLabel}</strong>
+                  <small>{studyStateDescription}</small>
+                </span>
+              </div>
+              {studyAction ? (
+                <button
+                  className={`sr-study-action is-${studyAction.toLowerCase()}`}
+                  disabled={studyActionDisabled}
+                  onClick={() => void handleStudyAction()}
+                  type="button"
+                >
+                  {studyAction === "BREAK" ? (
+                    <PauseCircleOutlineRoundedIcon />
+                  ) : (
+                    <PlayArrowRoundedIcon />
+                  )}
+                  {studyActionPending
+                    ? "변경 중…"
+                    : studyStatusLoading
+                      ? "확인 중…"
+                      : studyAction === "BREAK"
+                        ? "휴식 시작"
+                        : "공부 재개"}
+                </button>
+              ) : studyStatusLoading ? (
+                <span className="sr-study-waiting">확인 중…</span>
+              ) : null}
+            </div>
+          )}
+
+          {joined && studyStatusError && (
+            <div
+              aria-live="assertive"
+              className="sr-study-error"
+              role={studyStatusLoading ? "status" : "alert"}
+            >
+              <span>
+                {studyStatusLoading
+                  ? "최신 공부 상태를 다시 확인하고 있습니다."
+                  : studyStatusError}
+              </span>
+              <button
+                disabled={studyStatusLoading || studyActionPending !== null}
+                onClick={() => void refreshStudyStatus()}
+                type="button"
+              >
+                {studyStatusLoading ? "확인 중…" : "다시 확인"}
+              </button>
+            </div>
+          )}
 
           <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
             {visibleMembers.map((member) => {
