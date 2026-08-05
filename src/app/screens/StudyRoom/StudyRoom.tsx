@@ -135,12 +135,37 @@ const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
+const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 function seoulMinutesSinceMidnight(date: Date): number {
   const parts = seoulClockFormatter.formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? 0);
 
   return value("hour") * 60 + value("minute");
+}
+
+function stateStartedWithinSlot(
+  value: string | null | undefined,
+  slot: TimetableSlot | undefined,
+  referenceAt: Date,
+): boolean {
+  if (!value || !slot) return false;
+  const startedAt = new Date(value);
+  if (Number.isNaN(startedAt.getTime())) return false;
+
+  const startedAtMinutes = seoulMinutesSinceMidnight(startedAt);
+  return (
+    seoulDateFormatter.format(startedAt) ===
+      seoulDateFormatter.format(referenceAt) &&
+    toMin(slot.startTime) <= startedAtMinutes &&
+    startedAtMinutes < toMin(slot.endTime)
+  );
 }
 
 function isClockInSlot(slot: TimetableSlot) {
@@ -333,14 +358,13 @@ export default function StudyRoom() {
   );
 
   const nowMin = seoulMinutesSinceMidnight(now);
-  const current = useMemo(
-    () =>
-      timetable.find(
-        (slot) =>
-          toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime),
-      ),
-    [nowMin, timetable],
-  );
+  const current = useMemo(() => {
+    const matches = timetable.filter(
+      (slot) =>
+        toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime),
+    );
+    return matches.length === 1 ? matches[0] : undefined;
+  }, [nowMin, timetable]);
   const nextSlot = useMemo(
     () => timetable.find((slot) => toMin(slot.startTime) > nowMin),
     [nowMin, timetable],
@@ -392,49 +416,106 @@ export default function StudyRoom() {
     studyStatus.state &&
     studyStatus.source
   );
+  const isTimetableBreak = Boolean(
+    current && current.isBreak && !isClockInSlot(current),
+  );
+  const isBreakStudy =
+    isTimetableBreak &&
+    isStudying &&
+    studyStatus?.source === "MEMBER" &&
+    stateStartedWithinSlot(studyStatus.stateStartedAt, current, now);
+  const canContinueDuringBreak =
+    isTimetableBreak &&
+    !isStudyStatusPending &&
+    ((studyStatus?.state === "BREAK" &&
+      (studyStatus.source === "SCHEDULE" ||
+        studyStatus.source === "MEMBER")) ||
+      (studyStatus?.state === "STUDY" &&
+        (studyStatus.source === "SCHEDULE" ||
+          studyStatus.source === "ROOM")));
+  const isBreakTransitionPending =
+    isTimetableBreak &&
+    !isStudyStatusPending &&
+    !isBreakStudy &&
+    !canContinueDuringBreak &&
+    !isSystemBreak;
   const canResumeStudyNow = Boolean(current && isAttendanceSlot(current));
-  const studyAction = isStudying
+  const studyAction = isBreakStudy
     ? "BREAK"
-    : isMemberBreak && canResumeStudyNow
+    : canContinueDuringBreak
       ? "RESUME"
-      : null;
-  const studyStateLabel = isStudying
-    ? "공부 중"
-    : isMemberBreak
-      ? "휴식 중"
-      : isScheduleBreak
-        ? "정규 휴식"
-        : isSystemBreak
-          ? "카메라 확인 필요"
-          : studyStatusLoading
-            ? "공부 상태 연결 중"
-            : studyStatus?.active === false
-              ? "카메라 등록 대기"
-              : "공부 기록 연결 대기";
-  const studyStateDescription = isStudying
+      : isBreakTransitionPending
+        ? null
+        : isStudying
+          ? "BREAK"
+          : isMemberBreak && canResumeStudyNow
+            ? "RESUME"
+            : null;
+  const studyStateLabel = isBreakStudy
+    ? "휴식시간 공부 중"
+    : canContinueDuringBreak
+      ? isMemberBreak
+        ? "휴식 중"
+        : "정규 휴식"
+      : isBreakTransitionPending
+        ? studyStatus?.source === "ADMIN"
+          ? "관리자 상태 확인 필요"
+          : "정규 휴식 전환 중"
+        : isStudying
+          ? "공부 중"
+          : isMemberBreak
+            ? "휴식 중"
+            : isScheduleBreak
+              ? "정규 휴식"
+              : isSystemBreak
+                ? "카메라 확인 필요"
+                : studyStatusLoading
+                  ? "공부 상태 연결 중"
+                  : studyStatus?.active === false
+                    ? "카메라 등록 대기"
+                    : "공부 기록 연결 대기";
+  const studyStateDescription = isBreakStudy
     ? "실제 공부시간에 포함되고 있습니다."
-    : isMemberBreak
-      ? canResumeStudyNow
-        ? "휴식 중에는 공부시간에 포함되지 않습니다."
-        : "공부 교시가 시작되면 재개할 수 있습니다."
-      : isScheduleBreak
-        ? "시간표에 따른 정규 쉬는시간입니다."
-        : isSystemBreak
-          ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
-          : studyStatusLoading
-            ? "서버 기록을 연결하고 있습니다."
-            : studyStatus?.active === false
-              ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
-              : "서버의 현재 공부 기록 연결을 기다리고 있습니다.";
-  const studyStateTone = isStudying
+    : canContinueDuringBreak
+      ? "계속 공부하기를 누르면 지금부터 실제 공부시간에 포함됩니다."
+      : isBreakTransitionPending
+        ? studyStatus?.source === "ADMIN"
+          ? "관리자가 설정한 공부 상태입니다."
+          : "서버의 정규 휴식 전환을 확인하고 있습니다."
+        : isStudying
+          ? "실제 공부시간에 포함되고 있습니다."
+          : isMemberBreak
+            ? canResumeStudyNow
+              ? "휴식 중에는 공부시간에 포함되지 않습니다."
+              : "공부 교시가 시작되면 재개할 수 있습니다."
+            : isScheduleBreak
+              ? "시간표에 따른 정규 쉬는시간입니다."
+              : isSystemBreak
+                ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
+                : studyStatusLoading
+                  ? "서버 기록을 연결하고 있습니다."
+                  : studyStatus?.active === false
+                    ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
+                    : "서버의 현재 공부 기록 연결을 기다리고 있습니다.";
+  const studyStateTone = isBreakStudy
     ? "study"
-    : isMemberBreak
-      ? "break"
-      : isScheduleBreak
-        ? "schedule"
-        : isSystemBreak
+    : canContinueDuringBreak
+      ? isMemberBreak
+        ? "break"
+        : "schedule"
+      : isBreakTransitionPending
+        ? studyStatus?.source === "ADMIN"
           ? "system"
-          : "syncing";
+          : "syncing"
+        : isStudying
+          ? "study"
+          : isMemberBreak
+            ? "break"
+            : isScheduleBreak
+              ? "schedule"
+              : isSystemBreak
+                ? "system"
+                : "syncing";
   const studyActionDisabled =
     studyStatusLoading ||
     Boolean(studyStatusError) ||
@@ -700,7 +781,9 @@ export default function StudyRoom() {
                       ? "확인 중…"
                       : studyAction === "BREAK"
                         ? "휴식 시작"
-                        : "공부 재개"}
+                        : isTimetableBreak
+                          ? "계속 공부하기"
+                          : "공부 재개"}
                 </button>
               ) : isStudyStatusPending && !studyStatusError ? (
                 <button
