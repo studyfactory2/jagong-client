@@ -65,6 +65,7 @@
   display: grid;
   grid-template-areas:
     "banner"
+    "challenge"
     "metrics"
     "rank"
     "guide"
@@ -261,6 +262,489 @@
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.study-records-challenge {
+  grid-area: challenge;
+  min-width: 0;
+  display: grid;
+  gap: 13px;
+  border: 1px solid var(--gold);
+  border-radius: 15px;
+  background: var(--gold-soft);
+  padding: 16px;
+}
+
+.study-records-challenge.is-participating {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+}
+
+.study-records-challenge.is-loading,
+.study-records-challenge.is-error {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.study-records-challenge.is-loading > div,
+.study-records-challenge.is-error > div {
+  min-width: 0;
+}
+
+.study-records-challenge.is-loading strong,
+.study-records-challenge.is-error strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.study-records-challenge.is-loading p,
+.study-records-challenge.is-error p {
+  margin: 4px 0 0;
+  color: var(--study-records-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.study-records-challenge.is-error {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.study-records-challenge.is-error > button {
+  min-height: 34px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--study-records-coral-ink);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.study-records-challenge-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+}
+
+.study-records-challenge-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--gold);
+  border-radius: 13px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.study-records-challenge-icon svg {
+  font-size: 24px;
+}
+
+.study-records-challenge-head > div {
+  min-width: 0;
+}
+
+.study-records-challenge-head small {
+  display: block;
+  color: var(--study-records-secondary);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.study-records-challenge-head h2 {
+  margin: 3px 0 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.study-records-challenge-head p {
+  margin: 4px 0 0;
+  color: var(--study-records-secondary);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.study-records-challenge-state {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--mint-line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 9px;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.study-records-challenge-state.is-scheduled {
+  border-color: var(--gold);
+}
+
+.study-records-challenge-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line-soft);
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.study-records-challenge-summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 11px;
+}
+
+.study-records-challenge-summary > span + span {
+  border-left: 1px solid var(--line-soft);
+}
+
+.study-records-challenge-summary small {
+  color: var(--study-records-secondary);
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.study-records-challenge-summary strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-records-challenge-join {
+  min-height: 42px;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--card);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.study-records-challenge-unavailable,
+.study-records-challenge-note,
+.study-records-challenge-stale {
+  margin: 0;
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: 9.5px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.study-records-challenge-unavailable {
+  border: 1px solid var(--line-soft);
+  background: var(--card);
+  color: var(--study-records-secondary);
+}
+
+.study-records-challenge-note {
+  background: var(--card);
+  color: var(--study-records-secondary);
+}
+
+.study-records-challenge-stale {
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--study-records-coral-ink);
+}
+
+.study-records-challenge-weeks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.study-records-challenge-weeks article {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: var(--card);
+  padding: 7px 4px;
+  text-align: center;
+}
+
+.study-records-challenge-weeks article.is-current {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.study-records-challenge-weeks article.is-passed {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+}
+
+.study-records-challenge-weeks article.is-failed {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.study-records-challenge-weeks span {
+  color: var(--study-records-secondary);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.study-records-challenge-weeks strong {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-records-challenge-result {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 11px;
+}
+
+.study-records-challenge-result span,
+.study-records-challenge-result small {
+  color: var(--study-records-secondary);
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.study-records-challenge-result strong {
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.study-records-challenge-result small {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-records-challenge-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: max(18px, env(safe-area-inset-top)) 16px
+    max(18px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ink) 46%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  font-family: var(--sans);
+}
+
+.study-records-challenge-dialog-card {
+  width: min(500px, 100%);
+  max-height: calc(100dvh - 36px);
+  display: grid;
+  gap: 13px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 22px;
+  color: var(--ink);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 24%, transparent);
+}
+
+.study-records-challenge-dialog-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.study-records-challenge-dialog-icon svg {
+  font-size: 27px;
+}
+
+.study-records-challenge-dialog-heading small {
+  color: var(--study-records-secondary);
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.study-records-challenge-dialog-heading h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+
+.study-records-challenge-dialog-heading p {
+  margin: 5px 0 0;
+  color: var(--study-records-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.study-records-challenge-dialog-period {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--gold);
+  border-radius: 11px;
+  background: var(--gold-soft);
+  padding: 11px 13px;
+}
+
+.study-records-challenge-dialog-period span {
+  color: var(--study-records-secondary);
+  font-size: 8.5px;
+  font-weight: 800;
+}
+
+.study-records-challenge-dialog-period strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.study-records-challenge-rules {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.study-records-challenge-rules li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.study-records-challenge-rules li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.study-records-challenge-agreement {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--card-2);
+  padding: 12px;
+  cursor: pointer;
+}
+
+.study-records-challenge-agreement input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.study-records-challenge-agreement span {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.study-records-challenge-dialog-error {
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--study-records-coral-ink);
+  padding: 9px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.study-records-challenge-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.study-records-challenge-dialog-actions button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.study-records-challenge-dialog-actions button:last-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--card);
+}
+
+.study-records-challenge-dialog-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.study-records-challenge-dialog button:focus-visible,
+.study-records-challenge-dialog input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .study-records-rank {
@@ -598,6 +1082,7 @@
     grid-template-columns: minmax(0, 1fr) 280px;
     grid-template-areas:
       "banner guide"
+      "challenge guide"
       "metrics guide"
       "rank guide"
       "action guide";

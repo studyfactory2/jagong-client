@@ -580,6 +580,65 @@ export interface WeeklyStudyLeaderboard {
   members: WeeklyStudyLeaderboardMember[];
 }
 
+export type StudyChallengeStatus =
+  | "SCHEDULED"
+  | "ACTIVE"
+  | "PASSED"
+  | "FAILED"
+  | "CANCELLED";
+
+export type StudyChallengeWeekStatus = "PENDING" | "PASSED" | "FAILED";
+
+export interface StudyChallengeRules {
+  version: string;
+  requiredWeeks: number;
+  weeklyTargetSeconds: number;
+  startsOn: string;
+}
+
+export interface StudyChallengeWeek {
+  weekNumber: number;
+  startsAt: string;
+  endsAtExclusive: string;
+  status: StudyChallengeWeekStatus;
+  studySeconds: number | null;
+  finalizedAt: string | null;
+}
+
+export interface StudyChallenge {
+  id: string;
+  rulesVersion: string | null;
+  status: StudyChallengeStatus;
+  confirmedAt: string | null;
+  startsAt: string;
+  endsAtExclusive: string;
+  requiredWeeks: number;
+  weeklyTargetSeconds: number;
+  finalizedAt: string | null;
+  weeks: StudyChallengeWeek[];
+}
+
+export interface MyStudyChallengeStatus {
+  joinRules: StudyChallengeRules;
+  acceptedRules: StudyChallengeRules | null;
+  nextChallenge: StudyStatisticsWindow;
+  isParticipating: boolean;
+  canJoin: boolean;
+  unavailableReason: string | null;
+  currentChallenge: StudyChallenge | null;
+  latestResult: StudyChallenge | null;
+}
+
+export interface JoinStudyChallengeInput {
+  acceptedRules: true;
+  rulesVersion: string;
+}
+
+export interface JoinStudyChallengeResult {
+  acceptedRules: StudyChallengeRules;
+  challenge: StudyChallenge;
+}
+
 export interface CamWarningRecord {
   id: string;
   userId: string;

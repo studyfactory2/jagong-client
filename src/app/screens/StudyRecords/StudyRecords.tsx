@@ -14,6 +14,7 @@ import type {
   StudyStatisticsWindow,
   WeeklyStudyLeaderboard,
 } from "../../../lib/types";
+import StudyChallengePanel from "./StudyChallengePanel";
 import "./study-records.css";
 
 type ResourceState<T> = {
@@ -135,6 +136,7 @@ export default function StudyRecords() {
   const [leaderboard, setLeaderboard] = useState<
     ResourceState<WeeklyStudyLeaderboard>
   >({ data: null, loading: true, error: "" });
+  const [challengeRefreshToken, setChallengeRefreshToken] = useState(0);
 
   const refreshStatistics = useCallback(async () => {
     const requestId = statisticsRequestRef.current + 1;
@@ -238,6 +240,7 @@ export default function StudyRecords() {
   function refreshAll() {
     void refreshStatistics();
     void refreshLeaderboard();
+    setChallengeRefreshToken((current) => current + 1);
   }
 
   return (
@@ -306,6 +309,8 @@ export default function StudyRecords() {
             </div>
           )}
         </div>
+
+        <StudyChallengePanel refreshToken={challengeRefreshToken} />
 
         <section
           aria-busy={statistics.loading}
