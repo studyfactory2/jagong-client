@@ -10,6 +10,7 @@ import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
+import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
@@ -263,6 +264,7 @@ export default function StudyLine() {
   const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
     getScheduleSoundEnabled,
   );
+  const [breakConfirmOpen, setBreakConfirmOpen] = useState(false);
   const bellTimerRef = useRef<number | null>(null);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
 
@@ -384,10 +386,23 @@ export default function StudyLine() {
 
   const handleStudyAction = async () => {
     if (currentStudyState.action === "BREAK") {
-      await startStudyBreak();
+      setBreakConfirmOpen(true);
     } else if (currentStudyState.action === "RESUME") {
       await resumeStudy();
     }
+  };
+
+  const confirmStudyBreak = async () => {
+    if (
+      currentStudyState.action !== "BREAK" ||
+      studyActionDisabled
+    ) {
+      setBreakConfirmOpen(false);
+      return;
+    }
+
+    await startStudyBreak();
+    setBreakConfirmOpen(false);
   };
 
   const toggleScheduleSound = () => {
@@ -591,6 +606,13 @@ export default function StudyLine() {
           </div>
         </section>
       </main>
+
+      <StudyBreakConfirmDialog
+        onCancel={() => setBreakConfirmOpen(false)}
+        onConfirm={confirmStudyBreak}
+        open={breakConfirmOpen}
+        pending={studyActionPending === "BREAK"}
+      />
 
       <p className="app-foot">자격증공장 재택근무반</p>
     </div>

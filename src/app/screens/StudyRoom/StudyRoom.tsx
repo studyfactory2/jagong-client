@@ -15,6 +15,7 @@ import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDou
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
+import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
@@ -234,6 +235,7 @@ export default function StudyRoom() {
   const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
     getScheduleSoundEnabled,
   );
+  const [breakConfirmOpen, setBreakConfirmOpen] = useState(false);
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
   const bellTimerRef = useRef<number | null>(null);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
@@ -531,10 +533,20 @@ export default function StudyRoom() {
 
   async function handleStudyAction() {
     if (studyAction === "BREAK") {
-      await startStudyBreak();
+      setBreakConfirmOpen(true);
     } else if (studyAction === "RESUME") {
       await resumeStudy();
     }
+  }
+
+  async function confirmStudyBreak() {
+    if (studyAction !== "BREAK" || studyActionDisabled) {
+      setBreakConfirmOpen(false);
+      return;
+    }
+
+    await startStudyBreak();
+    setBreakConfirmOpen(false);
   }
 
   function goWaitingRoom() {
@@ -905,6 +917,13 @@ export default function StudyRoom() {
           </section>
         )}
       </main>
+
+      <StudyBreakConfirmDialog
+        onCancel={() => setBreakConfirmOpen(false)}
+        onConfirm={confirmStudyBreak}
+        open={breakConfirmOpen}
+        pending={studyActionPending === "BREAK"}
+      />
 
       <footer className="sr-footer">
         <span>자격증공장 재택근무반</span>
