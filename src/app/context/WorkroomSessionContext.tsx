@@ -230,7 +230,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
   const leavingRef = useRef(false);
-  const visibleRemoteUserIdsRef = useRef<string[]>([]);
+  const visibleRemoteUserIdsRef = useRef<ReadonlySet<string>>(new Set());
+  const visibleRemoteClearTimerRef = useRef<number | null>(null);
   const studyStatusRequestRef = useRef(0);
   const studyStatusLoadingRequestRef = useRef<number | null>(null);
   const studyActionPendingRef = useRef<PendingStudyAction | null>(null);
@@ -605,7 +606,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const syncRemoteCameraSubscriptions = useCallback(
     (room = roomRef.current) => {
       if (!room) return;
-      const visible = new Set(visibleRemoteUserIdsRef.current);
+      const visible = visibleRemoteUserIdsRef.current;
 
       room.remoteParticipants.forEach((participant) => {
         const shouldSubscribe = visible.has(participant.identity);
@@ -613,7 +614,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           const isVideo =
             String(publication.kind) === "video" ||
             String(publication.source) === "camera";
-          if (isVideo) publication.setSubscribed(shouldSubscribe);
+          if (isVideo && publication.isDesired !== shouldSubscribe) {
+            publication.setSubscribed(shouldSubscribe);
+          }
         });
       });
     },
@@ -622,8 +625,34 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
   const setVisibleRemoteUserIds = useCallback(
     (userIds: string[]) => {
-      visibleRemoteUserIdsRef.current = userIds;
-      syncRemoteCameraSubscriptions();
+      if (visibleRemoteClearTimerRef.current !== null) {
+        window.clearTimeout(visibleRemoteClearTimerRef.current);
+        visibleRemoteClearTimerRef.current = null;
+      }
+
+      const next = new Set(userIds);
+      const applyVisibleRemoteUserIds = () => {
+        const current = visibleRemoteUserIdsRef.current;
+        const unchanged =
+          current.size === next.size &&
+          [...next].every((userId) => current.has(userId));
+        if (unchanged) return;
+
+        visibleRemoteUserIdsRef.current = next;
+        syncRemoteCameraSubscriptions();
+      };
+
+      if (next.size === 0) {
+        if (visibleRemoteUserIdsRef.current.size === 0) return;
+
+        visibleRemoteClearTimerRef.current = window.setTimeout(() => {
+          visibleRemoteClearTimerRef.current = null;
+          applyVisibleRemoteUserIds();
+        }, 0);
+        return;
+      }
+
+      applyVisibleRemoteUserIds();
     },
     [syncRemoteCameraSubscriptions],
   );
@@ -1168,6 +1197,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      if (visibleRemoteClearTimerRef.current !== null) {
+        window.clearTimeout(visibleRemoteClearTimerRef.current);
+        visibleRemoteClearTimerRef.current = null;
+      }
       studyStatusRequestRef.current += 1;
       resetAttendanceSync();
     };

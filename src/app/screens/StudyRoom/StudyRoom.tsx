@@ -513,8 +513,12 @@ export default function StudyRoom() {
 
   useEffect(() => {
     setVisibleRemoteUserIds(visibleCameraIds);
-    return () => setVisibleRemoteUserIds([]);
   }, [setVisibleRemoteUserIds, visibleCameraIds]);
+
+  useEffect(
+    () => () => setVisibleRemoteUserIds([]),
+    [setVisibleRemoteUserIds],
+  );
 
   async function handleDeviceChange(deviceId: string) {
     await selectCamera(deviceId);
