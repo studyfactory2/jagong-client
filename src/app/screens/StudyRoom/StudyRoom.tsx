@@ -385,6 +385,11 @@ export default function StudyRoom() {
     studyStatus?.active === true &&
     studyStatus.state === "BREAK" &&
     studyStatus.source === "SYSTEM";
+  const isStudyStatusPending = !(
+    studyStatus?.active &&
+    studyStatus.state &&
+    studyStatus.source
+  );
   const canResumeStudyNow = Boolean(current && isAttendanceSlot(current));
   const studyAction = isStudying
     ? "BREAK"
@@ -401,7 +406,9 @@ export default function StudyRoom() {
           ? "카메라 확인 필요"
           : studyStatusLoading
             ? "공부 상태 연결 중"
-            : "공부 상태 확인 필요";
+            : studyStatus?.active === false
+              ? "카메라 등록 대기"
+              : "공부 기록 연결 대기";
   const studyStateDescription = isStudying
     ? "실제 공부시간에 포함되고 있습니다."
     : isMemberBreak
@@ -414,7 +421,9 @@ export default function StudyRoom() {
           ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
           : studyStatusLoading
             ? "서버 기록을 연결하고 있습니다."
-            : "서버의 공부시간 기록 상태를 다시 확인해 주세요.";
+            : studyStatus?.active === false
+              ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
+              : "서버의 현재 공부 기록 연결을 기다리고 있습니다.";
   const studyStateTone = isStudying
     ? "study"
     : isMemberBreak
@@ -677,8 +686,17 @@ export default function StudyRoom() {
                         ? "휴식 시작"
                         : "공부 재개"}
                 </button>
-              ) : studyStatusLoading ? (
-                <span className="sr-study-waiting">확인 중…</span>
+              ) : isStudyStatusPending && !studyStatusError ? (
+                <button
+                  className="sr-study-action is-refresh"
+                  disabled={
+                    studyStatusLoading || studyActionPending !== null
+                  }
+                  onClick={() => void refreshStudyStatus()}
+                  type="button"
+                >
+                  {studyStatusLoading ? "확인 중…" : "다시 확인"}
+                </button>
               ) : null}
             </div>
           )}

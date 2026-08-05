@@ -279,6 +279,11 @@
   color: var(--card);
 }
 
+.sr-study-action.is-refresh {
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
 .sr-study-action svg {
   font-size: 18px;
 }
@@ -293,15 +298,6 @@
 .sr-study-error button:disabled {
   cursor: wait;
   opacity: 0.6;
-}
-
-.sr-study-waiting {
-  flex: 0 0 auto;
-  color: var(--ink-2);
-  padding-right: 7px;
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .sr-study-error {

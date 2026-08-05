@@ -1181,12 +1181,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     let retryIndex = 0;
     let retryTimer: number | null = null;
 
-    const finishStartupSync = (message?: string) => {
+    const finishStartupSync = () => {
       if (cancelled || !mountedRef.current) return;
       setStudyStatusLoading(false);
-      if (message) {
-        setStudyStatusError((current) => current || message);
-      }
     };
 
     const syncUntilReady = async () => {
@@ -1220,9 +1217,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      finishStartupSync(
-        "공부시간 기록 상태를 확인하지 못했습니다. 다시 시도해주세요.",
-      );
+      // A valid inactive response means the LiveKit webhook has not opened the
+      // authoritative study session yet. Keep that as a neutral waiting state;
+      // request failures already retain their concrete error above.
+      finishStartupSync();
     };
 
     retryTimer = window.setTimeout(

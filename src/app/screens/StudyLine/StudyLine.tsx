@@ -180,8 +180,14 @@ function studyStateView(
       action: null,
       detail: loading
         ? "서버 기록을 연결하고 있습니다."
-        : "새로고침이 필요합니다.",
-      label: loading ? "공부 상태 연결 중" : "공부 상태 확인 필요",
+        : status?.active === false
+          ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
+          : "서버의 현재 공부 기록 연결을 기다리고 있습니다.",
+      label: loading
+        ? "공부 상태 연결 중"
+        : status?.active === false
+          ? "카메라 등록 대기"
+          : "공부 기록 연결 대기",
       tone: "syncing",
     };
   }
@@ -362,6 +368,11 @@ export default function StudyLine() {
     studyStatusLoading,
     Boolean(current && !current.isBreak && current.slot !== 0),
   );
+  const isStudyStatusPending = !(
+    studyStatus?.active &&
+    studyStatus.state &&
+    studyStatus.source
+  );
   const studyActionDisabled =
     studyStatusLoading ||
     Boolean(studyStatusError) ||
@@ -444,8 +455,17 @@ export default function StudyLine() {
                         ? "휴식 시작"
                         : "공부 재개"}
                 </button>
-              ) : studyStatusLoading ? (
-                <span className="sl-study-waiting">확인 중…</span>
+              ) : isStudyStatusPending && !studyStatusError ? (
+                <button
+                  className="sl-study-action is-refresh"
+                  disabled={
+                    studyStatusLoading || studyActionPending !== null
+                  }
+                  onClick={() => void refreshStudyStatus()}
+                  type="button"
+                >
+                  {studyStatusLoading ? "확인 중…" : "다시 확인"}
+                </button>
               ) : null}
             </div>
           )}

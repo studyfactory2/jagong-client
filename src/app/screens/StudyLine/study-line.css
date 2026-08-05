@@ -220,6 +220,11 @@
   color: var(--card);
 }
 
+.sl-study-action.is-refresh {
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
 .sl-study-action svg {
   font-size: 17px;
 }
@@ -234,15 +239,6 @@
 .sl-study-error button:disabled {
   cursor: wait;
   opacity: 0.6;
-}
-
-.sl-study-waiting {
-  flex: 0 0 auto;
-  color: var(--ink-2);
-  padding-right: 5px;
-  font-size: 9px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .sl-study-error {
