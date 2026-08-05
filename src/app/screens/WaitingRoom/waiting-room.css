@@ -105,6 +105,30 @@
   cursor: pointer;
 }
 
+.wr-notification-button {
+  position: relative;
+}
+
+.wr-notification-badge {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  background: var(--accent-deep);
+  color: var(--card);
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 950;
+  line-height: 1;
+  pointer-events: none;
+}
+
 .wr-icon-btn svg {
   font-size: 29px;
 }

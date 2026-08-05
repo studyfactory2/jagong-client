@@ -579,6 +579,147 @@
   white-space: nowrap;
 }
 
+.admin-member-directory-notification {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid var(--mint-line);
+  border-radius: 10px;
+  background: var(--mint-soft);
+  padding: 12px;
+}
+
+.admin-member-directory-notification > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.admin-member-directory-notification > header > span {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--mint-line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--mint-deep);
+}
+
+.admin-member-directory-notification > header svg {
+  font-size: 18px;
+}
+
+.admin-member-directory-notification > header > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-member-directory-notification > header strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-member-directory-notification > header small {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-member-directory-notification > label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 9.5px;
+  font-weight: 850;
+}
+
+.admin-member-directory-notification input,
+.admin-member-directory-notification textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+.admin-member-directory-notification input {
+  min-height: 38px;
+}
+
+.admin-member-directory-notification textarea {
+  min-height: 78px;
+  padding-top: 9px;
+  resize: vertical;
+}
+
+.admin-member-directory-notification input:focus,
+.admin-member-directory-notification textarea:focus {
+  border-color: var(--ink);
+}
+
+.admin-member-directory-notification input:disabled,
+.admin-member-directory-notification textarea:disabled {
+  background: var(--line-soft);
+  color: var(--muted);
+  cursor: wait;
+}
+
+.admin-member-directory-notification > button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--ink);
+  box-shadow: none;
+  color: var(--card);
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.admin-member-directory-notification > button svg {
+  font-size: 16px;
+}
+
+.admin-member-directory-notification > button:disabled {
+  border-color: var(--line);
+  background: var(--line-soft);
+  color: var(--muted);
+  cursor: default;
+}
+
+.admin-member-directory-notification > p {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+.admin-member-directory-notification > p.is-success {
+  color: var(--ok);
+}
+
+.admin-member-directory-notification > p.is-error {
+  color: var(--bad);
+}
+
 .admin-member-directory-edit {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

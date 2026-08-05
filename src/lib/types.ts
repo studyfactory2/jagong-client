@@ -496,6 +496,16 @@ export interface NoticeRecord {
   createdAt: string;
 }
 
+export interface NotificationRecord {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface CamSessionRecord {
   id: string;
   userId: string;

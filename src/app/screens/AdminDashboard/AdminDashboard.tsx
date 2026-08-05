@@ -39,7 +39,11 @@ import {
 import { getAdminLeaves } from "../../services/leave.service";
 import { getAdminChatRooms } from "../../services/chat.service";
 import { getCamSessions, warnStudent } from "../../services/cam.service";
-import { createNotice, getNotices } from "../../services/notice.service";
+import {
+  createNotice,
+  getNotices,
+  sendPersonalNotification,
+} from "../../services/notice.service";
 import { getBranches } from "../../services/branch.service";
 import { getTimetable } from "../../services/timetable.service";
 import Camera from "./Camera";
@@ -146,6 +150,9 @@ export default function AdminDashboard() {
   const [memberStatusFilter, setMemberStatusFilter] =
     useState<MemberStatusFilter>("ALL");
   const [memberStatusBusy, setMemberStatusBusy] = useState(false);
+  const [memberNotificationSendingId, setMemberNotificationSendingId] =
+    useState("");
+  const memberNotificationSendingRef = useRef("");
   const memberDirectoryRequestRef = useRef(0);
   const [paymentMemberFilter, setPaymentMemberFilter] = useState<{
     id: string;
@@ -849,6 +856,43 @@ export default function AdminDashboard() {
     }
   }
 
+  async function sendMemberNotification(
+    userId: string,
+    title: string,
+    body: string,
+  ): Promise<boolean> {
+    if (
+      !isAdmin ||
+      !title.trim() ||
+      !body.trim() ||
+      memberNotificationSendingRef.current
+    ) {
+      return false;
+    }
+
+    memberNotificationSendingRef.current = userId;
+    setMemberNotificationSendingId(userId);
+    setError("");
+    try {
+      await sendPersonalNotification(userId, {
+        title: title.trim(),
+        body: body.trim(),
+        type: "GENERAL",
+      });
+      return true;
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "개인 알림을 전송하지 못했습니다.",
+      );
+      return false;
+    } finally {
+      memberNotificationSendingRef.current = "";
+      setMemberNotificationSendingId("");
+    }
+  }
+
   async function saveMyProfile(input: {
     name?: string;
     phone?: string;
@@ -883,6 +927,7 @@ export default function AdminDashboard() {
   }
 
   function navigateToTab(nextTab: AdminTabKey) {
+    if (memberNotificationSendingId) return;
     setPaymentMemberFilter(null);
     setAttendanceMemberTarget("");
     setTab(nextTab);
@@ -939,11 +984,13 @@ export default function AdminDashboard() {
 
   /** RENDER **/
   function refreshDashboard() {
+    if (memberNotificationSendingId) return;
     void load();
     void loadMembershipPlans();
   }
 
   function handleLogout() {
+    if (memberNotificationSendingId) return;
     logout();
     navigate("/login", { replace: true });
   }
@@ -952,13 +999,18 @@ export default function AdminDashboard() {
     <>
       <button
         className="admin-refresh"
-        disabled={memberStatusBusy}
+        disabled={memberStatusBusy || Boolean(memberNotificationSendingId)}
         onClick={refreshDashboard}
         type="button"
       >
         <RefreshOutlinedIcon /> <span>새로고침</span>
       </button>
-      <button className="admin-logout" onClick={handleLogout} type="button">
+      <button
+        className="admin-logout"
+        disabled={Boolean(memberNotificationSendingId)}
+        onClick={handleLogout}
+        type="button"
+      >
         <LogoutOutlinedIcon /> <span>로그아웃</span>
       </button>
     </>
@@ -1020,6 +1072,7 @@ export default function AdminDashboard() {
               {primaryTabs.map((item) => (
                 <button
                   className={activeTab === item.key ? "is-active" : ""}
+                  disabled={Boolean(memberNotificationSendingId)}
                   key={item.key}
                   onClick={() => navigateToTab(item.key)}
                   type="button"
@@ -1050,6 +1103,7 @@ export default function AdminDashboard() {
                 {showDashboardReturn && (
                   <button
                     className="admin-dashboard-return"
+                    disabled={Boolean(memberNotificationSendingId)}
                     onClick={() => navigateToTab("overview")}
                     type="button"
                   >
@@ -1148,9 +1202,11 @@ export default function AdminDashboard() {
                 searchText={search.users}
                 memberStatusFilter={memberStatusFilter}
                 memberStatusBusy={memberStatusBusy}
+                notificationSendingId={memberNotificationSendingId}
                 onSearchChange={(value) => changeSearch("users", value)}
                 onMemberStatusFilterChange={changeMemberStatusFilter}
                 onMemberStatusChange={saveMemberStatus}
+                onNotificationSend={sendMemberNotification}
                 onUserUpdate={saveUserProfile}
                 pageMeta={pageMeta.users}
                 onPageChange={(page) => changePage("users", page)}

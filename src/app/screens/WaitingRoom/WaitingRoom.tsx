@@ -240,7 +240,7 @@ function WorkerPreviewVideo({ track }: { track: RemoteVideoTrack }) {
 export default function WaitingRoom() {
   const navigate = useNavigate();
   const { session, logout } = useAuth();
-  const { connected, socket } = useSocket();
+  const { connected, socket, unreadNotificationCount } = useSocket();
 
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
@@ -710,11 +710,20 @@ export default function WaitingRoom() {
             <LogoutRoundedIcon className="wr-logout-icon" />
           </button>
           <button
-            className="wr-icon-btn"
-            aria-label="알림"
-            onClick={() => navigate("/inquiry")}
+            className="wr-icon-btn wr-notification-button"
+            aria-label={
+              unreadNotificationCount > 0
+                ? `읽지 않은 알림 ${unreadNotificationCount}개`
+                : "알림"
+            }
+            onClick={() => navigate("/notifications")}
           >
             <NotificationsNoneOutlinedIcon />
+            {unreadNotificationCount > 0 && (
+              <span aria-hidden="true" className="wr-notification-badge">
+                {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+              </span>
+            )}
           </button>
         </div>
 

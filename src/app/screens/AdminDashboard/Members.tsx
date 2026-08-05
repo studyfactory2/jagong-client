@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
+import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import type {
   AdminUser,
   Branch,
@@ -22,17 +24,35 @@ type MemberEditForm = {
   isActive: boolean;
 };
 
+type MemberNotificationDraft = {
+  userId: string;
+  title: string;
+  body: string;
+};
+
+type MemberNotificationFeedback = {
+  userId: string;
+  status: "success" | "error";
+  message: string;
+};
+
 type MembersProps = {
   users: AdminUser[];
   branches: Branch[];
   searchText: string;
   memberStatusFilter: MemberStatusFilter;
   memberStatusBusy: boolean;
+  notificationSendingId: string;
   onSearchChange: (value: string) => void;
   onMemberStatusFilterChange: (value: MemberStatusFilter) => void;
   onMemberStatusChange: (
     userId: string,
     memberStatus: MemberStatus,
+  ) => Promise<boolean>;
+  onNotificationSend: (
+    userId: string,
+    title: string,
+    body: string,
   ) => Promise<boolean>;
   onUserUpdate: (userId: string, input: Partial<AdminUser>) => Promise<void>;
   pageMeta: PageMeta;
@@ -68,6 +88,10 @@ function memberEditForm(user: AdminUser): MemberEditForm {
 
 function memberAccessStatus(user: AdminUser): MemberStatus {
   return user.memberStatus ?? "ACTIVE";
+}
+
+function emptyNotificationDraft(userId = ""): MemberNotificationDraft {
+  return { userId, title: "", body: "" };
 }
 
 function MemberStatusBadges({ user }: { user: AdminUser }) {
@@ -108,9 +132,11 @@ export default function Members({
   searchText,
   memberStatusFilter,
   memberStatusBusy,
+  notificationSendingId,
   onSearchChange,
   onMemberStatusFilterChange,
   onMemberStatusChange,
+  onNotificationSend,
   onUserUpdate,
   pageMeta,
   onPageChange,
@@ -125,7 +151,12 @@ export default function Members({
     memberName: string;
     target: MemberStatus;
   } | null>(null);
+  const [notificationDraft, setNotificationDraft] =
+    useState<MemberNotificationDraft>(emptyNotificationDraft);
+  const [notificationFeedback, setNotificationFeedback] =
+    useState<MemberNotificationFeedback | null>(null);
   const statusChanging = Boolean(statusChange) || memberStatusBusy;
+  const directoryBusy = statusChanging || Boolean(notificationSendingId);
   const members = users.filter((user) => user.role === "MEMBER");
   const selectedUser =
     members.find((user) => user.id === selectedId) ?? null;
@@ -135,29 +166,39 @@ export default function Members({
     if (!detailVisible) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || notificationSendingId) return;
       setDetailOpen(false);
       setSelectedId("");
       setEditingId("");
       setEditForm(null);
+      setNotificationDraft(emptyNotificationDraft());
+      setNotificationFeedback(null);
     }
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [detailVisible]);
+  }, [detailVisible, notificationSendingId]);
 
   function resetSelection() {
+    if (notificationSendingId) return;
     setDetailOpen(false);
     setSelectedId("");
     setEditingId("");
     setEditForm(null);
+    setNotificationDraft(emptyNotificationDraft());
+    setNotificationFeedback(null);
   }
 
   function selectMember(user: AdminUser) {
+    if (notificationSendingId) return;
     setSelectedId(user.id);
     setDetailOpen(true);
     setEditingId("");
     setEditForm(null);
+    setNotificationDraft((current) =>
+      current.userId === user.id ? current : emptyNotificationDraft(user.id),
+    );
+    setNotificationFeedback(null);
   }
 
   function startEdit(user: AdminUser) {
@@ -191,18 +232,73 @@ export default function Members({
     }
   }
 
+  function updateNotificationDraft(
+    userId: string,
+    field: "title" | "body",
+    value: string,
+  ) {
+    setNotificationDraft((current) => ({
+      ...(current.userId === userId
+        ? current
+        : emptyNotificationDraft(userId)),
+      [field]: value,
+    }));
+    setNotificationFeedback(null);
+  }
+
+  async function sendNotification(user: AdminUser) {
+    const title = notificationDraft.title.trim();
+    const body = notificationDraft.body.trim();
+    if (
+      notificationDraft.userId !== user.id ||
+      !title ||
+      !body ||
+      notificationSendingId ||
+      statusChanging
+    ) {
+      return;
+    }
+
+    setNotificationFeedback(null);
+    const sent = await onNotificationSend(user.id, title, body).catch(
+      () => false,
+    );
+
+    if (sent) {
+      setNotificationDraft((current) =>
+        current.userId === user.id
+          ? emptyNotificationDraft(user.id)
+          : current,
+      );
+      setNotificationFeedback({
+        userId: user.id,
+        status: "success",
+        message: "개인 알림을 보냈습니다.",
+      });
+      return;
+    }
+
+    setNotificationFeedback({
+      userId: user.id,
+      status: "error",
+      message: "개인 알림을 보내지 못했습니다. 다시 시도해 주세요.",
+    });
+  }
+
   function changeSearch(value: string) {
+    if (directoryBusy) return;
     resetSelection();
     onSearchChange(value);
   }
 
   function changeStatusFilter(value: MemberStatusFilter) {
+    if (directoryBusy) return;
     resetSelection();
     onMemberStatusFilterChange(value);
   }
 
   async function changeMemberStatus(user: AdminUser) {
-    if (statusChanging) return;
+    if (directoryBusy) return;
     const target: MemberStatus =
       memberAccessStatus(user) === "BLOCKED" ? "ACTIVE" : "BLOCKED";
     const confirmed = window.confirm(
@@ -228,7 +324,7 @@ export default function Members({
   }
 
   function changePage(page: number) {
-    if (statusChanging) return;
+    if (directoryBusy) return;
     resetSelection();
     onPageChange(page);
   }
@@ -247,7 +343,7 @@ export default function Members({
         <label className="admin-member-directory-search">
           <span>회원 검색</span>
           <input
-            disabled={statusChanging}
+            disabled={directoryBusy}
             value={searchText}
             onChange={(event) => changeSearch(event.target.value)}
             placeholder="이름, 연락처, 자격증, 지역 검색"
@@ -263,7 +359,7 @@ export default function Members({
                 className={
                   memberStatusFilter === filter.value ? "is-selected" : ""
                 }
-                disabled={statusChanging}
+                disabled={directoryBusy}
                 key={filter.value}
                 onClick={() => changeStatusFilter(filter.value)}
                 type="button"
@@ -280,22 +376,24 @@ export default function Members({
         className="admin-member-directory-status-announcement"
         role="status"
       >
-        {statusChange
-          ? `${statusChange.memberName} 회원의 ${
+        {notificationSendingId
+          ? `${selectedUser?.name ?? "회원"} 회원에게 개인 알림을 전송하고 있습니다.`
+          : statusChange
+            ? `${statusChange.memberName} 회원의 ${
               statusChange.target === "BLOCKED" ? "이용 제한" : "접근 허용"
             }을 처리하고 있습니다.`
-          : memberStatusBusy
-            ? "회원 접근 상태 변경을 처리하고 있습니다."
-            : ""}
+            : memberStatusBusy
+              ? "회원 접근 상태 변경을 처리하고 있습니다."
+              : ""}
       </span>
 
       <div className="admin-member-directory-workspace">
         <fieldset
-          aria-busy={statusChanging}
+          aria-busy={directoryBusy}
           className={`admin-member-directory-results${
-            statusChanging ? " is-status-changing" : ""
+            directoryBusy ? " is-status-changing" : ""
           }`}
-          disabled={statusChanging}
+          disabled={directoryBusy}
         >
           <div className="admin-member-directory-list">
             <div
@@ -491,28 +589,126 @@ export default function Members({
                       </label>
                     </div>
                   ) : (
-                    <dl className="admin-member-directory-fields">
-                      <div>
-                        <dt>나이</dt>
-                        <dd>{userDetail(selectedUser.age)}</dd>
-                      </div>
-                      <div>
-                        <dt>거주지역</dt>
-                        <dd>{userDetail(selectedUser.residenceArea)}</dd>
-                      </div>
-                      <div>
-                        <dt>자격증</dt>
-                        <dd>{userDetail(selectedUser.examType)}</dd>
-                      </div>
-                      <div>
-                        <dt>준비기간</dt>
-                        <dd>{userDetail(selectedUser.prepDuration)}</dd>
-                      </div>
-                      <div>
-                        <dt>이용권 만료</dt>
-                        <dd>{dDayText(selectedUser.membershipEnd)}</dd>
-                      </div>
-                    </dl>
+                    <>
+                      <dl className="admin-member-directory-fields">
+                        <div>
+                          <dt>나이</dt>
+                          <dd>{userDetail(selectedUser.age)}</dd>
+                        </div>
+                        <div>
+                          <dt>거주지역</dt>
+                          <dd>{userDetail(selectedUser.residenceArea)}</dd>
+                        </div>
+                        <div>
+                          <dt>자격증</dt>
+                          <dd>{userDetail(selectedUser.examType)}</dd>
+                        </div>
+                        <div>
+                          <dt>준비기간</dt>
+                          <dd>{userDetail(selectedUser.prepDuration)}</dd>
+                        </div>
+                        <div>
+                          <dt>이용권 만료</dt>
+                          <dd>{dDayText(selectedUser.membershipEnd)}</dd>
+                        </div>
+                      </dl>
+
+                      <form
+                        className="admin-member-directory-notification"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void sendNotification(selectedUser);
+                        }}
+                      >
+                        <header>
+                          <span aria-hidden="true">
+                            <NotificationsActiveOutlinedIcon />
+                          </span>
+                          <div>
+                            <strong>개인 알림 보내기</strong>
+                            <small>
+                              알림함에 저장되며 접속 중이면 바로 표시됩니다.
+                            </small>
+                          </div>
+                        </header>
+
+                        <label>
+                          제목
+                          <input
+                            disabled={
+                              statusChanging ||
+                              notificationSendingId === selectedUser.id
+                            }
+                            maxLength={100}
+                            onChange={(event) =>
+                              updateNotificationDraft(
+                                selectedUser.id,
+                                "title",
+                                event.target.value,
+                              )
+                            }
+                            placeholder="예) 이용권 안내"
+                            value={
+                              notificationDraft.userId === selectedUser.id
+                                ? notificationDraft.title
+                                : ""
+                            }
+                          />
+                        </label>
+
+                        <label>
+                          내용
+                          <textarea
+                            disabled={
+                              statusChanging ||
+                              notificationSendingId === selectedUser.id
+                            }
+                            maxLength={1000}
+                            onChange={(event) =>
+                              updateNotificationDraft(
+                                selectedUser.id,
+                                "body",
+                                event.target.value,
+                              )
+                            }
+                            placeholder="회원에게 전달할 내용을 입력하세요."
+                            value={
+                              notificationDraft.userId === selectedUser.id
+                                ? notificationDraft.body
+                                : ""
+                            }
+                          />
+                        </label>
+
+                        <button
+                          disabled={
+                            directoryBusy ||
+                            notificationDraft.userId !== selectedUser.id ||
+                            !notificationDraft.title.trim() ||
+                            !notificationDraft.body.trim()
+                          }
+                          type="submit"
+                        >
+                          <SendOutlinedIcon />
+                          {notificationSendingId === selectedUser.id
+                            ? "전송 중..."
+                            : "개인 알림 보내기"}
+                        </button>
+
+                        {notificationFeedback?.userId === selectedUser.id && (
+                          <p
+                            className={`is-${notificationFeedback.status}`}
+                            role={
+                              notificationFeedback.status === "error"
+                                ? "alert"
+                                : "status"
+                            }
+                          >
+                            {notificationFeedback.message}
+                          </p>
+                        )}
+                      </form>
+                    </>
                   )}
                 </div>
 
@@ -543,7 +739,7 @@ export default function Members({
                     <>
                       <button
                         className="admin-member-directory-edit-button"
-                        disabled={statusChanging}
+                        disabled={directoryBusy}
                         onClick={() => startEdit(selectedUser)}
                         type="button"
                       >
@@ -556,7 +752,7 @@ export default function Members({
                             ? "is-allow"
                             : "is-block"
                         }`}
-                        disabled={statusChanging}
+                        disabled={directoryBusy}
                         onClick={() => void changeMemberStatus(selectedUser)}
                         type="button"
                       >
