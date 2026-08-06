@@ -382,6 +382,16 @@
   box-shadow: 0 0 0 4px rgba(88, 164, 104, 0.14);
 }
 
+.sr-live-badge.is-paused {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.sr-live-badge.is-paused .sr-live-dot {
+  background: var(--muted);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--muted) 12%, transparent);
+}
+
 .sr-live-meta {
   min-width: 0;
 }

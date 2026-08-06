@@ -120,37 +120,12 @@ const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
-const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Seoul",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
 function seoulSecondsSinceMidnight(date: Date): number {
   const parts = seoulClockFormatter.formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? 0);
 
   return value("hour") * 3600 + value("minute") * 60 + value("second");
-}
-
-function stateStartedWithinSlot(
-  value: string | null | undefined,
-  slot: TimetableSlot | undefined,
-  referenceAt: Date,
-): boolean {
-  if (!value || !slot) return false;
-  const startedAt = new Date(value);
-  if (Number.isNaN(startedAt.getTime())) return false;
-
-  const startedAtSeconds = seoulSecondsSinceMidnight(startedAt);
-  return (
-    seoulDateFormatter.format(startedAt) ===
-      seoulDateFormatter.format(referenceAt) &&
-    toSec(slot.startTime) <= startedAtSeconds &&
-    startedAtSeconds < toSec(slot.endTime)
-  );
 }
 
 const formatCountdown = (seconds: number) => {
@@ -201,7 +176,7 @@ function studyStateView(
   loading: boolean,
   canResumeInStudySlot: boolean,
   isTimetableBreak: boolean,
-  memberStudyStartedInBreak: boolean,
+  cameraPausedForBreak: boolean,
 ): StudyStateView {
   if (!status?.active || !status.state || !status.source) {
     return {
@@ -221,6 +196,40 @@ function studyStateView(
   }
 
   const startedAt = studyStateStartedAt(status.stateStartedAt);
+  const canResumeNow = canResumeInStudySlot || isTimetableBreak;
+
+  if (cameraPausedForBreak) {
+    return {
+      action: canResumeNow ? "RESUME" : null,
+      detail: canResumeNow
+        ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
+        : "공부 교시가 시작되면 카메라와 기록을 다시 시작할 수 있습니다.",
+      label: "휴식 중",
+      tone: "break",
+    };
+  }
+
+  if (status.state === "STUDY" && status.source !== "SYSTEM") {
+    return {
+      action: "BREAK",
+      detail: startedAt
+        ? `${startedAt} 실제 공부시간에 포함되고 있습니다.`
+        : "실제 공부시간에 포함되고 있습니다.",
+      label: isTimetableBreak ? "휴식시간 공부 중" : "공부 중",
+      tone: "study",
+    };
+  }
+
+  if (status.state === "BREAK" && status.source === "MEMBER") {
+    return {
+      action: canResumeNow ? "RESUME" : null,
+      detail: canResumeNow
+        ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
+        : "공부 교시가 시작되면 재개할 수 있습니다.",
+      label: "휴식 중",
+      tone: "break",
+    };
+  }
 
   if (status.source === "SYSTEM") {
     return {
@@ -232,35 +241,6 @@ function studyStateView(
   }
 
   if (isTimetableBreak) {
-    if (
-      status.state === "STUDY" &&
-      status.source === "MEMBER" &&
-      memberStudyStartedInBreak
-    ) {
-      return {
-        action: "BREAK",
-        detail: startedAt
-          ? `${startedAt} 실제 공부시간에 포함되고 있습니다.`
-          : "실제 공부시간에 포함되고 있습니다.",
-        label: "휴식시간 공부 중",
-        tone: "study",
-      };
-    }
-
-    const canContinueDuringBreak =
-      (status.state === "BREAK" &&
-        (status.source === "SCHEDULE" || status.source === "MEMBER")) ||
-      (status.state === "STUDY" &&
-        (status.source === "SCHEDULE" || status.source === "ROOM"));
-    if (canContinueDuringBreak) {
-      return {
-        action: "RESUME",
-        detail: "계속 공부하기를 누르면 지금부터 실제 공부시간에 포함됩니다.",
-        label: status.source === "MEMBER" ? "휴식 중" : "정규 휴식",
-        tone: status.source === "MEMBER" ? "break" : "schedule",
-      };
-    }
-
     return status.source === "ADMIN"
       ? {
           action: null,
@@ -274,26 +254,6 @@ function studyStateView(
           label: "정규 휴식 전환 중",
           tone: "syncing",
         };
-  }
-
-  if (status.state === "STUDY") {
-    return {
-      action: "BREAK",
-      detail: startedAt || "실제 공부시간에 포함됩니다.",
-      label: "공부 중",
-      tone: "study",
-    };
-  }
-
-  if (status.source === "MEMBER") {
-    return {
-      action: canResumeInStudySlot ? "RESUME" : null,
-      detail: canResumeInStudySlot
-        ? startedAt || "공부시간 집계를 쉬고 있습니다."
-        : "공부 교시가 시작되면 재개할 수 있습니다.",
-      label: "휴식 중",
-      tone: "break",
-    };
   }
 
   if (status.source === "SCHEDULE") {
@@ -320,6 +280,7 @@ export default function StudyLine() {
     joined,
     joining,
     cameraReady,
+    cameraPausedForBreak,
     error,
     studyStatus,
     studyStatusLoading,
@@ -431,7 +392,9 @@ export default function StudyLine() {
   }, [activeAttendanceSlot, joined, syncAttendanceSlot]);
 
   const cameraStatus = joined
-    ? "연결됨"
+    ? cameraPausedForBreak
+      ? "휴식 중"
+      : "연결됨"
     : joining
       ? "준비 중"
       : cameraReady
@@ -442,13 +405,7 @@ export default function StudyLine() {
     studyStatusLoading,
     Boolean(current && !current.isBreak && current.slot !== 0),
     Boolean(current && current.isBreak && current.slot !== 0),
-    Boolean(
-      current?.isBreak &&
-        current.slot !== 0 &&
-        studyStatus?.state === "STUDY" &&
-        studyStatus.source === "MEMBER" &&
-        stateStartedWithinSlot(studyStatus.stateStartedAt, current, now),
-    ),
+    cameraPausedForBreak,
   );
   const isStudyStatusPending = !(
     studyStatus?.active &&
@@ -512,7 +469,9 @@ export default function StudyLine() {
           aria-busy={studyStatusLoading || studyActionPending !== null}
           className={`sl-camera-session${joined ? " is-joined" : ""}`}
         >
-          <div className="sl-camera-status">
+          <div
+            className={`sl-camera-status${cameraPausedForBreak ? " is-paused" : ""}`}
+          >
             <VideocamOutlinedIcon />
             <strong>{cameraStatus}</strong>
           </div>

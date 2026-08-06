@@ -96,8 +96,8 @@ export default function StudyBreakConfirmDialog({
         </span>
         <strong id={titleId}>휴식을 시작할까요?</strong>
         <p id={descriptionId}>
-          휴식 중에는 공부시간이 기록되지 않습니다. 준비되면 ‘공부 재개’를
-          눌러주세요.
+          휴식을 시작하면 공부시간 기록이 먼저 멈추고 카메라만 꺼집니다. ‘계속
+          공부하기’를 누르면 카메라를 다시 켠 뒤 기록을 재개합니다.
         </p>
         <div className="study-break-confirm__actions">
           <button

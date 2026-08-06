@@ -135,37 +135,12 @@ const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
-const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Seoul",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
 function seoulMinutesSinceMidnight(date: Date): number {
   const parts = seoulClockFormatter.formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? 0);
 
   return value("hour") * 60 + value("minute");
-}
-
-function stateStartedWithinSlot(
-  value: string | null | undefined,
-  slot: TimetableSlot | undefined,
-  referenceAt: Date,
-): boolean {
-  if (!value || !slot) return false;
-  const startedAt = new Date(value);
-  if (Number.isNaN(startedAt.getTime())) return false;
-
-  const startedAtMinutes = seoulMinutesSinceMidnight(startedAt);
-  return (
-    seoulDateFormatter.format(startedAt) ===
-      seoulDateFormatter.format(referenceAt) &&
-    toMin(slot.startTime) <= startedAtMinutes &&
-    startedAtMinutes < toMin(slot.endTime)
-  );
 }
 
 function isClockInSlot(slot: TimetableSlot) {
@@ -230,6 +205,7 @@ export default function StudyRoom() {
   const {
     joined,
     joining,
+    cameraPausedForBreak,
     error,
     localVideoTrack,
     devices,
@@ -349,12 +325,19 @@ export default function StudyRoom() {
       }
 
       selfTileVideoRef.current = element;
-      if (!element || !joined || !localVideoTrack) return;
+      if (
+        !element ||
+        !joined ||
+        cameraPausedForBreak ||
+        !localVideoTrack
+      ) {
+        return;
+      }
 
       localVideoTrack.attach(element);
       void element.play().catch(() => undefined);
     },
-    [joined, localVideoTrack],
+    [cameraPausedForBreak, joined, localVideoTrack],
   );
 
   const nowMin = seoulMinutesSinceMidnight(now);
@@ -419,103 +402,76 @@ export default function StudyRoom() {
   const isTimetableBreak = Boolean(
     current && current.isBreak && !isClockInSlot(current),
   );
-  const isBreakStudy =
-    isTimetableBreak &&
-    isStudying &&
-    studyStatus?.source === "MEMBER" &&
-    stateStartedWithinSlot(studyStatus.stateStartedAt, current, now);
-  const canContinueDuringBreak =
-    isTimetableBreak &&
-    !isStudyStatusPending &&
-    ((studyStatus?.state === "BREAK" &&
-      (studyStatus.source === "SCHEDULE" ||
-        studyStatus.source === "MEMBER")) ||
-      (studyStatus?.state === "STUDY" &&
-        (studyStatus.source === "SCHEDULE" ||
-          studyStatus.source === "ROOM")));
+  const isCountedStudy =
+    isStudying && studyStatus?.source !== "SYSTEM" && !cameraPausedForBreak;
+  const isIntentionalBreak =
+    studyStatus?.active === true &&
+    (cameraPausedForBreak || isMemberBreak);
   const isBreakTransitionPending =
     isTimetableBreak &&
     !isStudyStatusPending &&
-    !isBreakStudy &&
-    !canContinueDuringBreak &&
-    !isSystemBreak;
+    studyStatus?.state === "BREAK" &&
+    studyStatus.source !== "MEMBER" &&
+    studyStatus.source !== "SYSTEM" &&
+    studyStatus.source !== "ADMIN";
   const canResumeStudyNow = Boolean(current && isAttendanceSlot(current));
-  const studyAction = isBreakStudy
-    ? "BREAK"
-    : canContinueDuringBreak
+  const canResumeNow = canResumeStudyNow || isTimetableBreak;
+  const studyAction = isIntentionalBreak
+    ? canResumeNow
       ? "RESUME"
+      : null
+    : isCountedStudy
+      ? "BREAK"
+      : null;
+  const studyStateLabel = isIntentionalBreak
+    ? "휴식 중"
+    : isCountedStudy
+      ? isTimetableBreak
+        ? "휴식시간 공부 중"
+        : "공부 중"
       : isBreakTransitionPending
-        ? null
-        : isStudying
-          ? "BREAK"
-          : isMemberBreak && canResumeStudyNow
-            ? "RESUME"
-            : null;
-  const studyStateLabel = isBreakStudy
-    ? "휴식시간 공부 중"
-    : canContinueDuringBreak
-      ? isMemberBreak
-        ? "휴식 중"
-        : "정규 휴식"
-      : isBreakTransitionPending
-        ? studyStatus?.source === "ADMIN"
+        ? "정규 휴식 전환 중"
+        : studyStatus?.source === "ADMIN"
           ? "관리자 상태 확인 필요"
-          : "정규 휴식 전환 중"
-        : isStudying
-          ? "공부 중"
-          : isMemberBreak
-            ? "휴식 중"
-            : isScheduleBreak
-              ? "정규 휴식"
-              : isSystemBreak
-                ? "카메라 확인 필요"
-                : studyStatusLoading
-                  ? "공부 상태 연결 중"
-                  : studyStatus?.active === false
-                    ? "카메라 등록 대기"
-                    : "공부 기록 연결 대기";
-  const studyStateDescription = isBreakStudy
-    ? "실제 공부시간에 포함되고 있습니다."
-    : canContinueDuringBreak
-      ? "계속 공부하기를 누르면 지금부터 실제 공부시간에 포함됩니다."
+          : isScheduleBreak
+            ? "정규 휴식"
+            : isSystemBreak
+              ? "카메라 확인 필요"
+              : studyStatusLoading
+                ? "공부 상태 연결 중"
+                : studyStatus?.active === false
+                  ? "카메라 등록 대기"
+                  : "공부 기록 연결 대기";
+  const studyStateDescription = isIntentionalBreak
+    ? canResumeNow
+      ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
+      : "공부 교시가 시작되면 카메라와 기록을 다시 시작할 수 있습니다."
+    : isCountedStudy
+      ? "실제 공부시간에 포함되고 있습니다."
       : isBreakTransitionPending
-        ? studyStatus?.source === "ADMIN"
+        ? "서버의 정규 휴식 전환을 확인하고 있습니다."
+        : studyStatus?.source === "ADMIN"
           ? "관리자가 설정한 공부 상태입니다."
-          : "서버의 정규 휴식 전환을 확인하고 있습니다."
-        : isStudying
-          ? "실제 공부시간에 포함되고 있습니다."
-          : isMemberBreak
-            ? canResumeStudyNow
-              ? "휴식 중에는 공부시간에 포함되지 않습니다."
-              : "공부 교시가 시작되면 재개할 수 있습니다."
-            : isScheduleBreak
-              ? "시간표에 따른 정규 쉬는시간입니다."
-              : isSystemBreak
-                ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
-                : studyStatusLoading
-                  ? "서버 기록을 연결하고 있습니다."
-                  : studyStatus?.active === false
-                    ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
-                    : "서버의 현재 공부 기록 연결을 기다리고 있습니다.";
-  const studyStateTone = isBreakStudy
-    ? "study"
-    : canContinueDuringBreak
-      ? isMemberBreak
-        ? "break"
-        : "schedule"
+          : isScheduleBreak
+            ? "시간표에 따른 정규 쉬는시간입니다."
+            : isSystemBreak
+              ? "카메라 연결을 복구하면 상태를 다시 확인합니다."
+              : studyStatusLoading
+                ? "서버 기록을 연결하고 있습니다."
+                : studyStatus?.active === false
+                  ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
+                  : "서버의 현재 공부 기록 연결을 기다리고 있습니다.";
+  const studyStateTone = isIntentionalBreak
+    ? "break"
+    : isCountedStudy
+      ? "study"
       : isBreakTransitionPending
-        ? studyStatus?.source === "ADMIN"
+        ? "syncing"
+        : studyStatus?.source === "ADMIN" || isSystemBreak
           ? "system"
-          : "syncing"
-        : isStudying
-          ? "study"
-          : isMemberBreak
-            ? "break"
-            : isScheduleBreak
-              ? "schedule"
-              : isSystemBreak
-                ? "system"
-                : "syncing";
+          : isScheduleBreak
+            ? "schedule"
+            : "syncing";
   const studyActionDisabled =
     studyStatusLoading ||
     Boolean(studyStatusError) ||
@@ -827,8 +783,15 @@ export default function StudyRoom() {
               const remoteVideo = isMe
                 ? undefined
                 : remoteVideoByUser.get(member.id);
+              const isResting = isMe
+                ? cameraPausedForBreak
+                : remoteVideo?.muted === true;
+              const hasActiveVideo = isMe
+                ? joined && !cameraPausedForBreak
+                : Boolean(remoteVideo && !remoteVideo.muted);
               const isWorking =
-                member.isWorking || (isMe && joined) || Boolean(remoteVideo);
+                !isResting &&
+                (member.isWorking || (isMe && joined) || hasActiveVideo);
               const memberIndex = Math.max(0, membersForGrid.indexOf(member));
               return (
                 <div
@@ -836,7 +799,7 @@ export default function StudyRoom() {
                     "sr-cam",
                     isWorking ? "is-working" : "is-waiting",
                     isMe ? "is-me" : "",
-                    remoteVideo ? "has-video" : "",
+                    hasActiveVideo ? "has-video" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -852,7 +815,7 @@ export default function StudyRoom() {
                             : "linear-gradient(135deg,#b08a4f,#8a6a2f)",
                   }}
                 >
-                  {isMe && joined && (
+                  {isMe && joined && !cameraPausedForBreak && (
                     <video
                       ref={attachSelfTileVideo}
                       muted
@@ -860,14 +823,16 @@ export default function StudyRoom() {
                       className="sr-cam-self-video"
                     />
                   )}
-                  {remoteVideo && (
+                  {remoteVideo && !remoteVideo.muted && (
                     <StudyRoomRemoteVideo track={remoteVideo.track} />
                   )}
                   <span className="sr-cam-name">
                     {isMe ? "나" : member.name}
                   </span>
                   <span className={`sr-cam-state${isWorking ? "" : " is-off"}`}>
-                    <small>{isWorking ? "입장" : "대기"}</small>
+                    <small>
+                      {isResting ? "휴식" : isWorking ? "입장" : "대기"}
+                    </small>
                   </span>
                 </div>
               );
@@ -949,8 +914,11 @@ export default function StudyRoom() {
                   ))}
                 </select>
               </label>
-              <div className="sr-live-badge">
-                <span className="sr-live-dot" />캠 송출 중
+              <div
+                className={`sr-live-badge${cameraPausedForBreak ? " is-paused" : ""}`}
+              >
+                <span className="sr-live-dot" />
+                {cameraPausedForBreak ? "카메라 휴식 중" : "캠 송출 중"}
               </div>
               <p>
                 카메라 영상은 녹화·저장하지 않으며, 작업장 내 자리 확인을
@@ -960,8 +928,8 @@ export default function StudyRoom() {
           )}
           {!cameraOnly && (
             <p className="sr-hint">
-              입장 후에는 교시가 바뀌어도 캠이 유지됩니다. 쉬는시간에는 원하면
-              직접 퇴장할 수 있습니다.
+              쉬는시간에도 캠과 공부시간 기록이 계속됩니다. 쉴 때는 휴식 시작을
+              눌러주세요.
             </p>
           )}
         </section>

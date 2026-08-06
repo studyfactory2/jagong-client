@@ -41,6 +41,7 @@ export type RemoteVideo = {
   trackSid: string;
   userId: string;
   track: RemoteVideoTrack;
+  muted: boolean;
 };
 
 export type CameraEffect = "original" | "background-blur" | FaceEffectVariant;
@@ -84,6 +85,20 @@ const STUDY_STATUS_STARTUP_RETRY_MS = [
 ];
 const ATTENDANCE_SYNC_RETRY_MS = [500, 1000, 2000, 4000];
 const ATTENDANCE_SYNC_TIMEOUT_MS = 8000;
+const CAMERA_RESUME_RETRY_DELAYS_MS = [0, 200, 500];
+const CAMERA_NOT_READY_ERROR = "카메라를 켠 뒤 공부를 계속할 수 있습니다.";
+
+function isConfirmedStudyResume(status: StudyTimeStatus): boolean {
+  return (
+    status.active === true &&
+    status.state === "STUDY" &&
+    status.source !== "SYSTEM"
+  );
+}
+
+function isConfirmedStudyBreak(status: StudyTimeStatus | null): boolean {
+  return status?.active === true && status.state === "BREAK";
+}
 
 const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Seoul",
@@ -169,6 +184,7 @@ type WorkroomSessionValue = {
   joined: boolean;
   joining: boolean;
   cameraReady: boolean;
+  cameraPausedForBreak: boolean;
   error: string;
   localVideoTrack: LocalVideoTrack | null;
   devices: MediaDeviceInfo[];
@@ -202,6 +218,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraPausedForBreak, setCameraPausedForBreak] = useState(false);
   const [error, setError] = useState("");
   const [localVideoTrack, setLocalVideoTrack] =
     useState<LocalVideoTrack | null>(null);
@@ -408,6 +425,58 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     if (mountedRef.current) setStudyStatus(status);
   }, []);
 
+  const commitCameraPausedForBreak = useCallback(
+    (
+      paused: boolean,
+      expectedConnectionGeneration = connectionGenerationRef.current,
+    ) => {
+      if (
+        !mountedRef.current ||
+        connectionGenerationRef.current !== expectedConnectionGeneration
+      ) {
+        return;
+      }
+
+      setCameraPausedForBreak(paused);
+    },
+    [],
+  );
+
+  const resetCameraPausedForBreak = useCallback(() => {
+    if (mountedRef.current) setCameraPausedForBreak(false);
+  }, []);
+
+  const requireCurrentStudyCamera = useCallback(
+    (
+      expectedConnectionGeneration: number,
+      expectedTrack?: LocalVideoTrack,
+      expectedRoom?: Room,
+    ) => {
+      if (
+        !mountedRef.current ||
+        !joinedRef.current ||
+        connectionGenerationRef.current !== expectedConnectionGeneration
+      ) {
+        throw new WorkroomConnectionCancelledError();
+      }
+
+      const track = localVideoTrackRef.current;
+      const room = roomRef.current;
+      if (!track || !room) {
+        throw new Error("작업장 카메라 연결을 찾을 수 없습니다.");
+      }
+      if (
+        (expectedTrack && track !== expectedTrack) ||
+        (expectedRoom && room !== expectedRoom)
+      ) {
+        throw new WorkroomConnectionCancelledError();
+      }
+
+      return { room, track };
+    },
+    [],
+  );
+
   const resetStudyStatus = useCallback(() => {
     studyStatusRequestRef.current += 1;
     studyStatusLoadingRequestRef.current = null;
@@ -418,6 +487,160 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setStudyStatusError("");
     setStudyActionPending(null);
   }, []);
+
+  const resumeStudyWithVerifiedCamera = useCallback(
+    async (
+      expectedConnectionGeneration: number,
+      expectedTrack: LocalVideoTrack,
+      expectedRoom: Room,
+    ): Promise<StudyTimeStatus> => {
+      let lastError: unknown = new Error("카메라 상태를 확인하지 못했습니다.");
+
+      for (
+        let index = 0;
+        index < CAMERA_RESUME_RETRY_DELAYS_MS.length;
+        index += 1
+      ) {
+        const delay = CAMERA_RESUME_RETRY_DELAYS_MS[index];
+        if (delay > 0) {
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, delay);
+          });
+        }
+        requireCurrentStudyCamera(
+          expectedConnectionGeneration,
+          expectedTrack,
+          expectedRoom,
+        );
+
+        try {
+          const status = await resumeMyStudy();
+          requireCurrentStudyCamera(
+            expectedConnectionGeneration,
+            expectedTrack,
+            expectedRoom,
+          );
+          if (!isConfirmedStudyResume(status)) {
+            throw new Error("공부 상태 재개를 확인하지 못했습니다.");
+          }
+          return status;
+        } catch (requestError) {
+          requireCurrentStudyCamera(
+            expectedConnectionGeneration,
+            expectedTrack,
+            expectedRoom,
+          );
+          lastError = requestError;
+          const canRetry =
+            requestError instanceof Error &&
+            requestError.message === CAMERA_NOT_READY_ERROR &&
+            index < CAMERA_RESUME_RETRY_DELAYS_MS.length - 1;
+          if (!canRetry) throw requestError;
+        }
+      }
+
+      throw lastError;
+    },
+    [requireCurrentStudyCamera],
+  );
+
+  const confirmBackendStudyBreak = useCallback(
+    async (
+      expectedConnectionGeneration: number,
+      expectedTrack: LocalVideoTrack,
+      expectedRoom: Room,
+    ): Promise<boolean> => {
+      let status: StudyTimeStatus | null = null;
+      try {
+        status = await startMyStudyBreak();
+      } catch {
+        // A lost response can still mean the server committed the break.
+      }
+      requireCurrentStudyCamera(
+        expectedConnectionGeneration,
+        expectedTrack,
+        expectedRoom,
+      );
+      if (isConfirmedStudyBreak(status)) return true;
+
+      try {
+        status = await getMyStudyTimeStatus();
+      } catch {
+        status = null;
+      }
+      requireCurrentStudyCamera(
+        expectedConnectionGeneration,
+        expectedTrack,
+        expectedRoom,
+      );
+      return isConfirmedStudyBreak(status);
+    },
+    [requireCurrentStudyCamera],
+  );
+
+  const failClosedStudyCamera = useCallback(
+    async (
+      expectedConnectionGeneration: number,
+      expectedTrack: LocalVideoTrack,
+      expectedRoom: Room,
+      message: string,
+      ensureBackendBreak: boolean,
+    ): Promise<never> => {
+      requireCurrentStudyCamera(
+        expectedConnectionGeneration,
+        expectedTrack,
+        expectedRoom,
+      );
+
+      const participantSid = participantSidRef.current;
+      try {
+        expectedTrack.stop();
+      } catch {
+        // Continue disconnecting even if the stopped track reports an error.
+      }
+
+      connectionGenerationRef.current = expectedConnectionGeneration + 1;
+      roomRef.current = null;
+      participantSidRef.current = null;
+      localVideoTrackRef.current = null;
+      joinedRef.current = false;
+      joiningRef.current = false;
+      leavingRef.current = false;
+      resetCameraPausedForBreak();
+      resetStudyStatus();
+      resetAttendanceSync();
+      setJoined(false);
+      setJoining(false);
+      setLocalVideoTrack(null);
+      setCameraReady(false);
+      setSelectedEffect("original");
+      setEffectSupport(createInitialEffectSupport());
+      setEffectLoading(false);
+      setEffectError("");
+      faceEffectProcessorRef.current = null;
+      setRemoteVideos([]);
+      setError(message);
+
+      if (participantSid) {
+        void leaveCam({ participantSid }).catch(() => undefined);
+      }
+
+      const cleanupTasks: Promise<unknown>[] = [
+        expectedRoom.disconnect().catch(() => undefined),
+      ];
+      if (ensureBackendBreak) {
+        cleanupTasks.push(startMyStudyBreak().catch(() => undefined));
+      }
+      await Promise.all(cleanupTasks);
+      throw new WorkroomConnectionCancelledError();
+    },
+    [
+      requireCurrentStudyCamera,
+      resetAttendanceSync,
+      resetCameraPausedForBreak,
+      resetStudyStatus,
+    ],
+  );
 
   const loadStudyStatus = useCallback(
     async (
@@ -449,9 +672,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         setAttendanceBindingReady(
           Boolean(
             status.active &&
-              status.state &&
-              status.source &&
-              status.source !== "SYSTEM",
+            status.state &&
+            status.source &&
+            status.source !== "SYSTEM",
           ),
           expectedConnectionGeneration,
         );
@@ -492,7 +715,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const runStudyAction = useCallback(
     async (
       action: StudyAction,
-      request: () => Promise<StudyTimeStatus>,
+      request: (
+        expectedConnectionGeneration: number,
+      ) => Promise<StudyTimeStatus>,
       fallbackError: string,
     ): Promise<boolean> => {
       if (!joinedRef.current || studyActionPendingRef.current) return false;
@@ -514,7 +739,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       let actionSucceeded = false;
 
       try {
-        const status = await request();
+        const status = await request(expectedConnectionGeneration);
         if (
           !mountedRef.current ||
           !joinedRef.current ||
@@ -527,6 +752,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         actionSucceeded = true;
         return true;
       } catch (requestError) {
+        if (requestError instanceof WorkroomConnectionCancelledError) {
+          return false;
+        }
+
         const message =
           requestError instanceof Error ? requestError.message : fallbackError;
 
@@ -578,20 +807,191 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     async () =>
       await runStudyAction(
         "BREAK",
-        startMyStudyBreak,
+        async (expectedConnectionGeneration) => {
+          const { room, track } = requireCurrentStudyCamera(
+            expectedConnectionGeneration,
+          );
+          let status: StudyTimeStatus | null = null;
+          let breakRequestError: unknown = null;
+          try {
+            status = await startMyStudyBreak();
+          } catch (requestError) {
+            breakRequestError = requestError;
+          }
+          requireCurrentStudyCamera(expectedConnectionGeneration, track, room);
+
+          if (
+            !isConfirmedStudyBreak(status) &&
+            !(status && isConfirmedStudyResume(status))
+          ) {
+            try {
+              status = await getMyStudyTimeStatus();
+            } catch {
+              status = null;
+            }
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+          }
+
+          if (status && isConfirmedStudyResume(status)) {
+            throw breakRequestError instanceof Error
+              ? breakRequestError
+              : new Error("휴식 상태로 변경되지 않았습니다.");
+          }
+          if (!status || !isConfirmedStudyBreak(status)) {
+            return await failClosedStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+              "공부 기록의 휴식 상태를 확인하지 못해 작업실 연결을 종료했습니다. 다시 입장해 주세요.",
+              true,
+            );
+          }
+
+          try {
+            await track.mute();
+          } catch {
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            if (track.isMuted) {
+              commitCameraPausedForBreak(true, expectedConnectionGeneration);
+              return status;
+            }
+
+            try {
+              await resumeStudyWithVerifiedCamera(
+                expectedConnectionGeneration,
+                track,
+                room,
+              );
+            } catch {
+              return await failClosedStudyCamera(
+                expectedConnectionGeneration,
+                track,
+                room,
+                "카메라 상태와 공부 기록을 함께 복구하지 못해 작업실 연결을 종료했습니다. 다시 입장해 주세요.",
+                false,
+              );
+            }
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            commitCameraPausedForBreak(false, expectedConnectionGeneration);
+            throw new Error(
+              "카메라를 끄지 못해 휴식을 시작하지 못했습니다. 다시 시도해 주세요.",
+            );
+          }
+
+          requireCurrentStudyCamera(expectedConnectionGeneration, track, room);
+          commitCameraPausedForBreak(true, expectedConnectionGeneration);
+          return status;
+        },
         "휴식 상태로 변경하지 못했습니다.",
       ),
-    [runStudyAction],
+    [
+      commitCameraPausedForBreak,
+      failClosedStudyCamera,
+      requireCurrentStudyCamera,
+      resumeStudyWithVerifiedCamera,
+      runStudyAction,
+    ],
   );
 
   const resumeStudy = useCallback(
     async () =>
       await runStudyAction(
         "RESUME",
-        resumeMyStudy,
+        async (expectedConnectionGeneration) => {
+          const { room, track } = requireCurrentStudyCamera(
+            expectedConnectionGeneration,
+          );
+
+          try {
+            await track.unmute();
+          } catch {
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            if (track.isMuted) {
+              throw new Error(
+                "카메라를 켜지 못했습니다. 카메라 권한을 확인해 주세요.",
+              );
+            }
+          }
+
+          requireCurrentStudyCamera(expectedConnectionGeneration, track, room);
+
+          try {
+            const status = await resumeStudyWithVerifiedCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            commitCameraPausedForBreak(false, expectedConnectionGeneration);
+            return status;
+          } catch (requestError) {
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            try {
+              await track.mute();
+            } catch {
+              // The mute flag below decides whether privacy was restored.
+            }
+            requireCurrentStudyCamera(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            if (!track.isMuted) {
+              return await failClosedStudyCamera(
+                expectedConnectionGeneration,
+                track,
+                room,
+                "카메라를 안전하게 다시 끄지 못해 작업실 연결을 종료했습니다. 다시 입장해 주세요.",
+                true,
+              );
+            }
+            commitCameraPausedForBreak(true, expectedConnectionGeneration);
+            const backendBreakConfirmed = await confirmBackendStudyBreak(
+              expectedConnectionGeneration,
+              track,
+              room,
+            );
+            if (!backendBreakConfirmed) {
+              return await failClosedStudyCamera(
+                expectedConnectionGeneration,
+                track,
+                room,
+                "공부 기록의 휴식 상태를 확인하지 못해 작업실 연결을 종료했습니다. 다시 입장해 주세요.",
+                false,
+              );
+            }
+            throw requestError;
+          }
+        },
         "공부 상태로 돌아가지 못했습니다.",
       ),
-    [runStudyAction],
+    [
+      commitCameraPausedForBreak,
+      confirmBackendStudyBreak,
+      failClosedStudyCamera,
+      requireCurrentStudyCamera,
+      resumeStudyWithVerifiedCamera,
+      runStudyAction,
+    ],
   );
 
   const refreshRoomMembers = useCallback(async () => {
@@ -611,10 +1011,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       room.remoteParticipants.forEach((participant) => {
         const shouldSubscribe = visible.has(participant.identity);
         participant.trackPublications.forEach((publication) => {
-          const isVideo =
-            String(publication.kind) === "video" ||
+          const isCameraVideo =
+            String(publication.kind) === "video" &&
             String(publication.source) === "camera";
-          if (isVideo && publication.isDesired !== shouldSubscribe) {
+          if (isCameraVideo && publication.isDesired !== shouldSubscribe) {
             publication.setSubscribed(shouldSubscribe);
           }
         });
@@ -669,6 +1069,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     const track = localVideoTrackRef.current;
 
     localVideoTrackRef.current = null;
+    resetCameraPausedForBreak();
     setLocalVideoTrack(null);
     setCameraReady(false);
     setSelectedEffect("original");
@@ -686,7 +1087,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     } finally {
       track.stop();
     }
-  }, []);
+  }, [resetCameraPausedForBreak]);
 
   const startLocalCamera = useCallback(
     async (deviceId?: string, connectionGeneration?: number) => {
@@ -751,6 +1152,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       }
 
       localVideoTrackRef.current = track;
+      resetCameraPausedForBreak();
       setLocalVideoTrack(track);
       setCameraReady(true);
       setSelectedDeviceId(activeDeviceId);
@@ -766,13 +1168,14 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       }
       return track;
     },
-    [refreshDevices],
+    [refreshDevices, resetCameraPausedForBreak],
   );
 
   const disconnectLiveKit = useCallback(async () => {
     const room = roomRef.current;
     roomRef.current = null;
     participantSidRef.current = null;
+    resetCameraPausedForBreak();
     setRemoteVideos([]);
 
     if (!room) return;
@@ -782,7 +1185,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     } catch {
       // The LiveKit webhook or server timeout still reconciles this participant.
     }
-  }, []);
+  }, [resetCameraPausedForBreak]);
 
   const selectCameraEffect = useCallback(async (effect: CameraEffect) => {
     const track = localVideoTrackRef.current;
@@ -928,7 +1331,13 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         room.on(
           RoomEvent.TrackSubscribed,
           (track, publication, participant) => {
-            if (!isCurrentRoom() || String(track.kind) !== "video") return;
+            if (
+              !isCurrentRoom() ||
+              String(track.kind) !== "video" ||
+              String(publication.source) !== "camera"
+            ) {
+              return;
+            }
             setRemoteVideos((current) => [
               ...current.filter(
                 (video) => video.trackSid !== publication.trackSid,
@@ -937,10 +1346,65 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
                 trackSid: publication.trackSid,
                 userId: participant.identity,
                 track: track as RemoteVideoTrack,
+                muted: publication.isMuted || track.isMuted,
               },
             ]);
           },
         );
+
+        room.on(RoomEvent.TrackMuted, (publication, participant) => {
+          if (
+            !isCurrentRoom() ||
+            participant.identity === room.localParticipant.identity ||
+            String(publication.kind) !== "video" ||
+            String(publication.source) !== "camera"
+          ) {
+            return;
+          }
+
+          setRemoteVideos((current) =>
+            current.map((video) =>
+              video.trackSid === publication.trackSid
+                ? { ...video, muted: true }
+                : video,
+            ),
+          );
+        });
+
+        room.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+          if (
+            !isCurrentRoom() ||
+            participant.identity === room.localParticipant.identity ||
+            String(publication.kind) !== "video" ||
+            String(publication.source) !== "camera"
+          ) {
+            return;
+          }
+
+          setRemoteVideos((current) => {
+            if (
+              current.some((video) => video.trackSid === publication.trackSid)
+            ) {
+              return current.map((video) =>
+                video.trackSid === publication.trackSid
+                  ? { ...video, muted: false }
+                  : video,
+              );
+            }
+
+            const track = publication.track;
+            if (!track || String(track.kind) !== "video") return current;
+            return [
+              ...current,
+              {
+                trackSid: publication.trackSid,
+                userId: participant.identity,
+                track: track as RemoteVideoTrack,
+                muted: false,
+              },
+            ];
+          });
+        });
 
         room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
           if (!isCurrentRoom()) return;
@@ -971,6 +1435,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           joinedRef.current = false;
           joiningRef.current = false;
           leavingRef.current = false;
+          resetCameraPausedForBreak();
           setJoined(false);
           setJoining(false);
           setRemoteVideos([]);
@@ -1007,6 +1472,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         if (!isCurrentRoom()) {
           throw new WorkroomConnectionCancelledError();
         }
+        commitCameraPausedForBreak(false, connectionGeneration);
         return participantSid;
       } catch (err) {
         if (roomRef.current === room) roomRef.current = null;
@@ -1019,8 +1485,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       }
     },
     [
+      commitCameraPausedForBreak,
       refreshRoomMembers,
       resetAttendanceSync,
+      resetCameraPausedForBreak,
       resetStudyStatus,
       stopLocalCamera,
       syncRemoteCameraSubscriptions,
@@ -1120,6 +1588,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
       const connectionGeneration = connectionGenerationRef.current + 1;
       connectionGenerationRef.current = connectionGeneration;
+      resetCameraPausedForBreak();
       setError("");
       joiningRef.current = true;
       setJoining(true);
@@ -1185,6 +1654,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       flushAttendanceSync,
       refreshRoomMembers,
       resetAttendanceSync,
+      resetCameraPausedForBreak,
       resetStudyStatus,
       selectedDeviceId,
       startLocalCamera,
@@ -1310,9 +1780,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     const isCurrentLocalMember = (payload?: CameraPresencePayload) => {
       const localIdentity = roomRef.current?.localParticipant.identity;
       return Boolean(
-        payload?.userId &&
-        localIdentity &&
-        payload.userId === localIdentity,
+        payload?.userId && localIdentity && payload.userId === localIdentity,
       );
     };
     const isCurrentLocalJoin = (payload?: CameraPresencePayload) => {
@@ -1385,6 +1853,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         joined,
         joining,
         cameraReady,
+        cameraPausedForBreak,
         error,
         localVideoTrack,
         devices,
