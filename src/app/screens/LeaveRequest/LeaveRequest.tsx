@@ -50,11 +50,26 @@ const WEEKDAY_FULL_LABELS = [
   "토요일",
 ];
 
+const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 function dateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function seoulDateKey(date = new Date()) {
+  const parts = seoulDateFormatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
 function apiDateKey(value: string) {
@@ -103,7 +118,11 @@ function formatDatePill(value: string) {
 }
 
 function isFutureDate(value: string) {
-  return value > dateKey(new Date());
+  return value > seoulDateKey();
+}
+
+function isTodayOrFutureDate(value: string) {
+  return value >= seoulDateKey();
 }
 
 function formatSlots(slots: number[], timetable: TimetableSlot[]) {
@@ -260,7 +279,7 @@ export default function LeaveRequest() {
   const selectedItems = itemsByDate.get(selectedDate) ?? [];
   const selectedRequest = selectedItems.find((item) => item.source === "LEAVE");
   const canRequestSelectedDate =
-    isFutureDate(selectedDate) && selectedItems.length === 0;
+    isTodayOrFutureDate(selectedDate) && selectedItems.length === 0;
 
   const regularLeaveRules = useMemo(() => {
     const rules = new Map<
@@ -290,7 +309,11 @@ export default function LeaveRequest() {
   }
 
   async function submit() {
-    if (!canRequestSelectedDate) {
+    if (!isTodayOrFutureDate(selectedDate)) {
+      setError("지난 날짜에는 휴가를 신청할 수 없습니다.");
+      return;
+    }
+    if (selectedItems.length > 0) {
       setError("이미 적용된 휴가 또는 일정이 있는 날짜입니다.");
       return;
     }
@@ -423,7 +446,7 @@ export default function LeaveRequest() {
                 <button className="lv-submit" disabled={saving || membershipLocked || !canRequestSelectedDate} onClick={() => void submit()} type="button">
                   {saving ? "신청 중" : "휴가 신청"}
                 </button>
-                {!isFutureDate(selectedDate) && <small>휴가는 내일 이후 날짜부터 신청할 수 있습니다.</small>}
+                {!isTodayOrFutureDate(selectedDate) && <small>지난 날짜에는 휴가를 신청할 수 없습니다.</small>}
               </div>
             )}
           </section>
