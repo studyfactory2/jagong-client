@@ -1,0 +1,271 @@
+.admin-profile-operation-actions > button.is-pending {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.admin-profile-operation-actions > button.is-pending > svg:first-child {
+  color: var(--gold);
+}
+
+.admin-profile-registration-sheet.is-pending {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.admin-pending-pre-registrations {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "toolbar"
+    "summary"
+    "error"
+    "list"
+    "pager";
+  gap: 11px;
+  overflow: hidden;
+}
+
+.admin-pending-pre-registrations-toolbar {
+  grid-area: toolbar;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.55fr) auto;
+  align-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-pending-pre-registrations-toolbar label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.admin-pending-pre-registrations-toolbar input,
+.admin-pending-pre-registrations-toolbar select,
+.admin-pending-pre-registrations-toolbar > button {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  outline: none;
+}
+
+.admin-pending-pre-registrations-toolbar input,
+.admin-pending-pre-registrations-toolbar select {
+  width: 100%;
+}
+
+.admin-pending-pre-registrations-toolbar input:focus,
+.admin-pending-pre-registrations-toolbar select:focus {
+  border-color: var(--ink);
+}
+
+.admin-pending-pre-registrations-toolbar > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  cursor: pointer;
+}
+
+.admin-pending-pre-registrations-toolbar > button svg {
+  font-size: 16px;
+}
+
+.admin-pending-pre-registrations-toolbar > button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.admin-pending-pre-registrations-summary {
+  grid-area: summary;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 8px;
+  background: var(--gold-soft);
+  padding: 9px 10px;
+}
+
+.admin-pending-pre-registrations-summary strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-pending-pre-registrations-summary span {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.admin-pending-pre-registrations-error {
+  grid-area: error;
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 9px 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.admin-pending-pre-registrations-list {
+  grid-area: list;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1px;
+}
+
+.admin-pending-pre-registrations-list > article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--admin-panel);
+  padding: 11px;
+}
+
+.admin-pending-pre-avatar {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold-soft);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.admin-pending-pre-identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-pending-pre-identity strong,
+.admin-pending-pre-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-pending-pre-identity strong {
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 950;
+}
+
+.admin-pending-pre-identity small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.admin-pending-pre-registrations-list > article > em {
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--ink);
+  padding: 5px 7px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-pending-pre-registrations-list dl {
+  grid-column: 2 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.admin-pending-pre-registrations-list dl > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-pending-pre-registrations-list dt,
+.admin-pending-pre-registrations-list dd {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-pending-pre-registrations-list dt {
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 750;
+}
+
+.admin-pending-pre-registrations-list dd {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-pending-pre-registrations-empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  padding: 20px;
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.admin-pending-pre-registrations .admin-list-pager {
+  grid-area: pager;
+  margin-top: 0;
+}
+
+@media (max-width: 719px) {
+  .admin-pending-pre-registrations-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(105px, 0.55fr);
+  }
+
+  .admin-pending-pre-registrations-toolbar > button {
+    grid-column: 1 / -1;
+  }
+
+  .admin-pending-pre-registrations-summary {
+    align-items: flex-start;
+  }
+
+  .admin-pending-pre-registrations-list dl {
+    grid-template-columns: 1fr;
+  }
+}

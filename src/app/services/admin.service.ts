@@ -31,6 +31,19 @@ export async function getAllAdminMembers(input?: {
   return data;
 }
 
+export async function getAdminPreRegistrations(input?: {
+  branchId?: string;
+  text?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminUsersResult> {
+  const { data } = await http.get<AdminUsersResult>(
+    "/users/pre-registrations",
+    { params: input },
+  );
+  return data;
+}
+
 export async function getAdminStats(): Promise<{
   activeMembers: number;
   totalMembers: number;

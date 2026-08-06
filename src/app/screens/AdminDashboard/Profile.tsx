@@ -3,9 +3,11 @@ import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined
 import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutlined";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import type { AdminUser, Branch } from "../../../lib/types";
 import type { MemberRegistrationTarget } from "./admin.types";
+import PendingPreRegistrations from "./PendingPreRegistrations";
 
 type ProfileForm = {
   name: string;
@@ -35,6 +37,8 @@ type StaffRegistrationForm = {
   branchId: string;
   phone: string;
 };
+
+type ProfileOperationTarget = MemberRegistrationTarget | "pending";
 
 type ProfileProps = {
   user: AdminUser | null;
@@ -92,7 +96,7 @@ export default function Profile({
   const [form, setForm] = useState<ProfileForm>(() => profileForm(user));
   const [saving, setSaving] = useState(false);
   const [registrationTarget, setRegistrationTarget] =
-    useState<MemberRegistrationTarget | null>(null);
+    useState<ProfileOperationTarget | null>(null);
 
   /** DERIVED **/
   const passwordInvalid =
@@ -125,7 +129,7 @@ export default function Profile({
     setForm((current) => ({ ...current, [field]: nextValue }));
   }
 
-  function openRegistration(target: MemberRegistrationTarget) {
+  function openRegistration(target: ProfileOperationTarget) {
     setRegistrationTarget(target);
     onRegistrationTargetHandled?.();
   }
@@ -322,6 +326,19 @@ export default function Profile({
                 <span>
                   <strong>직원 등록</strong>
                   <small>캠과 문의 업무 담당자 추가</small>
+                </span>
+                <ArrowForwardIosOutlinedIcon />
+              </button>
+              <button
+                aria-expanded={activeRegistrationTarget === "pending"}
+                className="is-pending"
+                onClick={() => openRegistration("pending")}
+                type="button"
+              >
+                <HourglassEmptyOutlinedIcon />
+                <span>
+                  <strong>사전등록 대기</strong>
+                  <small>아직 PIN 등록을 마치지 않은 회원</small>
                 </span>
                 <ArrowForwardIosOutlinedIcon />
               </button>
@@ -543,6 +560,29 @@ export default function Profile({
             >
               직원 등록
             </button>
+          </aside>
+        )}
+
+      {preRegister &&
+        staffForm &&
+        activeRegistrationTarget === "pending" && (
+          <aside className="admin-profile-registration-sheet is-pending">
+            <div className="admin-profile-registration-sheet-head">
+              <div>
+                <small>운영 관리</small>
+                <strong>사전등록 대기</strong>
+                <span>PIN 등록을 완료하지 않은 회원을 확인합니다.</span>
+              </div>
+              <button
+                aria-label="사전등록 대기 목록 닫기"
+                onClick={closeRegistration}
+                type="button"
+              >
+                <CloseOutlinedIcon />
+              </button>
+            </div>
+
+            <PendingPreRegistrations branches={branches} />
           </aside>
         )}
     </section>
