@@ -23,12 +23,15 @@ import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
+import { getMyStudyRoomEntryAccess } from "../../services/study-room-entry.service";
 import { getWeeklyStudyLeaderboard } from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
 import type {
   AttendanceRecord,
   AttendanceStatusName,
   CamRoomMember,
+  StudyRoomEntryAccess,
+  StudyRoomEntryAccessChangedPayload,
   TimetableSlot,
   WeeklyStudyLeaderboard,
   WeeklyStudyLeaderboardMember,
@@ -171,6 +174,28 @@ const ATTENDANCE_CLASS: Record<AttendanceStatusName, string> = {
   EXCUSED: "is-excused",
 };
 
+function studyRoomEntryStatusText(
+  access: StudyRoomEntryAccess | null,
+  loading: boolean,
+  error: string,
+) {
+  if (loading && !access) return "입장 가능 여부 확인 중";
+  if (error || !access) return "입장 가능 여부 확인 필요";
+
+  switch (access.reason) {
+    case "OPEN_WINDOW":
+      return "입장 가능";
+    case "ADMIN_GRANTED":
+      return "관리자 입장 허가됨";
+    case "ALREADY_IN_ROOM":
+      return "작업장 재입장 가능";
+    case "STUDY_WINDOW_LOCKED":
+      return "교시중 관리자 허가 필요";
+    case "TIMETABLE_UNAVAILABLE":
+      return "시간표 확인 불가";
+  }
+}
+
 function formatDate(date: Date) {
   const days = ["일", "월", "화", "수", "목", "금", "토"];
   return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(
@@ -255,6 +280,11 @@ export default function WaitingRoom() {
   const [weeklyLeaderboardLoading, setWeeklyLeaderboardLoading] =
     useState(true);
   const [weeklyLeaderboardError, setWeeklyLeaderboardError] = useState("");
+  const [entryAccess, setEntryAccess] = useState<StudyRoomEntryAccess | null>(
+    null,
+  );
+  const [entryAccessLoading, setEntryAccessLoading] = useState(true);
+  const [entryAccessError, setEntryAccessError] = useState("");
   const [previewVideos, setPreviewVideos] = useState<RemoteVideo[]>([]);
   const [previewStatus, setPreviewStatus] = useState<
     "idle" | "connecting" | "connected" | "stub" | "error"
@@ -262,6 +292,7 @@ export default function WaitingRoom() {
   const bellTimerRef = useRef<number | null>(null);
   const roomMembersRequestRef = useRef(0);
   const weeklyLeaderboardRequestRef = useRef(0);
+  const entryAccessRequestRef = useRef(0);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
@@ -302,6 +333,33 @@ export default function WaitingRoom() {
       setAttendance(records);
     } catch {
       setAttendance([]);
+    }
+  }, []);
+
+  const refreshEntryAccess = useCallback(async (showLoading = true) => {
+    const requestId = entryAccessRequestRef.current + 1;
+    entryAccessRequestRef.current = requestId;
+    if (showLoading) setEntryAccessLoading(true);
+    setEntryAccessError("");
+
+    try {
+      const access = await getMyStudyRoomEntryAccess();
+      if (requestId !== entryAccessRequestRef.current) return null;
+      setEntryAccess(access);
+      return access;
+    } catch (error) {
+      if (requestId !== entryAccessRequestRef.current) return null;
+      setEntryAccess(null);
+      setEntryAccessError(
+        error instanceof Error
+          ? error.message
+          : "작업장 입장 가능 여부를 확인하지 못했습니다.",
+      );
+      return null;
+    } finally {
+      if (requestId === entryAccessRequestRef.current) {
+        setEntryAccessLoading(false);
+      }
     }
   }, []);
 
@@ -361,6 +419,42 @@ export default function WaitingRoom() {
   }, [refreshWeeklyLeaderboard]);
 
   useEffect(() => {
+    const refreshWithoutSpinner = () => {
+      void refreshEntryAccess(false);
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refreshWithoutSpinner();
+    };
+    const initialTimer = window.setTimeout(() => {
+      void refreshEntryAccess();
+    }, 0);
+    const timer = window.setInterval(refreshWithoutSpinner, 30000);
+
+    window.addEventListener("focus", refreshWithoutSpinner);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWithoutSpinner);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      entryAccessRequestRef.current += 1;
+    };
+  }, [refreshEntryAccess]);
+
+  useEffect(() => {
+    if (!entryAccess?.windowEndsAt) return;
+    const windowEnd = Date.parse(entryAccess.windowEndsAt);
+    const delay = windowEnd - Date.now() + 250;
+    if (!Number.isFinite(windowEnd) || delay <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setEntryAccess(null);
+      void refreshEntryAccess();
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [entryAccess?.windowEndsAt, refreshEntryAccess]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -377,6 +471,7 @@ export default function WaitingRoom() {
       label?: string;
       messages?: string[];
     }) => {
+      void refreshEntryAccess(false);
       const message = scheduleBellMessage(data);
 
       if (!message) return;
@@ -388,20 +483,35 @@ export default function WaitingRoom() {
         bellTimerRef.current = null;
       }, 8000);
     };
+    const onEntryAccessChanged = (
+      payload: StudyRoomEntryAccessChangedPayload,
+    ) => {
+      entryAccessRequestRef.current += 1;
+      setEntryAccess(payload);
+      setEntryAccessLoading(false);
+      setEntryAccessError("");
+    };
+    const onConnect = () => {
+      void refreshEntryAccess(false);
+    };
 
     socket.on("bell", onBell);
     socket.on("cam:join", refreshRoomMembers);
     socket.on("cam:leave", refreshRoomMembers);
+    socket.on("connect", onConnect);
+    socket.on("study-room:entry-access-changed", onEntryAccessChanged);
     return () => {
       socket.off("bell", onBell);
       socket.off("cam:join", refreshRoomMembers);
       socket.off("cam:leave", refreshRoomMembers);
+      socket.off("connect", onConnect);
+      socket.off("study-room:entry-access-changed", onEntryAccessChanged);
       if (bellTimerRef.current) {
         window.clearTimeout(bellTimerRef.current);
         bellTimerRef.current = null;
       }
     };
-  }, [refreshRoomMembers, socket]);
+  }, [refreshEntryAccess, refreshRoomMembers, socket]);
 
   const nowSec =
     now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
@@ -448,8 +558,14 @@ export default function WaitingRoom() {
     : nextSlot
       ? toSec(nextSlot.startTime) - nowSec
       : null;
-  const canEnterRoom = !current || current.isBreak || isClockInSlot(current);
-  const enterStatusText = canEnterRoom ? "입장 가능" : "교시중 입장 불가";
+  const canEnterRoom = entryAccess?.canEnter === true;
+  const enterStatusText = studyRoomEntryStatusText(
+    entryAccess,
+    entryAccessLoading,
+    entryAccessError,
+  );
+  const showDefaultEntryDescription =
+    canEnterRoom && entryAccess?.reason === "OPEN_WINDOW";
   const scheduleNotice =
     bellMsg ||
     (current?.isBreak
@@ -901,16 +1017,21 @@ export default function WaitingRoom() {
           </button>
         </section>
 
-        <section className="wr-entry">
+        <section aria-busy={entryAccessLoading} className="wr-entry">
           <button
             className="wr-entry-btn is-private"
             disabled={!canEnterRoom}
             onClick={() => navigate("/study-line")}
+            type="button"
           >
             <DoorFrontOutlinedIcon />
             <span>
               <strong>개인 작업실 입장</strong>
-              <em>{canEnterRoom ? "나만의 집중 작업실" : enterStatusText}</em>
+              <em>
+                {showDefaultEntryDescription
+                  ? "나만의 집중 작업실"
+                  : enterStatusText}
+              </em>
             </span>
           </button>
 
@@ -918,15 +1039,31 @@ export default function WaitingRoom() {
             className="wr-entry-btn is-group"
             disabled={!canEnterRoom}
             onClick={() => navigate("/study-room")}
+            type="button"
           >
             <GroupsOutlinedIcon />
             <span>
               <strong>단체 작업장 입장</strong>
               <em>
-                {canEnterRoom ? "전국 사원과 함께 입장" : enterStatusText}
+                {showDefaultEntryDescription
+                  ? "전국 사원과 함께 입장"
+                  : enterStatusText}
               </em>
             </span>
           </button>
+
+          {entryAccessError && (
+            <div className="wr-entry-status is-error" role="alert">
+              <span>{entryAccessError}</span>
+              <button
+                disabled={entryAccessLoading}
+                onClick={() => void refreshEntryAccess()}
+                type="button"
+              >
+                {entryAccessLoading ? "확인 중" : "다시 확인"}
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="wr-progress">

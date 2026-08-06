@@ -60,6 +60,42 @@ export interface SessionRevokedPayload {
   message: string;
 }
 
+export type StudyRoomEntryAccessReason =
+  | "OPEN_WINDOW"
+  | "ADMIN_GRANTED"
+  | "ALREADY_IN_ROOM"
+  | "STUDY_WINDOW_LOCKED"
+  | "TIMETABLE_UNAVAILABLE";
+
+export interface StudyRoomEntryAccess {
+  canEnter: boolean;
+  reason: StudyRoomEntryAccessReason;
+  slot: number | null;
+  windowStartedAt: string | null;
+  windowEndsAt: string | null;
+  grantId: string | null;
+}
+
+export interface StudyRoomEntryAccessChangedPayload {
+  canEnter: true;
+  reason: "ADMIN_GRANTED";
+  slot: number;
+  windowStartedAt: string;
+  windowEndsAt: string;
+  grantId: string;
+}
+
+export interface StudyRoomEntryGrant {
+  id: string;
+  userId: string;
+  branchId: string;
+  slot: number;
+  windowStartedAt: string;
+  expiresAt: string;
+  grantedById: string;
+  createdAt: string;
+}
+
 export interface AuthUser {
   userId?: string;
   id?: string;
@@ -147,8 +183,7 @@ export interface ConsultationCheckoutRequest extends AdminDiscountRequest {
   startDate: string;
 }
 
-export interface ReplaceConsultationCheckoutRequest
-  extends ConsultationCheckoutRequest {
+export interface ReplaceConsultationCheckoutRequest extends ConsultationCheckoutRequest {
   paymentId: string;
 }
 
@@ -246,8 +281,7 @@ export interface ConsultationCheckoutResult extends CheckoutResult {
   consultation: Pick<ConsultationRecord, "id" | "name" | "phone">;
 }
 
-export interface ConsultationCheckoutLinkResult
-  extends ConsultationCheckoutResult {
+export interface ConsultationCheckoutLinkResult extends ConsultationCheckoutResult {
   checkoutUrl: string;
   discountReason: string | null;
 }
@@ -287,7 +321,6 @@ export interface MembershipGrant {
   updatedAt: string;
 }
 
-
 export type RoleName = "ADMIN" | "STAFF" | "MEMBER" | string;
 export type PaymentStatus =
   | "PENDING"
@@ -296,12 +329,29 @@ export type PaymentStatus =
   | "CANCELLED"
   | "SUPERSEDED"
   | "REFUNDED";
-export type ConsultationStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | string;
-export type ConsultationTypeName = "PHONE" | "VIDEO" | "QUESTION" | "IMMEDIATE" | string;
+export type ConsultationStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | string;
+export type ConsultationTypeName =
+  | "PHONE"
+  | "VIDEO"
+  | "QUESTION"
+  | "IMMEDIATE"
+  | string;
 export type LeaveTypeName = "FULL" | "MORNING" | "AFTERNOON";
 export type LeaveStatusName = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 export type SpecialLeaveTypeName = "OUTING" | "MOCK_EXAM" | "STUDY";
-export type DayOfWeekName = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+export type DayOfWeekName =
+  | "MON"
+  | "TUE"
+  | "WED"
+  | "THU"
+  | "FRI"
+  | "SAT"
+  | "SUN";
 
 export interface AdminUser extends AuthUser {
   id: string;

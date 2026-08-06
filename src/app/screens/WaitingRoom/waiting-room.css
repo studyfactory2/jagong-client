@@ -891,6 +891,47 @@
   color: var(--ink);
 }
 
+.wr-entry-status {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--bad);
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.wr-entry-status > span {
+  min-width: 0;
+}
+
+.wr-entry-status > button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 9px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wr-entry-status > button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: default;
+}
+
 .wr-shortcuts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -934,6 +975,7 @@
 .wr-icon-btn:focus-visible,
 .wr-study-link:focus-visible,
 .wr-entry-btn:focus-visible,
+.wr-entry-status > button:focus-visible,
 .wr-worker-empty button:focus-visible,
 .wr-preview-note button:focus-visible,
 .wr-shortcuts button:focus-visible {
