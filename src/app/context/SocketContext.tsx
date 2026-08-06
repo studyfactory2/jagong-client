@@ -22,6 +22,11 @@ import {
 } from "../services/notice.service";
 import { connectSocket } from "../services/socket";
 import { hasActiveMembership } from "../utils/access";
+import {
+  armMemberAlertSound,
+  clearPendingMemberAlertSound,
+  playMemberAlertSound,
+} from "../utils/member-alert-sound";
 import { useAuth } from "./AuthContext";
 
 interface SocketContextValue {
@@ -42,6 +47,13 @@ type SocketNotice = {
   body: string;
   isBoardNotice?: boolean;
   sessionToken: string;
+};
+
+type CamWarningPayload = {
+  id?: string;
+  type?: string | null;
+  message?: string;
+  createdAt?: string;
 };
 
 function mergeNotifications(
@@ -194,6 +206,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     notificationOwnerKeyRef.current = notificationOwnerKey;
   }, [notificationOwnerKey]);
 
+  useEffect(() => armMemberAlertSound(), []);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (notificationOwnerKey) {
@@ -235,6 +249,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
           // The server still forces disconnection after its acknowledgement timeout.
         }
 
+        clearPendingMemberAlertSound();
         setSocket(null);
         setConnected(false);
         setOnline(null);
@@ -250,16 +265,20 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         navigateRef.current("/login", { replace: true });
       },
     );
-    s.on(
-      "cam:warning",
-      (payload: { message: string; type?: string | null }) => {
-        setWarning({
-          message: payload.message,
-          type: payload.type,
-          sessionToken,
-        });
-      },
-    );
+    s.on("cam:warning", (payload: CamWarningPayload) => {
+      const message = payload?.message?.trim();
+      if (!message) return;
+      const warningId =
+        payload.id?.trim() ||
+        payload.createdAt?.trim() ||
+        `legacy:${payload.type ?? "warning"}`;
+      playMemberAlertSound("warning", warningId);
+      setWarning({
+        message,
+        type: payload.type,
+        sessionToken,
+      });
+    });
     s.on("notice", (payload: NoticeRecord) => {
       if (!shouldShowBoardNotice) return;
       setNotice({
@@ -286,6 +305,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         isRead: Boolean(payload.isRead),
         createdAt: payload.createdAt || new Date().toISOString(),
       };
+      playMemberAlertSound("notification", notification.id);
       setNotificationState((current) => ({
         ownerKey: notificationOwnerKey,
         records: mergeNotifications(
@@ -304,6 +324,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     const socketReadyTimer = window.setTimeout(() => setSocket(s), 0);
 
     return () => {
+      clearPendingMemberAlertSound();
       window.clearTimeout(socketReadyTimer);
       s.io.off("reconnect", refreshAfterReconnect);
       s.disconnect();
