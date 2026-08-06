@@ -325,7 +325,7 @@ export default function AdminDashboard() {
   );
 
   const load = useCallback(async () => {
-    if (!allowed) return;
+    if (!allowed) return false;
     const memberDirectoryRequestId = ++memberDirectoryRequestRef.current;
     setError("");
     setLoading(true);
@@ -433,6 +433,7 @@ export default function AdminDashboard() {
         ...current,
         branchId: current.branchId || branchData[0]?.id || "",
       }));
+      return true;
     } catch (err) {
       if (memberDirectoryRequestId === memberDirectoryRequestRef.current) {
         setError(
@@ -441,6 +442,7 @@ export default function AdminDashboard() {
             : "관리자 정보를 불러오지 못했습니다.",
         );
       }
+      return false;
     } finally {
       setLoading(false);
     }
@@ -575,7 +577,7 @@ export default function AdminDashboard() {
     }, "사전등록을 저장하지 못했습니다.");
   }
 
-  async function saveManualPayment() {
+  async function saveManualPayment(): Promise<boolean> {
     const selectedPlan = membershipPlans.find(
       (plan) => plan.months === manualMonths,
     );
@@ -600,7 +602,8 @@ export default function AdminDashboard() {
       discountError ||
       savingManualPayment
     )
-      return;
+      return false;
+    let succeeded = false;
     setSavingManualPayment(true);
     try {
       await runAdminAction(async () => {
@@ -646,16 +649,23 @@ export default function AdminDashboard() {
         setManualPaidAt(todayDateInputValue());
         setManualStartDate(todayDateInputValue());
         setManualReceiptFile(null);
-        await load();
+        const reloaded = await load();
         if (receiptUploadFailed) {
           throw new Error(
             "수동 결제는 등록됐지만 입금 확인 사진 업로드에 실패했습니다. 결제 내역에서 영수증 없음을 확인해 주세요.",
           );
         }
+        if (!reloaded) {
+          throw new Error(
+            "수동 결제는 등록됐지만 관리자 화면을 새로고침하지 못했습니다. 결제 내역을 다시 확인해 주세요.",
+          );
+        }
+        succeeded = true;
       }, "수동 결제를 등록하지 못했습니다.");
     } finally {
       setSavingManualPayment(false);
     }
+    return succeeded;
   }
 
   async function saveFreeTrial() {
@@ -1277,7 +1287,9 @@ export default function AdminDashboard() {
                 onSearchChange={(value) => changeSearch("payments", value)}
                 pageMeta={pageMeta.payments}
                 onPageChange={(page) => changePage("payments", page)}
-                onRefundRecorded={load}
+                onRefundRecorded={async () => {
+                  await load();
+                }}
                 focusedMember={paymentMemberFilter}
                 onClearFocusedMember={clearPaymentMemberFilter}
                 onReturnToAttendance={returnToAttendanceMember}

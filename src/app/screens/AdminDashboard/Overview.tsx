@@ -65,7 +65,7 @@ type OverviewProps = {
   onFreeTrialStartDateChange: (value: string) => void;
   onFreeTrialMemoChange: (value: string) => void;
   onSaveNotice: () => void;
-  onSaveManualPayment: () => void;
+  onSaveManualPayment: () => Promise<boolean>;
   onSaveFreeTrial: () => void;
   onNavigate: (tab: AdminTabKey) => void;
 };
@@ -178,6 +178,7 @@ export default function Overview(props: OverviewProps) {
   const [pendingConfirm, setPendingConfirm] = useState<
     "payment" | "free" | null
   >(null);
+  const [manualPaymentSucceeded, setManualPaymentSucceeded] = useState(false);
   const [noticePage, setNoticePage] = useState(1);
   const totalNoticePages = Math.max(
     1,
@@ -379,7 +380,7 @@ export default function Overview(props: OverviewProps) {
           ["만료 예정일", projectedFreeTrialEnd],
         ];
 
-  function confirmPendingAction() {
+  async function confirmPendingAction() {
     const action = pendingConfirm;
     setPendingConfirm(null);
     if (
@@ -388,7 +389,9 @@ export default function Overview(props: OverviewProps) {
       !manualDiscountError &&
       manualFinalAmount !== null
     ) {
-      onSaveManualPayment();
+      const succeeded = await onSaveManualPayment();
+      if (succeeded) setManualPaymentSucceeded(true);
+      return;
     }
     if (action === "free") onSaveFreeTrial();
   }
@@ -1147,6 +1150,33 @@ export default function Overview(props: OverviewProps) {
                 취소
               </button>
               <button onClick={confirmPendingAction} type="button">
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manualPaymentSucceeded && (
+        <div
+          className="admin-confirm-backdrop"
+          onClick={() => setManualPaymentSucceeded(false)}
+          role="presentation"
+        >
+          <div
+            aria-labelledby="admin-payment-success-title"
+            aria-modal="true"
+            className="admin-confirm-dialog"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <strong id="admin-payment-success-title">수동 결제 등록 완료</strong>
+            <p>수동 결제가 정상적으로 등록되고 회원 이용기간에 반영되었습니다.</p>
+            <div className="admin-confirm-actions is-single">
+              <button
+                onClick={() => setManualPaymentSucceeded(false)}
+                type="button"
+              >
                 확인
               </button>
             </div>
