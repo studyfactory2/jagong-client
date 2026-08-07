@@ -379,14 +379,16 @@ export default function Attendance({
   function openReasonDialog(userId: string, slot: number) {
     const user = users.find((item) => item.id === userId);
     const existing = recordMap.get(recordKey(userId, slot));
+    const existingReasonType = existing?.reasonType?.trim() ?? "";
+    const existingReason = existing?.reason?.trim() ?? "";
     setReasonDialog({
       userId,
       userName: user?.name ?? "회원",
       date: selectedDate,
       slots: [slot],
       anchorSlot: slot,
-      reasonType: existing?.reasonType || "컨디션",
-      reason: existing?.reason || "",
+      reasonType: existingReasonType || (existingReason ? "" : "컨디션"),
+      reason: existingReason,
     });
   }
 
@@ -429,12 +431,14 @@ export default function Attendance({
 
   async function saveReason() {
     if (!reasonDialog || !reasonDialog.slots.length) return;
-    const reasonType = reasonDialog.reasonType.trim();
-    const reason = reasonDialog.reason.trim();
-    if (!reasonType && !reason) {
+    const selectedReasonType = reasonDialog.reasonType.trim();
+    const customReason = reasonDialog.reason.trim();
+    if (!selectedReasonType && !customReason) {
       setError("기타 사유를 선택하거나 입력해 주세요.");
       return;
     }
+    const reasonType = customReason ? undefined : selectedReasonType;
+    const reason = customReason || undefined;
 
     setReasonSaving(true);
     try {
@@ -775,7 +779,7 @@ export default function Attendance({
                       const userCoverage = coverageByUser.get(member.id);
                       const covered = userCoverage && coverageAppliesToSlot(userCoverage, slot.slot, workSlots) ? userCoverage : null;
                       const cellStatus = covered ? "is-leave" : statusClass(record?.status);
-                      const excusedLabel = record?.status === "EXCUSED" ? record.reasonType?.trim() || "기타" : "";
+                      const excusedLabel = record?.status === "EXCUSED" ? record.reason?.trim() || record.reasonType?.trim() || "기타" : "";
                       const cellLabel = covered
                         ? coverageReason(covered)
                         : record?.status === "EXCUSED"
@@ -783,10 +787,9 @@ export default function Attendance({
                           : record
                             ? STATUS_TABLE_LABEL[record.status as AttendanceStatusName] ?? "기타"
                             : "–";
-                      const excusedDetail = [record?.reasonType, record?.reason].filter(Boolean).join(" · ");
                       const cellTitle = covered
                         ? `${member.name} · ${coverageReason(covered)} · 취소`
-                        : `${member.name} · ${slot.label} · ${record?.status === "EXCUSED" ? excusedDetail || "기타" : record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
+                        : `${member.name} · ${slot.label} · ${record?.status === "EXCUSED" ? excusedLabel : record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
                       const key = recordKey(member.id, slot.slot);
                       return (
                         <td key={slot.slot}>
@@ -839,7 +842,7 @@ export default function Attendance({
             <section className="attendance-form-section">
               <span>사유 선택</span>
               <div className="attendance-reason-grid">
-                {REASON_TYPES.map((reasonType) => <button className={reasonDialog.reasonType === reasonType ? "is-active" : ""} key={reasonType} onClick={() => setReasonDialog((current) => current ? { ...current, reasonType } : current)} type="button">{reasonType}</button>)}
+                {REASON_TYPES.map((reasonType) => <button className={!reasonDialog.reason.trim() && reasonDialog.reasonType === reasonType ? "is-active" : ""} key={reasonType} onClick={() => setReasonDialog((current) => current ? { ...current, reasonType, reason: "" } : current)} type="button">{reasonType}</button>)}
               </div>
             </section>
             <label className="attendance-form-field">사유 입력<input onChange={(event) => setReasonDialog((current) => current ? { ...current, reason: event.target.value } : current)} placeholder="예: 병원 방문" value={reasonDialog.reason} /></label>

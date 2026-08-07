@@ -325,12 +325,7 @@ export default function StudyRoom() {
       }
 
       selfTileVideoRef.current = element;
-      if (
-        !element ||
-        !joined ||
-        cameraPausedForBreak ||
-        !localVideoTrack
-      ) {
+      if (!element || !joined || cameraPausedForBreak || !localVideoTrack) {
         return;
       }
 
@@ -343,8 +338,7 @@ export default function StudyRoom() {
   const nowMin = seoulMinutesSinceMidnight(now);
   const current = useMemo(() => {
     const matches = timetable.filter(
-      (slot) =>
-        toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime),
+      (slot) => toMin(slot.startTime) <= nowMin && nowMin < toMin(slot.endTime),
     );
     return matches.length === 1 ? matches[0] : undefined;
   }, [nowMin, timetable]);
@@ -405,8 +399,7 @@ export default function StudyRoom() {
   const isCountedStudy =
     isStudying && studyStatus?.source !== "SYSTEM" && !cameraPausedForBreak;
   const isIntentionalBreak =
-    studyStatus?.active === true &&
-    (cameraPausedForBreak || isMemberBreak);
+    studyStatus?.active === true && (cameraPausedForBreak || isMemberBreak);
   const isBreakTransitionPending =
     isTimetableBreak &&
     !isStudyStatusPending &&
@@ -552,10 +545,7 @@ export default function StudyRoom() {
     setVisibleRemoteUserIds(visibleCameraIds);
   }, [setVisibleRemoteUserIds, visibleCameraIds]);
 
-  useEffect(
-    () => () => setVisibleRemoteUserIds([]),
-    [setVisibleRemoteUserIds],
-  );
+  useEffect(() => () => setVisibleRemoteUserIds([]), [setVisibleRemoteUserIds]);
 
   async function handleDeviceChange(deviceId: string) {
     await selectCamera(deviceId);
@@ -744,9 +734,7 @@ export default function StudyRoom() {
               ) : isStudyStatusPending && !studyStatusError ? (
                 <button
                   className="sr-study-action is-refresh"
-                  disabled={
-                    studyStatusLoading || studyActionPending !== null
-                  }
+                  disabled={studyStatusLoading || studyActionPending !== null}
                   onClick={() => void refreshStudyStatus()}
                   type="button"
                 >

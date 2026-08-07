@@ -352,8 +352,7 @@ export default function StudyLine() {
 
   const current = useMemo(() => {
     const matches = slots.filter(
-      (slot) =>
-        toSec(slot.startTime) <= nowSec && nowSec < toSec(slot.endTime),
+      (slot) => toSec(slot.startTime) <= nowSec && nowSec < toSec(slot.endTime),
     );
     return matches.length === 1 ? matches[0] : undefined;
   }, [slots, nowSec]);
@@ -430,10 +429,7 @@ export default function StudyLine() {
   };
 
   const confirmStudyBreak = async () => {
-    if (
-      currentStudyState.action !== "BREAK" ||
-      studyActionDisabled
-    ) {
+    if (currentStudyState.action !== "BREAK" || studyActionDisabled) {
       setBreakConfirmOpen(false);
       return;
     }
@@ -514,9 +510,7 @@ export default function StudyLine() {
               ) : isStudyStatusPending && !studyStatusError ? (
                 <button
                   className="sl-study-action is-refresh"
-                  disabled={
-                    studyStatusLoading || studyActionPending !== null
-                  }
+                  disabled={studyStatusLoading || studyActionPending !== null}
                   onClick={() => void refreshStudyStatus()}
                   type="button"
                 >
