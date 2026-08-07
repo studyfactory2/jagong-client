@@ -11,6 +11,7 @@ import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlin
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
+import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
@@ -22,6 +23,7 @@ import {
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import type { StudyTimeStatus, TimetableSlot } from "../../../lib/types";
+import StudyLineSelfCameraCard from "./StudyLineSelfCameraCard";
 import "./study-line.css";
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
@@ -270,6 +272,7 @@ function studyStateView(
 
 export default function StudyLine() {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const { socket } = useSocket();
   const {
     joined,
@@ -277,6 +280,7 @@ export default function StudyLine() {
     cameraReady,
     cameraPausedForBreak,
     error,
+    localVideoTrack,
     studyStatus,
     studyStatusLoading,
     studyStatusError,
@@ -570,6 +574,14 @@ export default function StudyLine() {
           <div className="sl-camera-error" role="alert">
             <span>{error}</span>
           </div>
+        )}
+
+        {joined && (
+          <StudyLineSelfCameraCard
+            cameraPausedForBreak={cameraPausedForBreak}
+            memberName={session?.user.name ?? "나"}
+            track={localVideoTrack}
+          />
         )}
 
         <section className="sl-bottom">
