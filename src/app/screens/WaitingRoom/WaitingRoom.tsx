@@ -643,8 +643,8 @@ export default function WaitingRoom() {
         .map((member) => member.userId),
     [fameMembers],
   );
-  const effectivePreviewStatus =
-    livePreviewIds.length === 0 ? "idle" : previewStatus;
+  const hasLivePreviews = livePreviewIds.length > 0;
+  const effectivePreviewStatus = hasLivePreviews ? previewStatus : "idle";
   const previewVideoByUser = useMemo(() => {
     const map = new Map<string, RemoteVideo>();
     previewVideos.forEach((video) => {
@@ -678,14 +678,39 @@ export default function WaitingRoom() {
   }, [livePreviewIds, syncPreviewSubscriptions]);
 
   useEffect(() => {
-    if (livePreviewIds.length === 0) {
+    if (!hasLivePreviews) {
       return undefined;
     }
 
     let mounted = true;
     let localRoom: Room | null = null;
+    let reconnectAttempts = 0;
+    let reconnectTimer: number | null = null;
+    let accessRevoked = false;
+
+    const clearCurrentRoom = (room: Room) => {
+      if (localRoom === room) localRoom = null;
+      if (previewRoomRef.current === room) previewRoomRef.current = null;
+    };
+
+    const scheduleReconnect = () => {
+      if (!mounted || reconnectTimer !== null) return;
+      if (reconnectAttempts >= 1) {
+        setPreviewStatus("error");
+        return;
+      }
+
+      reconnectAttempts += 1;
+      setPreviewStatus("connecting");
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        void connectPreviewViewer();
+      }, reconnectAttempts * 1500);
+    };
 
     async function connectPreviewViewer() {
+      let connectingRoom: Room | null = null;
+
       try {
         setPreviewStatus("connecting");
         const token = await issueCamToken({ preview: true });
@@ -697,12 +722,14 @@ export default function WaitingRoom() {
           return;
         }
 
-        const { Room, RoomEvent } = await import("livekit-client");
+        const { DisconnectReason, Room, RoomEvent } =
+          await import("livekit-client");
         const room = new Room({
           adaptiveStream: true,
           dynacast: true,
         });
 
+        connectingRoom = room;
         localRoom = room;
         previewRoomRef.current = room;
 
@@ -742,11 +769,40 @@ export default function WaitingRoom() {
           syncPreviewSubscriptions(room);
         });
 
+        room.on(RoomEvent.Reconnecting, () => {
+          if (!mounted || localRoom !== room) return;
+          setPreviewStatus("connecting");
+        });
+
+        room.on(RoomEvent.Reconnected, () => {
+          if (!mounted || localRoom !== room) return;
+          setPreviewStatus("connected");
+          syncPreviewSubscriptions(room);
+        });
+
+        room.on(RoomEvent.Disconnected, (reason) => {
+          if (!mounted || localRoom !== room) return;
+
+          clearCurrentRoom(room);
+          setPreviewVideos([]);
+
+          if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
+            accessRevoked = true;
+            console.warn(
+              "Waiting room LiveKit preview access was revoked by the server",
+            );
+            setPreviewStatus("error");
+            return;
+          }
+
+          scheduleReconnect();
+        });
+
         await room.connect(token.url, token.token, {
           autoSubscribe: false,
         });
 
-        if (!mounted) {
+        if (!mounted || localRoom !== room) {
           room.disconnect();
           return;
         }
@@ -756,7 +812,19 @@ export default function WaitingRoom() {
       } catch (err) {
         console.error("Waiting room LiveKit preview failed", err);
         if (!mounted) return;
-        setPreviewStatus("error");
+
+        if (accessRevoked) {
+          setPreviewStatus("error");
+          return;
+        }
+
+        const failedRoom = connectingRoom;
+        if (failedRoom) {
+          clearCurrentRoom(failedRoom);
+          void failedRoom.disconnect();
+        }
+        setPreviewVideos([]);
+        scheduleReconnect();
       }
     }
 
@@ -764,6 +832,7 @@ export default function WaitingRoom() {
 
     return () => {
       mounted = false;
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       setPreviewVideos([]);
       if (localRoom) {
         localRoom.disconnect();
@@ -772,7 +841,7 @@ export default function WaitingRoom() {
         previewRoomRef.current = null;
       }
     };
-  }, [livePreviewIds.length, syncPreviewSubscriptions]);
+  }, [hasLivePreviews, syncPreviewSubscriptions]);
 
   const timetableMidpoint = Math.ceil(slots.length / 2);
   const timetableColumns = [

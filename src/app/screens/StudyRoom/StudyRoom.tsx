@@ -511,9 +511,6 @@ export default function StudyRoom() {
     () => membersForGrid.find((member) => member.id === myId),
     [membersForGrid, myId],
   );
-  const myTodayStudyTime = formatTodayStudyTime(
-    selfMember?.todayStudy?.studySeconds,
-  );
   const pageableMembers = useMemo(
     () => membersForGrid.filter((member) => member.id !== myId),
     [membersForGrid, myId],
@@ -720,14 +717,6 @@ export default function StudyRoom() {
                 </span>
               </div>
               <div className="sr-study-actions">
-                <span
-                  aria-label={`오늘 공부시간 ${myTodayStudyTime}`}
-                  className="sr-study-today"
-                  title={`오늘 공부시간 ${myTodayStudyTime}`}
-                >
-                  <small>오늘 공부</small>
-                  <strong>{myTodayStudyTime}</strong>
-                </span>
                 {studyAction ? (
                   <button
                     className={`sr-study-action is-${studyAction.toLowerCase()}`}
@@ -839,16 +828,14 @@ export default function StudyRoom() {
                   {remoteVideo && !remoteVideo.muted && (
                     <StudyRoomRemoteVideo track={remoteVideo.track} />
                   )}
-                  {!isMe && (
-                    <span
-                      aria-label={`오늘 공부시간 ${todayStudyTime}`}
-                      className="sr-cam-today-study"
-                      title={`오늘 공부시간 ${todayStudyTime}`}
-                    >
-                      <small>오늘</small>
-                      <strong>{todayStudyTime}</strong>
-                    </span>
-                  )}
+                  <span
+                    aria-label={`오늘 공부시간 ${todayStudyTime}`}
+                    className="sr-cam-today-study"
+                    title={`오늘 공부시간 ${todayStudyTime}`}
+                  >
+                    <small>오늘</small>
+                    <strong>{todayStudyTime}</strong>
+                  </span>
                   <span className="sr-cam-name">
                     {isMe ? "나" : member.name}
                   </span>
