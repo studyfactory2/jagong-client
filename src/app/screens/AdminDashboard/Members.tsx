@@ -12,6 +12,7 @@ import type {
   StudyRoomEntryGrant,
 } from "../../../lib/types";
 import AdminPager from "./AdminPager";
+import MemberOvernightStudyReport from "./MemberOvernightStudyReport";
 import { dDayText, userDetail } from "./admin.utils";
 
 export type MemberStatusFilter = "ALL" | MemberStatus;
@@ -659,6 +660,11 @@ export default function Members({
                           <dd>{dDayText(selectedUser.membershipEnd)}</dd>
                         </div>
                       </dl>
+
+                      <MemberOvernightStudyReport
+                        key={selectedUser.id}
+                        memberId={selectedUser.id}
+                      />
 
                       <section className="admin-member-directory-entry-grant">
                         <header>

@@ -631,6 +631,25 @@ export interface WeeklyStudyLeaderboard {
   members: WeeklyStudyLeaderboardMember[];
 }
 
+export interface OvernightVoluntaryStudyBlock extends StudyStatisticsWindow {
+  studySeconds: number;
+}
+
+export interface OvernightVoluntaryStudyReport {
+  generatedAt: string;
+  date: string;
+  userId: string;
+  name: string;
+  window: StudyStatisticsWindow;
+  countedThroughAt: string;
+  studySeconds: number;
+  studyBlockCount: number;
+  longestContinuousStudySeconds: number;
+  firstStudyStartedAt: string | null;
+  lastStudyEndedAtExclusive: string | null;
+  blocks: OvernightVoluntaryStudyBlock[];
+}
+
 export type StudyChallengeStatus =
   | "SCHEDULED"
   | "ACTIVE"
