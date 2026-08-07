@@ -129,12 +129,12 @@ export default function Login() {
             <picture>
               <source
                 media="(prefers-reduced-motion: reduce)"
-                srcSet="/logo/logo-oneline-3.webp"
+                srcSet="/logo/jagong-lockup.jpeg"
               />
               <img
                 className="login-logo"
-                src="/logo/logo-oneline-3.webp"
-                alt="온라인 관리형독서실 · 자격증공장 재택근무반"
+                src="/logo/jagong-lockup.jpeg"
+                alt="자격증공장 재택근무반"
               />
             </picture>
           </div>
@@ -266,14 +266,14 @@ export default function Login() {
               type="button"
               className="login-cta"
               onClick={() => navigate("/booking")}
-              aria-label="궁금하신가요? 가입상담예약 신청하기"
+              aria-label="국가전문자격 합격공장 입사신청하기"
             >
               <span className="login-cta-icon-wrap">
                 <CalendarMonthOutlinedIcon className="login-cta-icon" />
               </span>
               <span className="login-cta-body">
-                <strong>궁금한 점이 있으신가요?</strong>
-                <em>가입상담예약</em>
+                <strong>국가전문자격 합격공장</strong>
+                <em>입사신청하기</em>
               </span>
               <span className="login-cta-btn" aria-hidden="true">
                 <ChevronRightIcon className="login-cta-chev" />

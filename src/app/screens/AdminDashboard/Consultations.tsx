@@ -54,7 +54,7 @@ const CONSULT_TYPE_LABEL: Record<string, string> = {
   PHONE: "전화상담",
   VIDEO: "화상상담",
   QUESTION: "문의",
-  IMMEDIATE: "바로시작",
+  IMMEDIATE: "입사신청",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -376,6 +376,9 @@ export default function Consultations(props: ConsultationsProps) {
       ? selectedCheckoutPlan.total - selectedCheckoutDiscount
       : null;
   const isSelectedVideo = selectedConsultation?.consultType === "VIDEO";
+  const isSelectedApplication =
+    selectedConsultation?.consultType === "IMMEDIATE" &&
+    !selectedConsultation.desiredDate;
   const selectedPaid = Boolean(selectedPaidPayment);
   const selectedPaymentPending = Boolean(
     selectedProvisional || selectedPendingPayment,
@@ -589,18 +592,19 @@ export default function Consultations(props: ConsultationsProps) {
 
             <dl className="admin-consultation-detail-fields">
               <div>
-                <dt>상담 신청</dt>
+                <dt>{isSelectedApplication ? "신청 일시" : "상담 신청"}</dt>
                 <dd>{dateText(selectedConsultation.createdAt)}</dd>
               </div>
               <div>
-                <dt>희망 일정</dt>
+                <dt>{isSelectedApplication ? "신청 경로" : "희망 일정"}</dt>
                 <dd>
-                  {consultationDate(selectedConsultation)} ·{" "}
-                  {selectedConsultation.timeSlot ?? "시간 미정"}
+                  {isSelectedApplication
+                    ? "계좌이체 입사신청"
+                    : `${consultationDate(selectedConsultation)} · ${selectedConsultation.timeSlot ?? "시간 미정"}`}
                 </dd>
               </div>
               <div>
-                <dt>상담 유형</dt>
+                <dt>{isSelectedApplication ? "신청 유형" : "상담 유형"}</dt>
                 <dd>{consultationType(selectedConsultation)}</dd>
               </div>
               <div>
@@ -608,17 +612,41 @@ export default function Consultations(props: ConsultationsProps) {
                 <dd>{selectedConsultation.examType ?? "-"}</dd>
               </div>
               <div>
+                <dt>연령</dt>
+                <dd>
+                  {selectedConsultation.age == null
+                    ? "-"
+                    : `${selectedConsultation.age}세`}
+                </dd>
+              </div>
+              <div>
                 <dt>지역</dt>
                 <dd>{selectedConsultation.residenceArea ?? "-"}</dd>
               </div>
               <div>
-                <dt>준비기간</dt>
+                <dt>공부 장소</dt>
+                <dd>{selectedConsultation.studyPlace ?? "-"}</dd>
+              </div>
+              <div>
+                <dt>주 60시간 도전</dt>
                 <dd>
-                  {selectedConsultation.prepDuration ??
-                    selectedConsultation.studyPeriod ??
-                    "-"}
+                  {selectedConsultation.studyChallengeInterested == null
+                    ? "미선택"
+                    : selectedConsultation.studyChallengeInterested
+                      ? "참여 희망"
+                      : "참여 안 함"}
                 </dd>
               </div>
+              {!isSelectedApplication && (
+                <div>
+                  <dt>준비기간</dt>
+                  <dd>
+                    {selectedConsultation.prepDuration ??
+                      selectedConsultation.studyPeriod ??
+                      "-"}
+                  </dd>
+                </div>
+              )}
             </dl>
 
             {selectedConsultation.adminNotes && (
@@ -666,7 +694,7 @@ export default function Consultations(props: ConsultationsProps) {
                   }
                   type="button"
                 >
-                  상담 확정
+                  {isSelectedApplication ? "신청 확인" : "상담 확정"}
                 </button>
               )}
               {selectedConsultation.status === "CONFIRMED" && (
@@ -674,14 +702,22 @@ export default function Consultations(props: ConsultationsProps) {
                   onClick={() => onComplete(selectedConsultation.id)}
                   type="button"
                 >
-                  상담 완료
+                  {isSelectedApplication ? "신청 처리 완료" : "상담 완료"}
                 </button>
               )}
               {selectedConsultation.status === "COMPLETED" && (
-                <span>상담 처리가 완료되었습니다.</span>
+                <span>
+                  {isSelectedApplication
+                    ? "입사 신청 처리가 완료되었습니다."
+                    : "상담 처리가 완료되었습니다."}
+                </span>
               )}
               {selectedConsultation.status === "CANCELLED" && (
-                <span>취소된 상담입니다.</span>
+                <span>
+                  {isSelectedApplication
+                    ? "취소된 입사 신청입니다."
+                    : "취소된 상담입니다."}
+                </span>
               )}
             </div>
 

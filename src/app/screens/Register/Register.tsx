@@ -109,13 +109,13 @@ export default function Register() {
         <picture className="reg-logo-pic">
           <source
             media="(prefers-reduced-motion: reduce)"
-            srcSet="/logo/logo-2.png"
+            srcSet="/logo/jagong-lockup.jpeg"
           />
 
           <img
             className="reg-logo"
-            src="/logo/logo-register1.png"
-            alt="온라인 관리형독서실"
+            src="/logo/jagong-lockup.jpeg"
+            alt="자격증공장 재택근무반"
           />
         </picture>
 

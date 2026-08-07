@@ -1,9 +1,13 @@
-const CACHE_NAME = "jagong-shell-v2";
+const CACHE_NAME = "jagong-shell-v3";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
+  "/favicon-32.png",
+  "/apple-touch-icon.png",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
+  "/logo/jagong-lockup.jpeg",
+  "/logo/jagong-mark.png",
 ];
 
 self.addEventListener("install", (event) => {

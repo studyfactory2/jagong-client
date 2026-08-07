@@ -149,11 +149,12 @@ export type ConsultationInput = {
   examType: string;
   studyPeriod?: string;
   studyPlace?: string;
-  fullTime: boolean;
+  fullTime?: boolean;
+  studyChallengeInterested?: boolean;
   reason?: string;
-  date: string;
-  timeSlot: string;
-  type: ConsultationInputType;
+  date?: string;
+  timeSlot?: string;
+  type?: ConsultationInputType;
   policyVersion: string;
   privacyAgreed: boolean;
 };
@@ -383,6 +384,7 @@ export interface ConsultationRecord {
   prepDuration?: string | null;
   studyPlace?: string | null;
   fullTime?: boolean | null;
+  studyChallengeInterested?: boolean | null;
   reason?: string | null;
   desiredDate?: string | null;
   timeSlot?: string | null;

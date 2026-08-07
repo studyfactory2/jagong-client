@@ -1,36 +1,41 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AccountBalanceOutlinedIcon from "@mui/icons-material/AccountBalanceOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import BoltIcon from "@mui/icons-material/Bolt";
 import CakeOutlinedIcon from "@mui/icons-material/CakeOutlined";
 import CallOutlinedIcon from "@mui/icons-material/CallOutlined";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
-import BoltIcon from "@mui/icons-material/Bolt";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import {
-  createConsultation,
-  getConsultationAvailability,
-} from "../../services/consultation.service";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
+import { createConsultation } from "../../services/consultation.service";
 import { getCurrentPolicyVersion } from "../../services/policy.service";
 import BusinessFooter from "../../components/ui/BusinessFooter";
 import "./booking.css";
 
 const KAKAO_CHANNEL_URL = "https://pf.kakao.com/_ZRvnX/chat";
+const BUSINESS_PHONE = "0516365134";
+
+const BANK_ACCOUNT = {
+  bank: "신한은행",
+  display: "110-498-435650",
+  copy: "110498435650",
+  holder: "김지원",
+};
 
 const STEPS = [
-  { n: 1, label: "상담예약", sub: "현재페이지" },
-  { n: 2, label: "상담", sub: "전화·화상" },
-  { n: 3, label: "결제", sub: "" },
+  { n: 1, label: "신청서작성", sub: "현재페이지" },
+  { n: 2, label: "결제", sub: "" },
+  { n: 3, label: "사원등록", sub: "" },
   { n: 4, label: "재택근무", sub: "시작" },
 ];
+
 const EXAMS = [
   "변호사",
   "변리사",
@@ -44,174 +49,120 @@ const EXAMS = [
   "기타",
 ];
 
-const SLOTS = [
-  { id: "9-10", label: "9-10시" },
-  { id: "10-11", label: "10-11시" },
-  { id: "11-12", label: "11-12시" },
-  { id: "13-14", label: "13-14시" },
-  { id: "14-15", label: "14-15시" },
-  { id: "15-16", label: "15-16시" },
-  { id: "16-17", label: "16-17시" },
-  { id: "17-18", label: "17-18시" },
+const PRICES = [
+  { months: "1개월", total: "150,000원" },
+  { months: "2개월", monthly: "월 130,000원", total: "260,000원" },
+  { months: "3개월", monthly: "월 110,000원", total: "330,000원" },
 ];
 
-const pad = (n: number) => String(n).padStart(2, "0");
+type ChallengeChoice = "" | "yes" | "no";
+type CopyStatus = "" | "copied" | "failed";
 
 export default function ConsultationBooking() {
   const navigate = useNavigate();
   const examMenuRef = useRef<HTMLDivElement | null>(null);
-  const dateMenuRef = useRef<HTMLDivElement | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [phone, setPhone] = useState("");
   const [residenceArea, setResidenceArea] = useState("");
   const [exam, setExam] = useState("");
   const [examOpen, setExamOpen] = useState(false);
-  const [period, setPeriod] = useState("");
   const [place, setPlace] = useState("");
-  const [fullTime, setFullTime] = useState<"" | "yes" | "no">("");
-  const [reason, setReason] = useState("");
-  const [date, setDate] = useState("");
-  const [dateOpen, setDateOpen] = useState(false);
-  const [slot, setSlot] = useState("");
-  const [customTime, setCustomTime] = useState("");
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState<null | "PHONE" | "VIDEO">(null);
-  const [booking, setBooking] = useState(false);
-  const [takenSlots, setTakenSlots] = useState<string[]>([]);
-  const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [availabilityFailed, setAvailabilityFailed] = useState(false);
+  const [challengeChoice, setChallengeChoice] = useState<ChallengeChoice>("");
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
-
-  const dates = useMemo(() => {
-    const days = ["일", "월", "화", "수", "목", "금", "토"];
-    return Array.from({ length: 14 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      return {
-        v: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-        label: `${d.getMonth() + 1}.${d.getDate()} (${days[d.getDay()]})`,
-      };
-    });
-  }, []);
-
-  const selectedDate = dates.find((d) => d.v === date);
+  const [err, setErr] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [applicationSubmitted, setApplicationSubmitted] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>("");
 
   useEffect(() => {
-    function closeMenus(event: MouseEvent) {
-      const target = event.target as Node;
-
-      if (examMenuRef.current && !examMenuRef.current.contains(target)) {
+    function closeExamMenu(event: MouseEvent) {
+      if (
+        examMenuRef.current &&
+        !examMenuRef.current.contains(event.target as Node)
+      ) {
         setExamOpen(false);
-      }
-
-      if (dateMenuRef.current && !dateMenuRef.current.contains(target)) {
-        setDateOpen(false);
       }
     }
 
-    document.addEventListener("mousedown", closeMenus);
-    return () => document.removeEventListener("mousedown", closeMenus);
+    document.addEventListener("mousedown", closeExamMenu);
+    return () => document.removeEventListener("mousedown", closeExamMenu);
   }, []);
-
-  useEffect(() => {
-    let alive = true;
-
-    if (!date) return;
-
-    getConsultationAvailability(date)
-      .then((result) => {
-        if (!alive) return;
-        setTakenSlots(result.takenSlots);
-      })
-      .catch((error) => {
-        if (!alive) return;
-        setTakenSlots([]);
-        setAvailabilityFailed(true);
-        setErr(
-          error instanceof Error
-            ? error.message
-            : "예약 가능 시간을 불러오지 못했습니다.",
-        );
-      })
-      .finally(() => {
-        if (alive) setAvailabilityLoading(false);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [date]);
 
   function validate() {
     if (!name.trim()) return "이름을 입력해 주세요.";
-    const a = Number(age);
-    if (!a || a < 21 || a > 40) return "연령은 21~40세만 가능해요.";
+    const parsedAge = Number(age);
+    if (!Number.isInteger(parsedAge) || parsedAge < 19 || parsedAge > 55) {
+      return "연령은 19~55세의 숫자로 입력해 주세요.";
+    }
     if (!phone.trim()) return "연락처를 입력해 주세요.";
     if (!residenceArea.trim()) return "거주지역을 입력해 주세요.";
     if (!exam) return "시험 종류를 선택해 주세요.";
-    if (!fullTime) return "전업 수험생 여부를 선택해 주세요.";
-    if (!date) return "희망 상담 날짜를 선택해 주세요.";
-    if (availabilityLoading) return "예약 가능 시간을 확인 중입니다.";
-    if (availabilityFailed)
-      return "예약 가능 시간을 불러온 뒤 다시 선택해주세요.";
-    if (!slot) return "희망 상담 시간을 선택해 주세요.";
-    if (takenSlots.includes(slot)) return "이미 예약된 시간입니다.";
-    if (slot === "other" && !customTime.trim())
-      return "원하는 시간을 적어 주세요.";
+    if (!challengeChoice) return "주 60시간 도전 여부를 선택해 주세요.";
     if (!privacyAgreed) return "개인정보 수집 및 이용에 동의해 주세요.";
     return "";
   }
 
-  async function book(type: "PHONE" | "VIDEO") {
-    if (booking) return;
-    const v = validate();
-    if (v) {
-      setErr(v);
+  async function showBankAccount() {
+    if (submitting) return;
+
+    const validationError = validate();
+    if (validationError) {
+      setErr(validationError);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+
     setErr("");
-    setBooking(true);
+    setSubmitting(true);
     try {
-      const policyVersion = await getCurrentPolicyVersion();
-      await createConsultation({
-        name: name.trim(),
-        age: Number(age),
-        phone: phone.trim(),
-        residenceArea: residenceArea.trim(),
-        examType: exam,
-        studyPeriod: period,
-        studyPlace: place,
-        fullTime: fullTime === "yes",
-        reason,
-        date,
-        timeSlot: slot === "other" ? customTime : slot,
-        type,
-        policyVersion,
-        privacyAgreed,
-      });
-      setDone(type);
+      if (!applicationSubmitted) {
+        const policyVersion = await getCurrentPolicyVersion();
+        await createConsultation({
+          name: name.trim(),
+          age: Number(age),
+          phone: phone.trim(),
+          residenceArea: residenceArea.trim(),
+          examType: exam,
+          studyPlace: place.trim() || undefined,
+          studyChallengeInterested: challengeChoice === "yes",
+          type: "IMMEDIATE",
+          policyVersion,
+          privacyAgreed,
+        });
+        setApplicationSubmitted(true);
+      }
+
+      setCopyStatus("");
+      setBankOpen(true);
     } catch (error) {
       setErr(
         error instanceof Error
           ? error.message
-          : "상담 예약 신청에 실패했습니다. 잠시 후 다시 시도해주세요.",
+          : "입사 신청에 실패했습니다. 잠시 후 다시 시도해 주세요.",
       );
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
-      setBooking(false);
+      setSubmitting(false);
     }
   }
 
-  // 질문하기 / 바로시작 → 자격증공장 카카오톡 채널 1:1 채팅
-  function openKakao() {
-    if (KAKAO_CHANNEL_URL.includes("_xxxxx")) {
-      setErr("카카오톡 채널 주소가 아직 설정되지 않았습니다.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
+  async function copyBankAccount() {
+    try {
+      await navigator.clipboard.writeText(BANK_ACCOUNT.copy);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
     }
-    window.open(KAKAO_CHANNEL_URL, "_blank");
+  }
+
+  function openKakao() {
+    window.open(KAKAO_CHANNEL_URL, "_blank", "noopener,noreferrer");
+  }
+
+  function callBusiness() {
+    window.location.href = `tel:${BUSINESS_PHONE}`;
   }
 
   return (
@@ -223,10 +174,9 @@ export default function ConsultationBooking() {
       </div>
 
       <div className="bk-head">
-        <img className="bk-logo" src="/logo.png" alt="" />
+        <img className="bk-logo" src="/logo/jagong-mark.png" alt="자격증공장" />
         <div>
-          <h1 className="bk-title">입사상담예약</h1>
-          <p className="bk-sub">전문자격 온라인 성인관리형독서실</p>
+          <h1 className="bk-title">입사신청서</h1>
         </div>
       </div>
 
@@ -242,14 +192,14 @@ export default function ConsultationBooking() {
         </div>
 
         <div className="bk-steps">
-          {STEPS.map((s, i) => (
-            <Fragment key={s.n}>
-              <div className={`bk-step${s.n === 1 ? " is-active" : ""}`}>
-                <span className="bk-step-num">{s.n}</span>
-                <span className="bk-step-label">{s.label}</span>
-                {s.sub && <span className="bk-step-sub">{s.sub}</span>}
+          {STEPS.map((step, index) => (
+            <Fragment key={step.n}>
+              <div className={`bk-step${step.n === 1 ? " is-active" : ""}`}>
+                <span className="bk-step-num">{step.n}</span>
+                <span className="bk-step-label">{step.label}</span>
+                {step.sub && <span className="bk-step-sub">{step.sub}</span>}
               </div>
-              {i < STEPS.length - 1 && <span className="bk-step-line" />}
+              {index < STEPS.length - 1 && <span className="bk-step-line" />}
             </Fragment>
           ))}
         </div>
@@ -263,7 +213,8 @@ export default function ConsultationBooking() {
               className="bk-fin"
               placeholder="이름을 입력해 주세요."
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              disabled={applicationSubmitted}
+              onChange={(event) => setName(event.target.value)}
             />
           </div>
           <div className="bk-field">
@@ -273,9 +224,12 @@ export default function ConsultationBooking() {
             <input
               className="bk-fin bk-fin--hint"
               inputMode="numeric"
-              placeholder="21-40세까지만 입사가능"
+              placeholder="19~55세"
               value={age}
-              onChange={(e) => setAge(e.target.value)}
+              disabled={applicationSubmitted}
+              onChange={(event) =>
+                setAge(event.target.value.replace(/\D/g, ""))
+              }
             />
           </div>
         </div>
@@ -288,9 +242,10 @@ export default function ConsultationBooking() {
             <input
               className="bk-fin"
               inputMode="tel"
-              placeholder="상담 후 폐기됩니다."
+              placeholder="연락처를 입력해 주세요."
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              disabled={applicationSubmitted}
+              onChange={(event) => setPhone(event.target.value)}
             />
           </div>
           <div className="bk-field">
@@ -301,55 +256,43 @@ export default function ConsultationBooking() {
               className="bk-fin"
               placeholder="예) 서울 / 부산 / 수원"
               value={residenceArea}
-              onChange={(e) => setResidenceArea(e.target.value)}
+              disabled={applicationSubmitted}
+              onChange={(event) => setResidenceArea(event.target.value)}
             />
           </div>
         </div>
 
-        <div className="bk-grid2">
-          <div className="bk-field bk-select-field" ref={examMenuRef}>
-            <FormatListBulletedIcon className="bk-fi" />
-            <span className="bk-fl">시험종류</span>
-            <span className="bk-fdiv" />
-            <button
-              type="button"
-              className={`bk-select-btn${exam ? " is-selected" : ""}`}
-              onClick={() => setExamOpen((open) => !open)}
-            >
-              <span>{exam || "시험 선택"}</span>
-              <ExpandMoreIcon className={examOpen ? "is-open" : ""} />
-            </button>
-
-            {examOpen && (
-              <div className="bk-select-menu">
-                {EXAMS.map((x) => (
-                  <button
-                    type="button"
-                    key={x}
-                    className={`bk-select-option${exam === x ? " is-active" : ""}`}
-                    onClick={() => {
-                      setExam(x);
-                      setExamOpen(false);
-                    }}
-                  >
-                    {x}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bk-field">
-          <CalendarMonthOutlinedIcon className="bk-fi" />
-          <span className="bk-fl">공부한 기간</span>
+        <div className="bk-field bk-select-field" ref={examMenuRef}>
+          <FormatListBulletedIcon className="bk-fi" />
+          <span className="bk-fl">시험종류</span>
           <span className="bk-fdiv" />
-          <input
-            className="bk-fin"
-            placeholder="자유기입  예) 6개월 / 1년 3개월"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-          />
+          <button
+            type="button"
+            className={`bk-select-btn${exam ? " is-selected" : ""}`}
+            disabled={applicationSubmitted}
+            onClick={() => setExamOpen((open) => !open)}
+          >
+            <span>{exam || "시험 선택"}</span>
+            <ExpandMoreIcon className={examOpen ? "is-open" : ""} />
+          </button>
+
+          {examOpen && (
+            <div className="bk-select-menu">
+              {EXAMS.map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  className={`bk-select-option${exam === item ? " is-active" : ""}`}
+                  onClick={() => {
+                    setExam(item);
+                    setExamOpen(false);
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bk-field">
@@ -360,150 +303,75 @@ export default function ConsultationBooking() {
             className="bk-fin"
             placeholder="자유기입  예) 집 / 독서실 / 스터디카페"
             value={place}
-            onChange={(e) => setPlace(e.target.value)}
+            disabled={applicationSubmitted}
+            onChange={(event) => setPlace(event.target.value)}
           />
         </div>
 
         <div className="bk-fulltime">
-          <span className="bk-q">전업 수험생이신가요?</span>
+          <span className="bk-q">주 60시간 도전유무?</span>
           <label className="bk-radio">
             <input
               type="radio"
-              name="fullTime"
-              checked={fullTime === "yes"}
-              onChange={() => setFullTime("yes")}
-            />{" "}
+              name="studyChallengeInterested"
+              checked={challengeChoice === "yes"}
+              disabled={applicationSubmitted}
+              onChange={() => setChallengeChoice("yes")}
+            />
             예
           </label>
           <label className="bk-radio">
             <input
               type="radio"
-              name="fullTime"
-              checked={fullTime === "no"}
-              onChange={() => setFullTime("no")}
-            />{" "}
+              name="studyChallengeInterested"
+              checked={challengeChoice === "no"}
+              disabled={applicationSubmitted}
+              onChange={() => setChallengeChoice("no")}
+            />
             아니요
           </label>
         </div>
 
         <div className="bk-warn">
-          <span className="bk-warn-tag">아닌 경우</span>
+          <span className="bk-warn-tag">도전시</span>
           <p>
-            자격증공장 재택근무반은 짧은 알바, 스터디, 모의고사만 허용하고
-            있으며 직장인은 등록 불가합니다. 공부교시를 빠져야 하는 시간과
-            사유를 적어주세요.
+            주 60시간 4주 성공 시, 다음 4주 도전 기회가 무료로 제공됩니다. 결제
+            후 가까운 월요일부터 도전이 시작됩니다.
           </p>
         </div>
-        <div className="bk-reason">
-          <textarea
-            maxLength={200}
-            placeholder="예) 매주 수요일 16:00-17:00 모의고사 / 사유 작성"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <div className="bk-reason-foot">
-            <FavoriteBorderIcon />
-            <span>{reason.length} / 200</span>
+
+        <section
+          className="bk-operation-guide"
+          aria-labelledby="operation-guide-title"
+        >
+          <h2 id="operation-guide-title">이용 안내</h2>
+          <div className="bk-operation-row">
+            <strong>휴무</strong>
+            <span>월~일 일주일간 월차 1회, 반차 1회 사용 가능</span>
           </div>
-        </div>
+          <div className="bk-operation-row">
+            <strong>시간표</strong>
+            <span>공부 중 작업장 이탈 불가 · 모든 볼일은 쉬는 시간에!</span>
+          </div>
+        </section>
 
-        <div className="bk-field bk-select-field" ref={dateMenuRef}>
-          <CalendarMonthOutlinedIcon className="bk-fi" />
-          <span className="bk-fl">희망상담날짜</span>
-          <span className="bk-fdiv" />
-          <button
-            type="button"
-            className={`bk-select-btn${date ? " is-selected" : ""}`}
-            onClick={() => setDateOpen((open) => !open)}
-          >
-            <span>{selectedDate?.label || "날짜/요일을 선택해 주세요."}</span>
-            <ExpandMoreIcon className={dateOpen ? "is-open" : ""} />
-          </button>
-
-          {dateOpen && (
-            <div className="bk-select-menu bk-select-menu--date">
-              {dates.map((d) => (
-                <button
-                  type="button"
-                  key={d.v}
-                  className={`bk-select-option${date === d.v ? " is-active" : ""}`}
-                  onClick={() => {
-                    setDate(d.v);
-                    setSlot("");
-                    setTakenSlots([]);
-                    setAvailabilityFailed(false);
-                    setAvailabilityLoading(true);
-                    setDateOpen(false);
-                  }}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="bk-info bk-info--privacy">
+          <InfoOutlinedIcon className="bk-info-icon" />
+          <p>
+            관리자가 스케줄 관리와 공부 감독을 하고 있으며, 영상 녹화 기능은
+            설치되어 있지 않습니다.
+          </p>
         </div>
-
-        <div className="bk-slots-head">
-          <h3>희망 상담시간</h3>
-          <span>
-            원하시는 시간을 선택해 주세요. <em>※ 예약상태 표시</em>
-          </span>
-        </div>
-        <div className="bk-slots">
-          {SLOTS.map((s) => {
-            const isTaken = takenSlots.includes(s.id);
-            const isDisabled =
-              !date || availabilityLoading || availabilityFailed || isTaken;
-            const stateText = !date
-              ? "날짜선택"
-              : availabilityLoading
-                ? "확인중"
-                : availabilityFailed
-                  ? "확인필요"
-                  : isTaken
-                    ? "예약완료"
-                    : "예약가능";
-            return (
-              <button
-                key={s.id}
-                disabled={isDisabled}
-                className={`bk-slot${slot === s.id ? " is-sel" : ""}${isTaken || availabilityFailed ? " is-closed" : ""}`}
-                onClick={() => !isDisabled && setSlot(s.id)}
-                type="button"
-              >
-                <span className="bk-slot-time">{s.label}</span>
-                <span className="bk-slot-state">
-                  <FiberManualRecordIcon /> {stateText}
-                </span>
-              </button>
-            );
-          })}
-          <button
-            className={`bk-slot bk-slot--other${slot === "other" ? " is-sel" : ""}`}
-            disabled={!date || availabilityLoading || availabilityFailed}
-            onClick={() => setSlot("other")}
-            type="button"
-          >
-            다른시간 선택하기
-          </button>
-        </div>
-        {slot === "other" && (
-          <input
-            className="bk-custom"
-            placeholder="원하는 시간을 적어 주세요 (예: 20:00-21:00)"
-            value={customTime}
-            onChange={(e) => setCustomTime(e.target.value)}
-          />
-        )}
 
         <label className="bk-agree">
           <input
             type="checkbox"
             checked={privacyAgreed}
+            disabled={applicationSubmitted}
             onChange={(event) => setPrivacyAgreed(event.target.checked)}
           />
           <span>
-            [필수] 상담 예약을 위한 개인정보 수집 및 이용에 동의합니다.
+            [필수] 이용을 위한 개인정보 수집 및 이용에 동의합니다.
             <a href="/policies#privacy" target="_blank" rel="noreferrer">
               전문보기
             </a>
@@ -513,53 +381,123 @@ export default function ConsultationBooking() {
         {err && <div className="bk-error">{err}</div>}
 
         <div className="bk-actions-label">
-          상담 예약 선택 <span>↳</span>
+          입사 방법 선택 <span>↳</span>
         </div>
         <div className="bk-actions">
           <button
             className="bk-act bk-act--coral"
-            onClick={() => book("PHONE")}
-            disabled={booking}
+            onClick={showBankAccount}
+            disabled={submitting}
+            type="button"
+          >
+            <AccountBalanceOutlinedIcon />
+            <span>{submitting ? "신청중" : "바로결제"}</span>
+          </button>
+          <button
+            className="bk-act bk-act--mint bk-act--offline"
+            disabled
+            type="button"
+          >
+            <BadgeOutlinedIcon />
+            <span>자격증공장 회원전용 입장권</span>
+            <small>준비중</small>
+          </button>
+          <button
+            className="bk-act bk-act--cream"
+            onClick={openKakao}
+            type="button"
+          >
+            <ChatBubbleOutlineIcon />
+            <span>카카오채널</span>
+          </button>
+          <button
+            className="bk-act bk-act--cream"
+            onClick={callBusiness}
             type="button"
           >
             <CallOutlinedIcon />
-            <span>{booking ? "신청중" : "전화상담"}</span>
+            <span>전화하기</span>
           </button>
-          <button
-            className="bk-act bk-act--mint"
-            onClick={() => book("VIDEO")}
-            disabled={booking}
-            type="button"
-          >
-            <VideocamOutlinedIcon />
-            <span>{booking ? "신청중" : "화상상담"}</span>
-          </button>
-          <button className="bk-act bk-act--cream" onClick={openKakao} type="button">
-            <ChatBubbleOutlineIcon />
-            <span>질문하기</span>
-          </button>
-          <button className="bk-act bk-act--coral" onClick={openKakao} type="button">
+        </div>
+
+        <section className="bk-price-section" aria-labelledby="price-title">
+          <div className="bk-price-head">
+            <div>
+              <span>이용요금</span>
+              <h2 id="price-title">기간별 할인가</h2>
+            </div>
             <BoltIcon />
-            <span>바로시작</span>
-          </button>
+          </div>
+          <div className="bk-price-grid">
+            {PRICES.map((price) => (
+              <div className="bk-price-card" key={price.months}>
+                <strong>{price.months}</strong>
+                {price.monthly && <small>{price.monthly}</small>}
+                <b>{price.total}</b>
+              </div>
+            ))}
+          </div>
+          <p className="bk-price-note">
+            주 60시간 도전자는 1·2·3개월 이용권에 따라 각각 1·2·3회 도전할 수
+            있습니다.
+          </p>
+        </section>
+
+        <div className="bk-transfer-note">
+          <strong>계좌이체 안내</strong>
+          <span>
+            현금영수증이 필요하신 경우 카카오채널에 이름과 발급번호를 남겨
+            주세요.
+          </span>
         </div>
       </div>
 
-      {done && (
-        <div className="bk-modal-overlay" onClick={() => setDone(null)}>
-          <div className="bk-modal" onClick={(e) => e.stopPropagation()}>
+      {bankOpen && (
+        <div className="bk-modal-overlay" onClick={() => setBankOpen(false)}>
+          <div
+            className="bk-modal bk-bank-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bank-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="bk-modal-icon">
               <CheckCircleIcon />
             </div>
-            <h2>예약 신청 완료</h2>
-            <p>
-              {done === "PHONE" ? "전화상담" : "화상상담"} 예약이 신청되었어요.
-              <br />
-              확정되면 카카오톡으로 안내드릴게요.
-            </p>
-            <button className="bk-modal-btn" onClick={() => navigate("/login")}>
-              확인
-            </button>
+            <h2 id="bank-modal-title">입사 신청이 완료되었습니다</h2>
+            <p>아래 계좌로 이용하실 기간에 맞는 금액을 입금해 주세요.</p>
+
+            <div className="bk-bank-details">
+              <span>{BANK_ACCOUNT.bank}</span>
+              <strong>{BANK_ACCOUNT.display}</strong>
+              <small>예금주: {BANK_ACCOUNT.holder}</small>
+              <button type="button" onClick={copyBankAccount}>
+                <ContentCopyOutlinedIcon /> 계좌번호 복사
+              </button>
+              <em aria-live="polite">
+                {copyStatus === "copied" && "계좌번호가 복사되었습니다."}
+                {copyStatus === "failed" &&
+                  "복사하지 못했습니다. 계좌번호를 직접 입력해 주세요."}
+              </em>
+            </div>
+
+            <div className="bk-bank-receipt">
+              현금영수증 발급은 카카오채널에 이름과 발급번호를 남겨 주세요.
+            </div>
+            <div className="bk-modal-actions">
+              <button
+                className="bk-modal-btn bk-modal-btn--subtle"
+                onClick={openKakao}
+              >
+                카카오채널
+              </button>
+              <button
+                className="bk-modal-btn"
+                onClick={() => setBankOpen(false)}
+              >
+                확인
+              </button>
+            </div>
           </div>
         </div>
       )}

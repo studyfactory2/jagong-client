@@ -89,7 +89,7 @@ export default function AppLoading({
           <span className="app-loading-pulse" aria-hidden="true" />
           <img
             className="app-loading-mark"
-            src="/logo/logo-blush.webp"
+            src="/logo/jagong-mark.png"
             alt="자격증공장"
           />
         </div>

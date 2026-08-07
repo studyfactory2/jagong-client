@@ -273,7 +273,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  color: var(--ink);
+  color: var(--placeholder);
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 400;
@@ -285,7 +285,7 @@
 }
 
 .bk-fin--hint::placeholder {
-  color: var(--accent-deep);
+  color: var(--ink-2);
 }
 
 .bk-select-field {
@@ -430,6 +430,49 @@
   font-size: 12.5px;
   line-height: 1.6;
   word-break: keep-all;
+}
+
+.bk-operation-guide {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.bk-operation-guide h2 {
+  margin: 0;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.bk-operation-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 15px;
+}
+
+.bk-operation-row + .bk-operation-row {
+  border-top: 1px solid var(--line-soft);
+}
+
+.bk-operation-row strong {
+  color: var(--accent-deep);
+  font-size: 13px;
+}
+
+.bk-operation-row span {
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.bk-info--privacy {
+  background: var(--mint-soft);
 }
 
 .bk-reason {
@@ -602,7 +645,7 @@
 
 .bk-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -626,6 +669,16 @@
 
 .bk-act svg {
   font-size: 27px;
+}
+
+.bk-act span {
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+.bk-act small {
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .bk-act:hover:not(:disabled) {
@@ -656,6 +709,109 @@
   border-color: var(--line);
   background: var(--card);
   color: var(--ink);
+}
+
+.bk-act--offline:disabled {
+  opacity: 0.72;
+}
+
+.bk-price-section {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 16px;
+}
+
+.bk-price-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 13px;
+}
+
+.bk-price-head span {
+  color: var(--accent-deep);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.bk-price-head h2 {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.bk-price-head > svg {
+  color: var(--accent);
+  font-size: 30px;
+}
+
+.bk-price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bk-price-card {
+  min-width: 0;
+  min-height: 96px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 5px;
+  text-align: center;
+}
+
+.bk-price-card strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.bk-price-card small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.bk-price-card b {
+  color: var(--accent-deep);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.bk-price-note {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.bk-transfer-note {
+  border-left: 3px solid var(--accent);
+  border-radius: 4px 12px 12px 4px;
+  background: var(--accent-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.bk-transfer-note strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.bk-transfer-note span {
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .bk-back:focus-visible,
@@ -733,11 +889,95 @@
 .bk-modal-btn {
   width: 100%;
   height: 50px;
+  border: 0;
   border-radius: 12px;
   background: var(--accent);
   color: #ffffff;
   font-size: 16px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.bk-bank-modal {
+  max-width: 370px;
+}
+
+.bk-bank-details {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--accent-soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+}
+
+.bk-bank-details > span {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bk-bank-details > strong {
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+
+.bk-bank-details > small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bk-bank-details > button {
+  min-height: 40px;
+  margin-top: 13px;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--accent-deep);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bk-bank-details > button svg {
+  font-size: 17px;
+}
+
+.bk-bank-details > em {
+  min-height: 18px;
+  margin-top: 5px;
+  color: var(--mint-deep);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.bk-bank-receipt {
+  margin: 13px 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.bk-modal-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.bk-modal-btn--subtle {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
 }
 
 @keyframes bk-fade-up {
@@ -888,7 +1128,7 @@
   }
 
   .bk-actions {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
   }
 
@@ -900,6 +1140,10 @@
 
   .bk-act svg {
     font-size: 24px;
+  }
+
+  .bk-price-card b {
+    font-size: 14px;
   }
 }
 
@@ -934,12 +1178,16 @@
     font-size: 11px;
   }
 
-  .bk-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .bk-act {
     min-height: 66px;
+  }
+
+  .bk-price-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bk-price-card {
+    min-height: 74px;
   }
 }
 
