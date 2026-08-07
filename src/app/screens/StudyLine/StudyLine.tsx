@@ -500,7 +500,7 @@ export default function StudyLine() {
                     : studyStatusLoading
                       ? "확인 중…"
                       : currentStudyState.action === "BREAK"
-                        ? "휴식 시작"
+                        ? "기록중지"
                         : current?.isBreak && current.slot !== 0
                           ? "계속 공부하기"
                           : "공부 재개"}

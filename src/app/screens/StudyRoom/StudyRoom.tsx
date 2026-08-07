@@ -172,6 +172,19 @@ function timeLeftText(minutes: number): string {
   return `${hours}시간 ${mins}분`;
 }
 
+function formatTodayStudyTime(seconds?: number): string {
+  if (seconds === undefined || !Number.isFinite(seconds)) return "--:--:--";
+
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainder = safeSeconds % 60;
+
+  return [hours, minutes, remainder]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
+
 function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -498,6 +511,9 @@ export default function StudyRoom() {
     () => membersForGrid.find((member) => member.id === myId),
     [membersForGrid, myId],
   );
+  const myTodayStudyTime = formatTodayStudyTime(
+    selfMember?.todayStudy?.studySeconds,
+  );
   const pageableMembers = useMemo(
     () => membersForGrid.filter((member) => member.id !== myId),
     [membersForGrid, myId],
@@ -703,38 +719,50 @@ export default function StudyRoom() {
                   <small>{studyStateDescription}</small>
                 </span>
               </div>
-              {studyAction ? (
-                <button
-                  className={`sr-study-action is-${studyAction.toLowerCase()}`}
-                  disabled={studyActionDisabled}
-                  onClick={() => void handleStudyAction()}
-                  type="button"
+              <div className="sr-study-actions">
+                <span
+                  aria-label={`오늘 공부시간 ${myTodayStudyTime}`}
+                  className="sr-study-today"
+                  title={`오늘 공부시간 ${myTodayStudyTime}`}
                 >
-                  {studyAction === "BREAK" ? (
-                    <PauseCircleOutlineRoundedIcon />
-                  ) : (
-                    <PlayArrowRoundedIcon />
-                  )}
-                  {studyActionPending
-                    ? "변경 중…"
-                    : studyStatusLoading
-                      ? "확인 중…"
-                      : studyAction === "BREAK"
-                        ? "휴식 시작"
-                        : isTimetableBreak
-                          ? "계속 공부하기"
-                          : "공부 재개"}
-                </button>
-              ) : isStudyStatusPending && !studyStatusError ? (
-                <button
-                  className="sr-study-action is-refresh"
-                  disabled={studyStatusLoading || studyActionPending !== null}
-                  onClick={() => void refreshStudyStatus()}
-                  type="button"
-                >
-                  {studyStatusLoading ? "확인 중…" : "다시 확인"}
-                </button>
-              ) : null}
+                  <small>오늘 공부</small>
+                  <strong>{myTodayStudyTime}</strong>
+                </span>
+                {studyAction ? (
+                  <button
+                    className={`sr-study-action is-${studyAction.toLowerCase()}`}
+                    disabled={studyActionDisabled}
+                    onClick={() => void handleStudyAction()}
+                    type="button"
+                  >
+                    {studyAction === "BREAK" ? (
+                      <PauseCircleOutlineRoundedIcon />
+                    ) : (
+                      <PlayArrowRoundedIcon />
+                    )}
+                    {studyActionPending
+                      ? "변경 중…"
+                      : studyStatusLoading
+                        ? "확인 중…"
+                        : studyAction === "BREAK"
+                          ? "기록중지"
+                          : isTimetableBreak
+                            ? "계속 공부하기"
+                            : "공부 재개"}
+                  </button>
+                ) : isStudyStatusPending && !studyStatusError ? (
+                  <button
+                    className="sr-study-action is-refresh"
+                    disabled={
+                      studyStatusLoading || studyActionPending !== null
+                    }
+                    onClick={() => void refreshStudyStatus()}
+                    type="button"
+                  >
+                    {studyStatusLoading ? "확인 중…" : "다시 확인"}
+                  </button>
+                ) : null}
+              </div>
             </div>
           )}
 
@@ -774,6 +802,9 @@ export default function StudyRoom() {
               const isWorking =
                 !isResting &&
                 (member.isWorking || (isMe && joined) || hasActiveVideo);
+              const todayStudyTime = formatTodayStudyTime(
+                member.todayStudy?.studySeconds,
+              );
               const memberIndex = Math.max(0, membersForGrid.indexOf(member));
               return (
                 <div
@@ -807,6 +838,16 @@ export default function StudyRoom() {
                   )}
                   {remoteVideo && !remoteVideo.muted && (
                     <StudyRoomRemoteVideo track={remoteVideo.track} />
+                  )}
+                  {!isMe && (
+                    <span
+                      aria-label={`오늘 공부시간 ${todayStudyTime}`}
+                      className="sr-cam-today-study"
+                      title={`오늘 공부시간 ${todayStudyTime}`}
+                    >
+                      <small>오늘</small>
+                      <strong>{todayStudyTime}</strong>
+                    </span>
                   )}
                   <span className="sr-cam-name">
                     {isMe ? "나" : member.name}
@@ -910,7 +951,7 @@ export default function StudyRoom() {
           )}
           {!cameraOnly && (
             <p className="sr-hint">
-              쉬는시간에도 캠과 공부시간 기록이 계속됩니다. 쉴 때는 휴식 시작을
+              쉬는시간에도 캠과 공부시간 기록이 계속됩니다. 쉴 때는 기록중지를
               눌러주세요.
             </p>
           )}

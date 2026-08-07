@@ -256,6 +256,41 @@
   font-weight: 700;
 }
 
+.sr-study-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.sr-study-today {
+  min-width: 82px;
+  min-height: 44px;
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 5px 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sr-study-today small {
+  color: var(--muted);
+  font-size: 7.5px;
+  font-weight: 800;
+}
+
+.sr-study-today strong {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
 .sr-study-action {
   min-width: 100px;
   min-height: 44px;
@@ -439,6 +474,36 @@
 
 .sr-cam-self-video {
   transform: scaleX(-1);
+}
+
+.sr-cam-today-study {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  right: 7px;
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 3px 6px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sr-cam-today-study small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 800;
+}
+
+.sr-cam-today-study strong {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
 }
 
 .sr-cam-name {
@@ -1424,6 +1489,24 @@
     padding-inline: 9px;
   }
 
+  .sr-study-actions {
+    gap: 5px;
+  }
+
+  .sr-study-today {
+    min-width: 70px;
+    min-height: 44px;
+    padding-inline: 6px;
+  }
+
+  .sr-study-today small {
+    font-size: 7px;
+  }
+
+  .sr-study-today strong {
+    font-size: 9.5px;
+  }
+
   .sr-study-error {
     align-items: flex-start;
     margin-bottom: 10px;
@@ -1722,6 +1805,22 @@
 
   .sr-cam {
     aspect-ratio: 16 / 9.4;
+  }
+
+  .sr-cam-today-study {
+    top: 6px;
+    right: 6px;
+    min-height: 21px;
+    gap: 3px;
+    padding: 3px 5px;
+  }
+
+  .sr-cam-today-study small {
+    font-size: 6.5px;
+  }
+
+  .sr-cam-today-study strong {
+    font-size: 8px;
   }
 
   .sr-cam-name {

@@ -94,10 +94,10 @@ export default function StudyBreakConfirmDialog({
         <span aria-hidden="true" className="study-break-confirm__icon">
           <PauseCircleOutlineRoundedIcon />
         </span>
-        <strong id={titleId}>휴식을 시작할까요?</strong>
+        <strong id={titleId}>공부 기록을 중지할까요?</strong>
         <p id={descriptionId}>
-          휴식을 시작하면 공부시간 기록이 먼저 멈추고 카메라만 꺼집니다. ‘계속
-          공부하기’를 누르면 카메라를 다시 켠 뒤 기록을 재개합니다.
+          기록중지를 선택하면 공부시간 기록이 먼저 멈추고 카메라만 꺼집니다.
+          ‘계속 공부하기’를 누르면 카메라를 다시 켠 뒤 기록을 재개합니다.
         </p>
         <div className="study-break-confirm__actions">
           <button
@@ -114,7 +114,7 @@ export default function StudyBreakConfirmDialog({
             ref={confirmButtonRef}
             type="button"
           >
-            {pending ? "휴식 시작 중…" : "휴식 시작"}
+            {pending ? "중지 중…" : "기록중지"}
           </button>
         </div>
       </div>

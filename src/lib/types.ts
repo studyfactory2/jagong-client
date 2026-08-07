@@ -580,6 +580,7 @@ export interface CamRoomMember {
   name: string;
   isWorking: boolean;
   joinedAt?: string | null;
+  todayStudy?: StudyDurationTotal;
 }
 
 export type StudyIntervalState = "STUDY" | "BREAK";
