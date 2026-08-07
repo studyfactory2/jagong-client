@@ -407,12 +407,8 @@ export default function StudyRoom() {
     studyStatus.source !== "MEMBER" &&
     studyStatus.source !== "SYSTEM" &&
     studyStatus.source !== "ADMIN";
-  const canResumeStudyNow = Boolean(current && isAttendanceSlot(current));
-  const canResumeNow = canResumeStudyNow || isTimetableBreak;
   const studyAction = isIntentionalBreak
-    ? canResumeNow
-      ? "RESUME"
-      : null
+    ? "RESUME"
     : isCountedStudy
       ? "BREAK"
       : null;
@@ -436,9 +432,7 @@ export default function StudyRoom() {
                   ? "카메라 등록 대기"
                   : "공부 기록 연결 대기";
   const studyStateDescription = isIntentionalBreak
-    ? canResumeNow
-      ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
-      : "공부 교시가 시작되면 카메라와 기록을 다시 시작할 수 있습니다."
+    ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
     : isCountedStudy
       ? "실제 공부시간에 포함되고 있습니다."
       : isBreakTransitionPending

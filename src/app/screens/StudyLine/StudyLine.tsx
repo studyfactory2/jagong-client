@@ -174,7 +174,6 @@ function studyStateStartedAt(value?: string | null): string {
 function studyStateView(
   status: StudyTimeStatus | null,
   loading: boolean,
-  canResumeInStudySlot: boolean,
   isTimetableBreak: boolean,
   cameraPausedForBreak: boolean,
 ): StudyStateView {
@@ -196,14 +195,11 @@ function studyStateView(
   }
 
   const startedAt = studyStateStartedAt(status.stateStartedAt);
-  const canResumeNow = canResumeInStudySlot || isTimetableBreak;
-
   if (cameraPausedForBreak) {
     return {
-      action: canResumeNow ? "RESUME" : null,
-      detail: canResumeNow
-        ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
-        : "공부 교시가 시작되면 카메라와 기록을 다시 시작할 수 있습니다.",
+      action: "RESUME",
+      detail:
+        "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다.",
       label: "휴식 중",
       tone: "break",
     };
@@ -222,10 +218,9 @@ function studyStateView(
 
   if (status.state === "BREAK" && status.source === "MEMBER") {
     return {
-      action: canResumeNow ? "RESUME" : null,
-      detail: canResumeNow
-        ? "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다."
-        : "공부 교시가 시작되면 재개할 수 있습니다.",
+      action: "RESUME",
+      detail:
+        "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다.",
       label: "휴식 중",
       tone: "break",
     };
@@ -402,7 +397,6 @@ export default function StudyLine() {
   const currentStudyState = studyStateView(
     studyStatus,
     studyStatusLoading,
-    Boolean(current && !current.isBreak && current.slot !== 0),
     Boolean(current && current.isBreak && current.slot !== 0),
     cameraPausedForBreak,
   );
