@@ -22,113 +22,19 @@ import {
   setScheduleSoundEnabled,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
-import type { StudyTimeStatus, TimetableSlot } from "../../../lib/types";
+import {
+  createStudyRecordingView,
+  resolveStudyRecordingWindow,
+  WORKROOM_FALLBACK_TIMETABLE,
+} from "../../utils/study-recording-policy";
+import type { TimetableSlot } from "../../../lib/types";
 import StudyLineSelfCameraCard from "./StudyLineSelfCameraCard";
 import "./study-line.css";
-
-const FALLBACK_TIMETABLE: TimetableSlot[] = [
-  {
-    slot: 0,
-    label: "출근",
-    startTime: "08:00",
-    endTime: "09:00",
-    duration: 60,
-    isBreak: false,
-  },
-  {
-    slot: 1,
-    label: "1교시",
-    startTime: "09:00",
-    endTime: "10:30",
-    duration: 90,
-    isBreak: false,
-  },
-  {
-    slot: 2,
-    label: "2교시",
-    startTime: "10:45",
-    endTime: "12:05",
-    duration: 80,
-    isBreak: false,
-  },
-  {
-    slot: 3,
-    label: "점심",
-    startTime: "12:05",
-    endTime: "13:20",
-    duration: 75,
-    isBreak: true,
-  },
-  {
-    slot: 4,
-    label: "3교시",
-    startTime: "13:20",
-    endTime: "14:30",
-    duration: 70,
-    isBreak: false,
-  },
-  {
-    slot: 5,
-    label: "4교시",
-    startTime: "14:45",
-    endTime: "16:15",
-    duration: 90,
-    isBreak: false,
-  },
-  {
-    slot: 6,
-    label: "5교시",
-    startTime: "16:30",
-    endTime: "17:50",
-    duration: 80,
-    isBreak: false,
-  },
-  {
-    slot: 7,
-    label: "저녁",
-    startTime: "17:50",
-    endTime: "19:05",
-    duration: 75,
-    isBreak: true,
-  },
-  {
-    slot: 8,
-    label: "6교시",
-    startTime: "19:05",
-    endTime: "20:25",
-    duration: 80,
-    isBreak: false,
-  },
-  {
-    slot: 9,
-    label: "7교시",
-    startTime: "20:40",
-    endTime: "22:00",
-    duration: 80,
-    isBreak: false,
-  },
-];
 
 const toSec = (time: string) => {
   const [hour, minute] = time.split(":");
   return Number(hour) * 3600 + Number(minute) * 60;
 };
-
-const seoulClockFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Asia/Seoul",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hourCycle: "h23",
-});
-
-function seoulSecondsSinceMidnight(date: Date): number {
-  const parts = seoulClockFormatter.formatToParts(date);
-  const value = (type: Intl.DateTimeFormatPartTypes) =>
-    Number(parts.find((part) => part.type === type)?.value ?? 0);
-
-  return value("hour") * 3600 + value("minute") * 60 + value("second");
-}
 
 const formatCountdown = (seconds: number) => {
   const safe = Math.max(0, seconds);
@@ -152,124 +58,6 @@ function slotState(
   return "대기";
 }
 
-type StudyStateView = {
-  action: "BREAK" | "RESUME" | null;
-  detail: string;
-  label: string;
-  tone: "study" | "break" | "schedule" | "system" | "syncing";
-};
-
-const studyStateTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-function studyStateStartedAt(value?: string | null): string {
-  if (!value) return "";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? ""
-    : `${studyStateTimeFormatter.format(date)}부터`;
-}
-
-function studyStateView(
-  status: StudyTimeStatus | null,
-  loading: boolean,
-  isTimetableBreak: boolean,
-  cameraPausedForBreak: boolean,
-): StudyStateView {
-  if (!status?.active || !status.state || !status.source) {
-    return {
-      action: null,
-      detail: loading
-        ? "서버 기록을 연결하고 있습니다."
-        : status?.active === false
-          ? "카메라 등록이 완료되면 공부시간 기록이 자동으로 시작됩니다."
-          : "서버의 현재 공부 기록 연결을 기다리고 있습니다.",
-      label: loading
-        ? "공부 상태 연결 중"
-        : status?.active === false
-          ? "카메라 등록 대기"
-          : "공부 기록 연결 대기",
-      tone: "syncing",
-    };
-  }
-
-  const startedAt = studyStateStartedAt(status.stateStartedAt);
-  if (cameraPausedForBreak) {
-    return {
-      action: "RESUME",
-      detail:
-        "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다.",
-      label: "휴식 중",
-      tone: "break",
-    };
-  }
-
-  if (status.state === "STUDY" && status.source !== "SYSTEM") {
-    return {
-      action: "BREAK",
-      detail: startedAt
-        ? `${startedAt} 실제 공부시간에 포함되고 있습니다.`
-        : "실제 공부시간에 포함되고 있습니다.",
-      label: isTimetableBreak ? "휴식시간 공부 중" : "공부 중",
-      tone: "study",
-    };
-  }
-
-  if (status.state === "BREAK" && status.source === "MEMBER") {
-    return {
-      action: "RESUME",
-      detail:
-        "계속 공부하기를 누르면 카메라와 공부시간 기록을 다시 시작합니다.",
-      label: "휴식 중",
-      tone: "break",
-    };
-  }
-
-  if (status.source === "SYSTEM") {
-    return {
-      action: null,
-      detail: "카메라 연결을 복구해 주세요.",
-      label: "카메라 확인 필요",
-      tone: "system",
-    };
-  }
-
-  if (isTimetableBreak) {
-    return status.source === "ADMIN"
-      ? {
-          action: null,
-          detail: "관리자가 설정한 공부 상태입니다.",
-          label: "관리자 상태 확인 필요",
-          tone: "system",
-        }
-      : {
-          action: null,
-          detail: "서버의 정규 휴식 전환을 확인하고 있습니다.",
-          label: "정규 휴식 전환 중",
-          tone: "syncing",
-        };
-  }
-
-  if (status.source === "SCHEDULE") {
-    return {
-      action: null,
-      detail: "시간표에 따른 쉬는시간입니다.",
-      label: "정규 휴식",
-      tone: "schedule",
-    };
-  }
-
-  return {
-    action: null,
-    detail: "관리자 상태를 확인해 주세요.",
-    label: "공부시간 일시정지",
-    tone: "system",
-  };
-}
-
 export default function StudyLine() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -291,7 +79,10 @@ export default function StudyLine() {
     startStudyBreak,
     resumeStudy,
   } = useWorkroomSession();
-  const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
+  const [slots, setSlots] = useState<TimetableSlot[]>(
+    WORKROOM_FALLBACK_TIMETABLE,
+  );
+  const [timetableLoaded, setTimetableLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
   const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
@@ -304,7 +95,7 @@ export default function StudyLine() {
   useEffect(() => {
     getTimetable()
       .then((items) => {
-        if (!items.length) return;
+        setTimetableLoaded(true);
         setSlots(
           [...items].sort((a, b) => toSec(a.startTime) - toSec(b.startTime)),
         );
@@ -347,14 +138,11 @@ export default function StudyLine() {
     };
   }, [socket]);
 
-  const nowSec = seoulSecondsSinceMidnight(now);
-
-  const current = useMemo(() => {
-    const matches = slots.filter(
-      (slot) => toSec(slot.startTime) <= nowSec && nowSec < toSec(slot.endTime),
-    );
-    return matches.length === 1 ? matches[0] : undefined;
-  }, [slots, nowSec]);
+  const recordingWindow = useMemo(
+    () => resolveStudyRecordingWindow(slots, timetableLoaded, now),
+    [now, slots, timetableLoaded],
+  );
+  const { current, seoulSeconds: nowSec } = recordingWindow;
 
   const nextSlot = useMemo(
     () => slots.find((slot) => toSec(slot.startTime) > nowSec),
@@ -398,12 +186,12 @@ export default function StudyLine() {
       : cameraReady
         ? "미리보기"
         : "설정 필요";
-  const currentStudyState = studyStateView(
-    studyStatus,
-    studyStatusLoading,
-    Boolean(current && current.isBreak && current.slot !== 0),
+  const currentStudyState = createStudyRecordingView({
     cameraPausedForBreak,
-  );
+    loading: studyStatusLoading,
+    status: studyStatus,
+    window: recordingWindow,
+  });
   const isStudyStatusPending = !(
     studyStatus?.active &&
     studyStatus.state &&
@@ -499,11 +287,7 @@ export default function StudyLine() {
                     ? "변경 중…"
                     : studyStatusLoading
                       ? "확인 중…"
-                      : currentStudyState.action === "BREAK"
-                        ? "기록중지"
-                        : current?.isBreak && current.slot !== 0
-                          ? "계속 공부하기"
-                          : "공부 재개"}
+                      : currentStudyState.actionLabel}
                 </button>
               ) : isStudyStatusPending && !studyStatusError ? (
                 <button
@@ -580,6 +364,7 @@ export default function StudyLine() {
           <StudyLineSelfCameraCard
             cameraPausedForBreak={cameraPausedForBreak}
             memberName={session?.user.name ?? "나"}
+            stateLabel={currentStudyState.label}
             track={localVideoTrack}
           />
         )}

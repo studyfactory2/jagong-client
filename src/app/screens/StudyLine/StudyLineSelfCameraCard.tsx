@@ -5,12 +5,14 @@ import type { LocalVideoTrack } from "livekit-client";
 type StudyLineSelfCameraCardProps = {
   cameraPausedForBreak: boolean;
   memberName: string;
+  stateLabel: string;
   track: LocalVideoTrack | null;
 };
 
 export default function StudyLineSelfCameraCard({
   cameraPausedForBreak,
   memberName,
+  stateLabel,
   track,
 }: StudyLineSelfCameraCardProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -30,10 +32,10 @@ export default function StudyLineSelfCameraCard({
     };
   }, [cameraVisible, track]);
 
-  const stateLabel = cameraPausedForBreak
+  const cameraStateLabel = cameraPausedForBreak
     ? "휴식 중"
     : cameraVisible
-      ? "공부 중"
+      ? stateLabel
       : "연결 확인";
 
   return (
@@ -57,7 +59,7 @@ export default function StudyLineSelfCameraCard({
 
         <div className="sl-self-camera__meta">
           <span>{memberName}</span>
-          <em>{stateLabel}</em>
+          <em>{cameraStateLabel}</em>
         </div>
       </div>
     </section>

@@ -80,6 +80,7 @@ const FACE_EFFECT_LABELS: Record<FaceEffectVariant, string> = {
 const CAMERA_DIMENSION_SAMPLE_INTERVAL_MS = 60;
 const CAMERA_DIMENSION_WAIT_MS = 1200;
 const STUDY_STATUS_REFRESH_INTERVAL_MS = 60000;
+const STUDY_STATUS_BOUNDARY_OFFSET_MS = 1500;
 const STUDY_STATUS_STARTUP_RETRY_MS = [
   0, 250, 500, 1000, 1500, 2000, 3000, 4000,
 ];
@@ -251,6 +252,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const visibleRemoteClearTimerRef = useRef<number | null>(null);
   const studyStatusRequestRef = useRef(0);
   const studyStatusLoadingRequestRef = useRef<number | null>(null);
+  const studyStatusRefreshQueuedRef = useRef(false);
   const studyActionPendingRef = useRef<PendingStudyAction | null>(null);
   const attendanceTargetRef = useRef<AttendanceSyncTarget | null>(null);
   const attendanceInFlightRef = useRef<AttendanceSyncFlight | null>(null);
@@ -480,6 +482,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const resetStudyStatus = useCallback(() => {
     studyStatusRequestRef.current += 1;
     studyStatusLoadingRequestRef.current = null;
+    studyStatusRefreshQueuedRef.current = false;
     studyActionPendingRef.current = null;
     if (!mountedRef.current) return;
     setStudyStatus(null);
@@ -642,13 +645,65 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const restoreMemberBreakCamera = useCallback(
+    async (
+      status: StudyTimeStatus,
+      expectedConnectionGeneration: number,
+      requestId: number,
+    ) => {
+      if (
+        status.active !== true ||
+        status.state !== "BREAK" ||
+        status.source !== "MEMBER"
+      ) {
+        return;
+      }
+
+      const { room, track } = requireCurrentStudyCamera(
+        expectedConnectionGeneration,
+      );
+      if (!track.isMuted) {
+        try {
+          await track.mute();
+        } catch {
+          // The track flag below decides whether the privacy state was restored.
+        }
+        requireCurrentStudyCamera(
+          expectedConnectionGeneration,
+          track,
+          room,
+        );
+      }
+
+      if (studyStatusRequestRef.current !== requestId) return;
+      if (!track.isMuted) {
+        return await failClosedStudyCamera(
+          expectedConnectionGeneration,
+          track,
+          room,
+          "저장된 휴식 상태에서 카메라를 안전하게 끄지 못해 작업실 연결을 종료했습니다. 다시 입장해 주세요.",
+          false,
+        );
+      }
+      commitCameraPausedForBreak(true, expectedConnectionGeneration);
+    },
+    [
+      commitCameraPausedForBreak,
+      failClosedStudyCamera,
+      requireCurrentStudyCamera,
+    ],
+  );
+
   const loadStudyStatus = useCallback(
     async (
       showLoading = false,
       expectedConnectionGeneration = connectionGenerationRef.current,
     ): Promise<StudyTimeStatus | null> => {
       if (!joinedRef.current) return null;
-      if (studyActionPendingRef.current) return null;
+      if (studyActionPendingRef.current) {
+        studyStatusRefreshQueuedRef.current = true;
+        return null;
+      }
 
       const requestId = studyStatusRequestRef.current + 1;
       studyStatusRequestRef.current = requestId;
@@ -661,6 +716,19 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
 
       try {
         const status = await getMyStudyTimeStatus();
+        if (
+          !mountedRef.current ||
+          !joinedRef.current ||
+          connectionGenerationRef.current !== expectedConnectionGeneration ||
+          studyStatusRequestRef.current !== requestId
+        ) {
+          return null;
+        }
+        await restoreMemberBreakCamera(
+          status,
+          expectedConnectionGeneration,
+          requestId,
+        );
         if (
           !mountedRef.current ||
           !joinedRef.current ||
@@ -705,7 +773,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [commitStudyStatus, setAttendanceBindingReady],
+    [commitStudyStatus, restoreMemberBreakCamera, setAttendanceBindingReady],
   );
 
   const refreshStudyStatus = useCallback(async () => {
@@ -784,10 +852,12 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         return false;
       } finally {
         if (studyActionPendingRef.current === pendingAction) {
+          const refreshQueued = studyStatusRefreshQueuedRef.current;
+          studyStatusRefreshQueuedRef.current = false;
           studyActionPendingRef.current = null;
           if (mountedRef.current) setStudyActionPending(null);
           if (
-            actionSucceeded &&
+            (actionSucceeded || refreshQueued) &&
             mountedRef.current &&
             joinedRef.current &&
             connectionGenerationRef.current === expectedConnectionGeneration
@@ -913,19 +983,22 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           const { room, track } = requireCurrentStudyCamera(
             expectedConnectionGeneration,
           );
+          const wasTrackMuted = track.isMuted;
 
-          try {
-            await track.unmute();
-          } catch {
-            requireCurrentStudyCamera(
-              expectedConnectionGeneration,
-              track,
-              room,
-            );
-            if (track.isMuted) {
-              throw new Error(
-                "카메라를 켜지 못했습니다. 카메라 권한을 확인해 주세요.",
+          if (wasTrackMuted) {
+            try {
+              await track.unmute();
+            } catch {
+              requireCurrentStudyCamera(
+                expectedConnectionGeneration,
+                track,
+                room,
               );
+              if (track.isMuted) {
+                throw new Error(
+                  "카메라를 켜지 못했습니다. 카메라 권한을 확인해 주세요.",
+                );
+              }
             }
           }
 
@@ -945,6 +1018,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
               track,
               room,
             );
+            if (!wasTrackMuted) {
+              commitCameraPausedForBreak(false, expectedConnectionGeneration);
+              throw requestError;
+            }
             try {
               await track.mute();
             } catch {
@@ -1730,9 +1807,21 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       () => void syncUntilReady(),
       STUDY_STATUS_STARTUP_RETRY_MS[0],
     );
-    const refreshTimer = window.setInterval(() => {
-      void loadStudyStatus(false, expectedConnectionGeneration);
-    }, STUDY_STATUS_REFRESH_INTERVAL_MS);
+    let refreshTimer: number | null = null;
+    const scheduleBoundaryRefresh = () => {
+      if (cancelled) return;
+      const now = Date.now();
+      const delay =
+        STUDY_STATUS_REFRESH_INTERVAL_MS -
+        (now % STUDY_STATUS_REFRESH_INTERVAL_MS) +
+        STUDY_STATUS_BOUNDARY_OFFSET_MS;
+      refreshTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        void loadStudyStatus(false, expectedConnectionGeneration);
+        scheduleBoundaryRefresh();
+      }, delay);
+    };
+    scheduleBoundaryRefresh();
     const refreshWhenVisible = () => {
       if (document.visibilityState !== "visible") return;
       void loadStudyStatus(false, expectedConnectionGeneration);
@@ -1747,7 +1836,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
       if (retryTimer !== null) window.clearTimeout(retryTimer);
-      window.clearInterval(refreshTimer);
+      if (refreshTimer !== null) window.clearTimeout(refreshTimer);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
       window.removeEventListener("focus", refreshWhenFocused);
       studyStatusRequestRef.current += 1;
