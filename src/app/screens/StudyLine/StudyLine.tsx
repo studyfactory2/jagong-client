@@ -69,6 +69,7 @@ export default function StudyLine() {
     cameraPausedForBreak,
     error,
     localVideoTrack,
+    roomMembers,
     studyStatus,
     studyStatusLoading,
     studyStatusError,
@@ -91,6 +92,11 @@ export default function StudyLine() {
   const [breakConfirmOpen, setBreakConfirmOpen] = useState(false);
   const bellTimerRef = useRef<number | null>(null);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
+  const myId = session?.user.userId ?? session?.user.id ?? "";
+  const myRoomMember = useMemo(
+    () => roomMembers.find((member) => member.id === myId),
+    [myId, roomMembers],
+  );
 
   useEffect(() => {
     getTimetable()
@@ -365,6 +371,7 @@ export default function StudyLine() {
             cameraPausedForBreak={cameraPausedForBreak}
             memberName={session?.user.name ?? "나"}
             stateLabel={currentStudyState.label}
+            todayStudySeconds={myRoomMember?.todayStudy?.studySeconds}
             track={localVideoTrack}
           />
         )}

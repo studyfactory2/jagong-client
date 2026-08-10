@@ -380,6 +380,37 @@
   line-height: 1.4;
 }
 
+.sl-self-camera__today-study {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: rgba(255, 254, 250, 0.94);
+  box-shadow: 0 6px 18px rgba(20, 63, 86, 0.12);
+  color: var(--ink);
+  padding: 4px 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sl-self-camera__today-study small {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.sl-self-camera__today-study strong {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
 .sl-self-camera__meta {
   position: absolute;
   z-index: 1;

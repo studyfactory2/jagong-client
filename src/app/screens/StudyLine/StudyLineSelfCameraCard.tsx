@@ -6,13 +6,28 @@ type StudyLineSelfCameraCardProps = {
   cameraPausedForBreak: boolean;
   memberName: string;
   stateLabel: string;
+  todayStudySeconds?: number;
   track: LocalVideoTrack | null;
 };
+
+function formatTodayStudyTime(seconds?: number): string {
+  if (seconds === undefined || !Number.isFinite(seconds)) return "--:--:--";
+
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainder = safeSeconds % 60;
+
+  return [hours, minutes, remainder]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
 
 export default function StudyLineSelfCameraCard({
   cameraPausedForBreak,
   memberName,
   stateLabel,
+  todayStudySeconds,
   track,
 }: StudyLineSelfCameraCardProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -37,6 +52,7 @@ export default function StudyLineSelfCameraCard({
     : cameraVisible
       ? stateLabel
       : "연결 확인";
+  const todayStudyTime = formatTodayStudyTime(todayStudySeconds);
 
   return (
     <section
@@ -56,6 +72,15 @@ export default function StudyLineSelfCameraCard({
             </strong>
           </div>
         )}
+
+        <span
+          aria-label={`오늘 공부시간 ${todayStudyTime}`}
+          className="sl-self-camera__today-study"
+          title={`오늘 공부시간 ${todayStudyTime}`}
+        >
+          <small>오늘</small>
+          <strong>{todayStudyTime}</strong>
+        </span>
 
         <div className="sl-self-camera__meta">
           <span>{memberName}</span>
