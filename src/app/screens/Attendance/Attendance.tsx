@@ -7,6 +7,10 @@ import HourglassBottomOutlinedIcon from "@mui/icons-material/HourglassBottomOutl
 import AppShell from "../../components/ui/AppShell";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
+import {
+  formatFirstStudyClock,
+  formatLateDuration,
+} from "../../utils/attendance-display";
 import type {
   AttendanceRecord,
   AttendanceStatusName,
@@ -117,6 +121,10 @@ function attendanceReasonText(record: AttendanceRecord) {
 function attendanceChipText(record: AttendanceRecord) {
   if (record.status === "EXCUSED") {
     return attendanceReasonText(record) || statusText(record.status);
+  }
+  if (record.status === "LATE") {
+    const duration = formatLateDuration(record.lateSeconds);
+    return duration ? `지각 · ${duration}` : statusText(record.status);
   }
   return statusText(record.status);
 }
@@ -375,17 +383,32 @@ export default function Attendance() {
                     </header>
 
                     <div className="attendance-slot-list">
-                      {group.records.map((record) => (
-                        <span
-                          className={`attendance-slot-chip ${statusClass(
-                            record.status,
-                          )}`}
-                          key={record.id}
-                        >
-                          <b>{slotLabel(slots, record.slot)}</b>
-                          <em>{attendanceChipText(record)}</em>
-                        </span>
-                      ))}
+                      {group.records.map((record) => {
+                        const chipText = attendanceChipText(record);
+                        const firstStudyClock =
+                          record.status === "LATE"
+                            ? formatFirstStudyClock(record.firstStudyAt)
+                            : null;
+                        const label = `${slotLabel(slots, record.slot)} · ${chipText}${
+                          firstStudyClock
+                            ? ` · 공부 시작 ${firstStudyClock}`
+                            : ""
+                        }`;
+
+                        return (
+                          <span
+                            aria-label={label}
+                            className={`attendance-slot-chip ${statusClass(
+                              record.status,
+                            )}`}
+                            key={record.id}
+                            title={label}
+                          >
+                            <b>{slotLabel(slots, record.slot)}</b>
+                            <em>{chipText}</em>
+                          </span>
+                        );
+                      })}
                     </div>
                   </article>
                 ))}

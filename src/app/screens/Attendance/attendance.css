@@ -1157,6 +1157,7 @@
 .attendance-slot-chip.is-late em {
   background: var(--gold-soft);
   color: #9b711e;
+  white-space: nowrap;
 }
 
 .attendance-slot-chip.is-excused em {

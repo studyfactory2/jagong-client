@@ -406,6 +406,10 @@
   text-overflow: ellipsis;
 }
 
+.wr-worker.is-camera-connected .wr-worker-name {
+  max-width: calc(100% - 10px);
+}
+
 .wr-worker-name i {
   margin-left: 4px;
   border-radius: 999px;
@@ -425,7 +429,7 @@
   min-width: 46px;
   height: 22px;
   border-radius: 999px;
-  background: var(--mint-deep);
+  background: rgba(125, 136, 140, 0.76);
   color: #ffffff;
   display: inline-flex;
   align-items: center;
@@ -626,7 +630,8 @@
 .wr-att-main strong {
   color: var(--ink);
   font-size: 16px;
-  white-space: nowrap;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
 .wr-att-side {

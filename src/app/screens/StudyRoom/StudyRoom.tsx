@@ -26,10 +26,12 @@ import {
   type RemoteVideoTrack,
 } from "../../context/WorkroomSessionContext";
 import {
+  getWorkdayAnnouncement,
   getScheduleSoundEnabled,
   playScheduleTone,
   scheduleBellMessage,
   setScheduleSoundEnabled,
+  type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import {
   createStudyRecordingView,
@@ -173,11 +175,8 @@ export default function StudyRoom() {
   useEffect(() => {
     if (!socket) return;
 
-    const onBell = (data: {
-      type: string;
-      label?: string;
-      messages?: string[];
-    }) => {
+    const onBell = (data: ScheduleBellEvent) => {
+      if (getWorkdayAnnouncement(data)) return;
       const message = scheduleBellMessage(data);
       if (!message) return;
       if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);

@@ -728,6 +728,8 @@ export interface AttendanceRecord {
   date: string;
   slot: number;
   status: AttendanceStatusName | string;
+  firstStudyAt?: string | null;
+  lateSeconds?: number | null;
   markedBy?: string | null;
   reasonType?: string | null;
   reason?: string | null;

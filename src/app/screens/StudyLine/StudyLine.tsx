@@ -16,6 +16,7 @@ import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getTimetable } from "../../services/timetable.service";
 import {
+  getWorkdayAnnouncement,
   getScheduleSoundEnabled,
   playScheduleTone,
   scheduleBellMessage,
@@ -122,6 +123,7 @@ export default function StudyLine() {
     if (!socket) return;
 
     const onBell = (data: ScheduleBellEvent) => {
+      if (getWorkdayAnnouncement(data)) return;
       const message = scheduleBellMessage(data);
 
       if (!message) return;

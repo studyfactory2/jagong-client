@@ -1,0 +1,121 @@
+.global-schedule-announcement {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 18px
+    max(20px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ink) 46%, transparent);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  font-family: var(--sans);
+}
+
+.global-schedule-announcement__dialog {
+  width: min(470px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--card);
+  padding: 28px;
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 26px 80px color-mix(in srgb, var(--ink) 28%, transparent);
+  animation: globalScheduleAnnouncementIn 0.22s ease-out;
+}
+
+.global-schedule-announcement__time {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  padding: 0 13px;
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+}
+
+.global-schedule-announcement__dialog > strong {
+  font-size: clamp(21px, 5vw, 27px);
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.global-schedule-announcement__body {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.global-schedule-announcement__body p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.global-schedule-announcement__body
+  .global-schedule-announcement__note {
+  margin-top: 6px;
+  border: 1px solid var(--mint-line);
+  border-radius: 14px;
+  background: var(--mint-soft);
+  padding: 13px 14px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.global-schedule-announcement__dialog > button {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 2px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.global-schedule-announcement__dialog > button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+@keyframes globalScheduleAnnouncementIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+
+@media (max-width: 480px) {
+  .global-schedule-announcement__dialog {
+    gap: 12px;
+    padding: 24px 18px 18px;
+  }
+
+  .global-schedule-announcement__body p {
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-schedule-announcement__dialog {
+    animation: none;
+  }
+}

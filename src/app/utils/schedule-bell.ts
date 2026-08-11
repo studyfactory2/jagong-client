@@ -5,6 +5,17 @@ export type ScheduleBellEvent = {
   type: string;
   label?: string;
   messages?: string[];
+  slot?: number;
+  startsAt?: string;
+  announcement?: unknown;
+};
+
+export type WorkdayAnnouncement = {
+  id: string;
+  kind: "WORKDAY_START" | "WORKDAY_END";
+  title: string;
+  body: string[];
+  note: string;
 };
 
 let audioContext: AudioContext | null = null;
@@ -110,6 +121,33 @@ export async function setScheduleSoundEnabled(enabled: boolean): Promise<boolean
   }
 }
 
+export function armScheduleSound(): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  let active = true;
+  const unlockAudio = () => {
+    if (!getScheduleSoundEnabled()) return;
+    const context = getAudioContext();
+    if (!context) return;
+
+    void context
+      .resume()
+      .then(() => {
+        if (active && context.state === "running") getScheduleChime()?.load();
+      })
+      .catch(() => undefined);
+  };
+
+  window.addEventListener("pointerdown", unlockAudio, { passive: true });
+  window.addEventListener("keydown", unlockAudio);
+
+  return () => {
+    active = false;
+    window.removeEventListener("pointerdown", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
+  };
+}
+
 export function playScheduleTone(type: string): void {
   const context = audioContext;
   if (!context || context.state !== "running") return;
@@ -121,12 +159,55 @@ export function playScheduleTone(type: string): void {
     return;
   }
 
-  if (type === "breakStart" || type === "periodStart") {
+  if (
+    type === "breakStart" ||
+    type === "periodStart" ||
+    type === "workdayEnd"
+  ) {
     playScheduleChime();
     return;
   }
 
   playNote(context, 659, now, 0.3);
+}
+
+export function getWorkdayAnnouncement(
+  event: ScheduleBellEvent,
+): WorkdayAnnouncement | null {
+  const announcement = event.announcement;
+  if (!announcement || typeof announcement !== "object") return null;
+
+  const candidate = announcement as Record<string, unknown>;
+  const kind = candidate.kind;
+  const expectedKind =
+    event.type === "periodStart"
+      ? "WORKDAY_START"
+      : event.type === "workdayEnd"
+        ? "WORKDAY_END"
+        : null;
+
+  if (!expectedKind || kind !== expectedKind) return null;
+  if (typeof candidate.id !== "string" || !candidate.id.trim()) return null;
+  if (typeof candidate.title !== "string" || !candidate.title.trim()) {
+    return null;
+  }
+  if (
+    !Array.isArray(candidate.body) ||
+    !candidate.body.every((line) => typeof line === "string")
+  ) {
+    return null;
+  }
+  if (typeof candidate.note !== "string" || !candidate.note.trim()) {
+    return null;
+  }
+
+  return {
+    id: candidate.id,
+    kind: expectedKind,
+    title: candidate.title,
+    body: candidate.body,
+    note: candidate.note,
+  };
 }
 
 export function scheduleBellMessage(event: ScheduleBellEvent): string {

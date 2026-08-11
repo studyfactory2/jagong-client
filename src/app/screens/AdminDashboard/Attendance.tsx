@@ -21,6 +21,10 @@ import {
   getLeaveAttendanceCoverage,
   getMemberLeaveCalendar,
 } from "../../services/leave.service";
+import {
+  formatFirstStudyClock,
+  formatLateDuration,
+} from "../../utils/attendance-display";
 import type {
   AdminUser,
   AttendanceRecord,
@@ -167,6 +171,10 @@ function calendarDays(month: string) {
 
 function recordKey(userId: string, slot: number) {
   return `${userId}:${slot}`;
+}
+
+function attendanceRecordIdentity(record: AttendanceRecord) {
+  return `${String(record.date).slice(0, 10)}:${record.userId}:${record.slot}`;
 }
 
 function statusClass(status?: string) {
@@ -361,7 +369,10 @@ export default function Attendance({
     setRecords((current) => {
       const next = [...current];
       updatedRecords.forEach((updated) => {
-        const index = next.findIndex((record) => record.id === updated.id);
+        const updatedIdentity = attendanceRecordIdentity(updated);
+        const index = next.findIndex(
+          (record) => attendanceRecordIdentity(record) === updatedIdentity,
+        );
         if (index >= 0) next[index] = updated;
         else next.unshift(updated);
       });
@@ -780,6 +791,8 @@ export default function Attendance({
                       const covered = userCoverage && coverageAppliesToSlot(userCoverage, slot.slot, workSlots) ? userCoverage : null;
                       const cellStatus = covered ? "is-leave" : statusClass(record?.status);
                       const excusedLabel = record?.status === "EXCUSED" ? record.reason?.trim() || record.reasonType?.trim() || "기타" : "";
+                      const lateDuration = !covered && record?.status === "LATE" ? formatLateDuration(record.lateSeconds) : null;
+                      const firstStudyClock = !covered && record?.status === "LATE" ? formatFirstStudyClock(record.firstStudyAt) : null;
                       const cellLabel = covered
                         ? coverageReason(covered)
                         : record?.status === "EXCUSED"
@@ -787,21 +800,23 @@ export default function Attendance({
                           : record
                             ? STATUS_TABLE_LABEL[record.status as AttendanceStatusName] ?? "기타"
                             : "–";
-                      const cellTitle = covered
+                      const baseCellTitle = covered
                         ? `${member.name} · ${coverageReason(covered)} · 취소`
                         : `${member.name} · ${slot.label} · ${record?.status === "EXCUSED" ? excusedLabel : record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
+                      const cellTitle = `${baseCellTitle}${lateDuration ? ` · ${lateDuration} 지각` : ""}${firstStudyClock ? ` · 공부 시작 ${firstStudyClock}` : ""}`;
                       const key = recordKey(member.id, slot.slot);
                       return (
                         <td key={slot.slot}>
                           <button
                             aria-label={cellTitle}
-                            className={["attendance-cell", cellStatus, covered?.source === "FIXED_LEAVE" ? "is-fixed" : "", selected?.userId === member.id && selected.slot === slot.slot ? "is-selected" : ""].filter(Boolean).join(" ")}
+                            className={["attendance-cell", cellStatus, lateDuration ? "has-late-detail" : "", covered?.source === "FIXED_LEAVE" ? "is-fixed" : "", selected?.userId === member.id && selected.slot === slot.slot ? "is-selected" : ""].filter(Boolean).join(" ")}
                             disabled={savingKey === key}
                             onClick={() => void paintCell(member.id, slot.slot)}
                             title={cellTitle}
                             type="button"
                           >
-                            {cellLabel}
+                            <span>{cellLabel}</span>
+                            {lateDuration && <small>{lateDuration}</small>}
                           </button>
                         </td>
                       );

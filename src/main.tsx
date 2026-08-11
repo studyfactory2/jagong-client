@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { theme } from "./app/theme";
 import { AuthProvider } from "./app/context/AuthContext";
 import { SocketProvider } from "./app/context/SocketContext";
+import GlobalScheduleAnnouncement from "./app/components/ui/GlobalScheduleAnnouncement";
 import App from "./App";
 import "./app/theme/tokens.css";
 import "./styles/base.css";
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
         <AuthProvider>
           <SocketProvider>
             <App />
+            <GlobalScheduleAnnouncement />
           </SocketProvider>
         </AuthProvider>
       </BrowserRouter>

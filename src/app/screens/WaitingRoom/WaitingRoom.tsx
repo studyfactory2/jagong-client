@@ -26,6 +26,10 @@ import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
 import { getMyStudyRoomEntryAccess } from "../../services/study-room-entry.service";
 import { getWeeklyStudyLeaderboard } from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
+import {
+  formatFirstStudyClock,
+  formatLateDuration,
+} from "../../utils/attendance-display";
 import type {
   AttendanceRecord,
   AttendanceStatusName,
@@ -37,10 +41,12 @@ import type {
   WeeklyStudyLeaderboardMember,
 } from "../../../lib/types";
 import {
+  getWorkdayAnnouncement,
   getScheduleSoundEnabled,
   playScheduleTone,
   scheduleBellMessage,
   setScheduleSoundEnabled,
+  type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import "./waiting-room.css";
 
@@ -296,6 +302,7 @@ export default function WaitingRoom() {
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
+  const previewReconnectRef = useRef<(manual?: boolean) => void>(() => {});
 
   useEffect(() => {
     if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
@@ -466,12 +473,9 @@ export default function WaitingRoom() {
   useEffect(() => {
     if (!socket) return;
 
-    const onBell = (data: {
-      type: string;
-      label?: string;
-      messages?: string[];
-    }) => {
+    const onBell = (data: ScheduleBellEvent) => {
       void refreshEntryAccess(false);
+      if (getWorkdayAnnouncement(data)) return;
       const message = scheduleBellMessage(data);
 
       if (!message) return;
@@ -594,12 +598,30 @@ export default function WaitingRoom() {
     : undefined;
   const currentAttendanceStatus =
     (currentAttendance?.status as AttendanceStatusName | undefined) ?? null;
+  const currentLateDuration =
+    currentAttendanceStatus === "LATE"
+      ? formatLateDuration(currentAttendance?.lateSeconds)
+      : null;
+  const currentFirstStudyClock =
+    currentAttendanceStatus === "LATE"
+      ? formatFirstStudyClock(currentAttendance?.firstStudyAt)
+      : null;
+  const currentAttendanceText = currentAttendanceStatus
+    ? `${ATTENDANCE_TEXT[currentAttendanceStatus]}${
+        currentLateDuration ? ` · ${currentLateDuration}` : ""
+      }`
+    : "기록 전";
+  const currentAttendanceLabel = `${current?.label ?? "대기"} · ${currentAttendanceText}${
+    currentFirstStudyClock ? ` · 공부 시작 ${currentFirstStudyClock}` : ""
+  }`;
   const attendanceCount = attendance.filter(
     (record) =>
       workPeriodSlotNumbers.has(record.slot) &&
-      (record.status === "PRESENT" || record.status === "EXCUSED"),
+      (record.status === "PRESENT" ||
+        record.status === "LATE" ||
+        record.status === "EXCUSED"),
   ).length;
-  const workingMemberCount =
+  const cameraConnectedMemberCount =
     roomMembers?.filter((member) => member.isWorking).length ?? null;
   const weeklyRankedMembers = useMemo(
     () =>
@@ -686,6 +708,8 @@ export default function WaitingRoom() {
     let localRoom: Room | null = null;
     let reconnectAttempts = 0;
     let reconnectTimer: number | null = null;
+    let connectInFlight = false;
+    let reconnectRequested = false;
     let accessRevoked = false;
 
     const clearCurrentRoom = (room: Room) => {
@@ -694,7 +718,16 @@ export default function WaitingRoom() {
     };
 
     const scheduleReconnect = () => {
-      if (!mounted || reconnectTimer !== null) return;
+      if (!mounted || reconnectTimer !== null || localRoom) return;
+      if (accessRevoked) return;
+      if (document.visibilityState !== "visible" || !navigator.onLine) {
+        setPreviewStatus("error");
+        return;
+      }
+      if (connectInFlight) {
+        reconnectRequested = true;
+        return;
+      }
       if (reconnectAttempts >= 1) {
         setPreviewStatus("error");
         return;
@@ -704,11 +737,52 @@ export default function WaitingRoom() {
       setPreviewStatus("connecting");
       reconnectTimer = window.setTimeout(() => {
         reconnectTimer = null;
+        if (!mounted) return;
+        if (document.visibilityState !== "visible" || !navigator.onLine) {
+          reconnectAttempts = 0;
+          setPreviewStatus("error");
+          return;
+        }
         void connectPreviewViewer();
       }, reconnectAttempts * 1500);
     };
 
+    const recoverPreview = (manual = false) => {
+      if (
+        !mounted ||
+        localRoom ||
+        connectInFlight ||
+        reconnectTimer !== null
+      ) {
+        return;
+      }
+      if (accessRevoked && !manual) return;
+      if (document.visibilityState !== "visible" || !navigator.onLine) {
+        setPreviewStatus("error");
+        return;
+      }
+
+      accessRevoked = false;
+      reconnectAttempts = 0;
+      reconnectRequested = false;
+      setPreviewStatus("connecting");
+      void connectPreviewViewer();
+    };
+
+    const recoverWhenVisible = () => {
+      if (document.visibilityState === "visible") recoverPreview();
+    };
+    const recoverWhenAvailable = () => recoverPreview();
+
+    previewReconnectRef.current = recoverPreview;
+    window.addEventListener("online", recoverWhenAvailable);
+    window.addEventListener("pageshow", recoverWhenAvailable);
+    document.addEventListener("visibilitychange", recoverWhenVisible);
+
     async function connectPreviewViewer() {
+      if (!mounted || localRoom || connectInFlight) return;
+
+      connectInFlight = true;
       let connectingRoom: Room | null = null;
 
       try {
@@ -724,6 +798,8 @@ export default function WaitingRoom() {
 
         const { DisconnectReason, Room, RoomEvent } =
           await import("livekit-client");
+        if (!mounted) return;
+
         const room = new Room({
           adaptiveStream: true,
           dynacast: true,
@@ -736,6 +812,7 @@ export default function WaitingRoom() {
         room.on(
           RoomEvent.TrackSubscribed,
           (track, publication, participant) => {
+            if (!mounted || localRoom !== room) return;
             if (String(track.kind) !== "video") return;
             setPreviewVideos((current) => {
               const next = current.filter(
@@ -754,18 +831,21 @@ export default function WaitingRoom() {
         );
 
         room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
+          if (!mounted || localRoom !== room) return;
           setPreviewVideos((current) =>
             current.filter((video) => video.trackSid !== publication.trackSid),
           );
         });
 
         room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+          if (!mounted || localRoom !== room) return;
           setPreviewVideos((current) =>
             current.filter((video) => video.userId !== participant.identity),
           );
         });
 
         room.on(RoomEvent.TrackPublished, () => {
+          if (!mounted || localRoom !== room) return;
           syncPreviewSubscriptions(room);
         });
 
@@ -776,12 +856,21 @@ export default function WaitingRoom() {
 
         room.on(RoomEvent.Reconnected, () => {
           if (!mounted || localRoom !== room) return;
+          reconnectAttempts = 0;
+          reconnectRequested = false;
           setPreviewStatus("connected");
           syncPreviewSubscriptions(room);
         });
 
         room.on(RoomEvent.Disconnected, (reason) => {
           if (!mounted || localRoom !== room) return;
+
+          console.warn("Waiting room LiveKit preview disconnected", {
+            reason,
+            visibilityState: document.visibilityState,
+            online: navigator.onLine,
+            reconnectAttempts,
+          });
 
           clearCurrentRoom(room);
           setPreviewVideos([]);
@@ -807,6 +896,9 @@ export default function WaitingRoom() {
           return;
         }
 
+        reconnectAttempts = 0;
+        reconnectRequested = false;
+        accessRevoked = false;
         setPreviewStatus("connected");
         syncPreviewSubscriptions(room);
       } catch (err) {
@@ -824,7 +916,15 @@ export default function WaitingRoom() {
           void failedRoom.disconnect();
         }
         setPreviewVideos([]);
+        connectInFlight = false;
         scheduleReconnect();
+        return;
+      } finally {
+        connectInFlight = false;
+        if (reconnectRequested) {
+          reconnectRequested = false;
+          scheduleReconnect();
+        }
       }
     }
 
@@ -833,6 +933,12 @@ export default function WaitingRoom() {
     return () => {
       mounted = false;
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+      window.removeEventListener("online", recoverWhenAvailable);
+      window.removeEventListener("pageshow", recoverWhenAvailable);
+      document.removeEventListener("visibilitychange", recoverWhenVisible);
+      if (previewReconnectRef.current === recoverPreview) {
+        previewReconnectRef.current = () => {};
+      }
       setPreviewVideos([]);
       if (localRoom) {
         localRoom.disconnect();
@@ -947,7 +1053,7 @@ export default function WaitingRoom() {
               </span>
               <span className="wr-badge is-on">
                 <i />
-                현재 공부중 {workingMemberCount ?? "--"}명
+                현재 카메라 연결 {cameraConnectedMemberCount ?? "--"}명
               </span>
             </div>
           </div>
@@ -960,11 +1066,17 @@ export default function WaitingRoom() {
               return (
                 <article
                   aria-label={`${worker.rank}위 ${worker.name}, 이번 주 ${formatStudyTime(worker.studySeconds)}, ${
-                    isWorking ? "공부중" : isWaiting ? "대기" : "상태 확인중"
+                    isWorking
+                      ? "카메라 연결됨"
+                      : isWaiting
+                        ? "카메라 미연결"
+                        : "카메라 상태 확인 중"
                   }`}
                   className={`wr-worker${video ? " has-video" : ""}${
                     isWaiting ? " is-off" : ""
                   }${worker.presence === "unknown" ? " is-unknown" : ""}${
+                    isWorking ? " is-camera-connected" : ""
+                  }${
                     worker.isMe ? " is-me" : ""
                   }${worker.rank <= 3 ? ` is-rank-${worker.rank}` : ""}`}
                   key={worker.userId}
@@ -987,17 +1099,15 @@ export default function WaitingRoom() {
                     {worker.name}
                     {worker.isMe && <i>나</i>}
                   </span>
-                  <span
-                    className={`wr-worker-state${
-                      isWaiting
-                        ? " is-off"
-                        : worker.presence === "unknown"
-                          ? " is-unknown"
-                          : ""
-                    }`}
-                  >
-                    {isWorking ? "공부중" : isWaiting ? "대기" : "확인중"}
-                  </span>
+                  {!isWorking && (
+                    <span
+                      className={`wr-worker-state${
+                        isWaiting ? " is-off" : " is-unknown"
+                      }`}
+                    >
+                      {isWaiting ? "대기" : "확인중"}
+                    </span>
+                  )}
                 </article>
               );
             })}
@@ -1037,6 +1147,14 @@ export default function WaitingRoom() {
               {effectivePreviewStatus === "error" &&
                 " 실시간 화면 연결을 확인하지 못했습니다."}
             </span>
+            {effectivePreviewStatus === "error" && (
+              <button
+                onClick={() => previewReconnectRef.current(true)}
+                type="button"
+              >
+                화면 다시 연결
+              </button>
+            )}
             {weeklyLeaderboardError && fameMembers.length > 0 && (
               <>
                 <span className="wr-preview-error">
@@ -1181,11 +1299,11 @@ export default function WaitingRoom() {
             <FactCheckOutlinedIcon />
             <div>
               <span>오늘 출석현황</span>
-              <strong>
-                {current?.label ?? "대기"} ·{" "}
-                {currentAttendanceStatus
-                  ? ATTENDANCE_TEXT[currentAttendanceStatus]
-                  : "기록 전"}
+              <strong
+                aria-label={currentAttendanceLabel}
+                title={currentAttendanceLabel}
+              >
+                {current?.label ?? "대기"} · {currentAttendanceText}
               </strong>
             </div>
           </div>
