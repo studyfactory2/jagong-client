@@ -526,6 +526,248 @@
   white-space: nowrap;
 }
 
+.wp-readonly-note {
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  border-radius: 14px;
+  background: rgba(238, 245, 252, 0.88);
+  color: var(--ink);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wp-readonly-note svg {
+  flex: 0 0 auto;
+  color: #4c7590;
+  font-size: 21px;
+}
+
+.wp-readonly-note strong,
+.wp-readonly-note span {
+  display: block;
+}
+
+.wp-readonly-note strong {
+  font-size: 13px;
+}
+
+.wp-readonly-note span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.wp-history {
+  grid-area: history;
+  min-width: 0;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 254, 250, 0.9);
+  padding: 14px;
+  box-shadow: 0 12px 32px rgba(20, 63, 86, 0.045);
+}
+
+.wp-history > header,
+.wp-history > header > div {
+  display: flex;
+  align-items: center;
+}
+
+.wp-history > header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wp-history > header > div {
+  min-width: 0;
+  gap: 8px;
+}
+
+.wp-history > header svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 21px;
+}
+
+.wp-history > header strong,
+.wp-history > header span {
+  display: block;
+}
+
+.wp-history > header strong {
+  font-size: 14px;
+}
+
+.wp-history > header span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.wp-history > header b {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.wp-history > p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.wp-history > p.is-error {
+  color: var(--accent-deep);
+}
+
+.wp-history-list {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.wp-history-list button {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 92px;
+  border: 1px solid rgba(20, 63, 86, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "date selected"
+    "title selected"
+    "progress progress"
+    "bar bar";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 4px;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.wp-history-list button:hover:not(:disabled) {
+  border-color: rgba(244, 134, 120, 0.48);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(20, 63, 86, 0.08);
+}
+
+.wp-history-list button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.wp-history-list button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.wp-history-list button.is-selected {
+  border-color: rgba(244, 134, 120, 0.7);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 237, 0.96),
+    rgba(255, 254, 250, 0.96)
+  );
+  box-shadow:
+    inset 4px 0 0 var(--accent),
+    0 8px 18px rgba(244, 134, 120, 0.09);
+}
+
+.wp-history-date {
+  grid-area: date;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.wp-history-selected {
+  grid-area: selected;
+  align-self: start;
+  border: 1px solid rgba(244, 134, 120, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--accent-deep);
+  padding: 3px 7px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.wp-history-title {
+  grid-area: title;
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.wp-history-progress {
+  grid-area: progress;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.wp-history-progress small {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.wp-history-progress b {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.wp-history-bar {
+  grid-area: bar;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(20, 63, 86, 0.09);
+}
+
+.wp-history-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--mint-deep), var(--accent));
+}
+
+.wp-cell-task button:disabled,
+.wp-cell .wp-add-task:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.wp-cell-task input[readonly],
+.wp-board-memo input[readonly] {
+  color: var(--ink);
+  cursor: default;
+}
+
 .wp-main-action:disabled,
 .wp-board-top button:disabled,
 .wp-board-actions button:disabled {
@@ -556,6 +798,7 @@
     grid-template-areas:
       "goal calendar"
       "memo calendar"
+      "history calendar"
       "save save"
       "stats stats";
     gap: 14px 16px;
@@ -863,7 +1106,29 @@
     grid-template-areas:
       "goal calendar"
       "memo calendar"
+      "history calendar"
       "stats save";
+  }
+
+  .wp-history-list {
+    grid-template-columns: minmax(0, 1fr);
+    max-height: 292px;
+    overflow-y: auto;
+    padding-right: 3px;
+    overscroll-behavior: contain;
+  }
+
+  .wp-body.is-readonly {
+    grid-template-areas:
+      "notice notice"
+      "goal calendar"
+      "memo calendar"
+      "history calendar"
+      "stats save";
+  }
+
+  .wp-body.is-readonly .wp-readonly-note {
+    grid-area: notice;
   }
 
   .wp-actions {

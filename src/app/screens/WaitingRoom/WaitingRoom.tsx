@@ -48,6 +48,9 @@ import {
   playScheduleTone,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
+import WaitingRoomNotificationHub, {
+  type NotificationHubDestination,
+} from "./WaitingRoomNotificationHub";
 import "./waiting-room.css";
 
 const FALLBACK_TIMETABLE: TimetableSlot[] = [
@@ -403,6 +406,7 @@ export default function WaitingRoom() {
   const [previewStatus, setPreviewStatus] = useState<
     "idle" | "connecting" | "connected" | "stub" | "error"
   >("idle");
+  const [notificationHubOpen, setNotificationHubOpen] = useState(false);
   const roomMembersRequestRef = useRef(0);
   const weeklyLeaderboardRequestRef = useRef(0);
   const studyStatisticsRequestRef = useRef(0);
@@ -410,6 +414,17 @@ export default function WaitingRoom() {
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
   const previewReconnectRef = useRef<(manual?: boolean) => void>(() => {});
+
+  const openNotificationDestination = (
+    destination: NotificationHubDestination,
+  ) => {
+    setNotificationHubOpen(false);
+    if (destination === "notifications") {
+      navigate("/notifications");
+      return;
+    }
+    navigate(`/inquiry?view=${destination}`);
+  };
 
   useEffect(() => {
     if (session?.user.role === "ADMIN" || session?.user.role === "STAFF") {
@@ -1100,12 +1115,15 @@ export default function WaitingRoom() {
           </button>
           <button
             className="wr-icon-btn wr-notification-button"
+            aria-expanded={notificationHubOpen}
+            aria-haspopup="dialog"
             aria-label={
               unreadNotificationCount > 0
-                ? `읽지 않은 알림 ${unreadNotificationCount}개`
-                : "알림"
+                ? `알림센터, 읽지 않은 관리자 알림 ${unreadNotificationCount}개`
+                : "알림센터"
             }
-            onClick={() => navigate("/notifications")}
+            onClick={() => setNotificationHubOpen(true)}
+            type="button"
           >
             <NotificationsNoneOutlinedIcon />
             {unreadNotificationCount > 0 && (
@@ -1517,6 +1535,13 @@ export default function WaitingRoom() {
       </main>
 
       <p className="app-foot">자격증공장 재택근무반</p>
+
+      <WaitingRoomNotificationHub
+        onClose={() => setNotificationHubOpen(false)}
+        onSelect={openNotificationDestination}
+        open={notificationHubOpen}
+        unreadNotificationCount={unreadNotificationCount}
+      />
     </div>
   );
 }

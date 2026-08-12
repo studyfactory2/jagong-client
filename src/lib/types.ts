@@ -780,15 +780,22 @@ export interface WeeklyPlanTaskRecord {
   updatedAt?: string;
 }
 
+export interface WeeklyPlanProgress {
+  total: number;
+  done: number;
+  percent: number;
+}
+
 export interface WeeklyPlanRecord {
-  id: string;
+  id?: string;
   userId: string;
   weekStart: string;
   weekEnd: string;
   memo?: string | null;
   monthlyGoalId?: string | null;
+  monthlyGoal?: MonthlyGoalRecord | null;
   tasks: WeeklyPlanTaskRecord[];
-  progress?: number;
+  progress: WeeklyPlanProgress;
   createdAt?: string;
   updatedAt?: string;
 }

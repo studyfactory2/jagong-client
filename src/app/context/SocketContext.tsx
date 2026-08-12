@@ -397,7 +397,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
                 setNotice(null);
                 if (notice.isBoardNotice) {
-                  navigate("/inquiry", {
+                  navigate("/inquiry?view=notices", {
                     state: notice.id ? { noticeId: notice.id } : undefined,
                   });
                   return;

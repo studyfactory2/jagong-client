@@ -30,10 +30,20 @@ export async function saveMonthlyGoal(input: {
 
 export async function getWeeklyPlan(
   weekStart: string,
-): Promise<WeeklyPlanRecord | null> {
-  const { data } = await http.get<WeeklyPlanRecord | null>(
+): Promise<WeeklyPlanRecord> {
+  const { data } = await http.get<WeeklyPlanRecord>(
     "/study-plans/weekly",
     { params: { weekStart } },
+  );
+  return data;
+}
+
+export async function getStudyPlanHistory(
+  take = 12,
+): Promise<WeeklyPlanRecord[]> {
+  const { data } = await http.get<WeeklyPlanRecord[]>(
+    "/study-plans/history",
+    { params: { take } },
   );
   return data;
 }

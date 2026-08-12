@@ -109,6 +109,8 @@ export default function Inquiry() {
   const [error, setError] = useState("");
   const [noticeError, setNoticeError] = useState("");
   const messagesListRef = useRef<HTMLDivElement | null>(null);
+  const noticePanelRef = useRef<HTMLElement | null>(null);
+  const chatPanelRef = useRef<HTMLElement | null>(null);
   const selectedImagesRef = useRef<SelectedChatImage[]>([]);
 
   /** DERIVED **/
@@ -121,6 +123,13 @@ export default function Inquiry() {
       ? (notices.find((notice) => notice.id === routedNoticeId) ?? null)
       : null;
   const activeNotice = selectedNotice ?? routedNotice;
+  const requestedView = new URLSearchParams(location.search).get("view");
+  const inquiryView =
+    requestedView === "chat" || requestedView === "notices"
+      ? requestedView
+      : "combined";
+  const showNotices = inquiryView !== "chat";
+  const showChat = inquiryView !== "notices";
 
   /** LOADERS **/
   const loadRoom = useCallback(async () => {
@@ -152,17 +161,20 @@ export default function Inquiry() {
   }, []);
 
   const reloadInquiry = useCallback(async () => {
-    await Promise.all([loadRoom(), loadNotices()]);
-  }, [loadNotices, loadRoom]);
+    await Promise.all([
+      ...(showChat ? [loadRoom()] : []),
+      ...(showNotices ? [loadNotices()] : []),
+    ]);
+  }, [loadNotices, loadRoom, showChat, showNotices]);
 
   /** EFFECTS **/
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void loadRoom();
-      void loadNotices();
+      if (showChat) void loadRoom();
+      if (showNotices) void loadNotices();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadNotices, loadRoom]);
+  }, [loadNotices, loadRoom, showChat, showNotices]);
 
   useEffect(() => {
     const element = messagesListRef.current;
@@ -174,6 +186,28 @@ export default function Inquiry() {
 
     return () => window.cancelAnimationFrame(frame);
   }, [messages.length]);
+
+  useEffect(() => {
+    const target =
+      inquiryView === "chat"
+        ? chatPanelRef.current
+        : inquiryView === "notices"
+          ? noticePanelRef.current
+          : null;
+    if (!target) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      target.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "start",
+      });
+      target.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [inquiryView]);
 
   useEffect(() => {
     if (!socket) return;
@@ -319,7 +353,7 @@ export default function Inquiry() {
         <button
           aria-label="게시판 새로고침"
           className="iq-refresh"
-          disabled={loading || noticeLoading}
+          disabled={(showChat && loading) || (showNotices && noticeLoading)}
           onClick={reloadInquiry}
           title="새로고침"
           type="button"
@@ -328,12 +362,22 @@ export default function Inquiry() {
         </button>
       </header>
 
-      <main className="iq-body">
-        <section className="iq-panel iq-notice-panel">
+      <main
+        className={`iq-body${
+          inquiryView === "combined" ? "" : " is-single-view"
+        }`}
+      >
+        {showNotices && (
+          <section
+            aria-labelledby="iq-notices-title"
+            className="iq-panel iq-notice-panel"
+            ref={noticePanelRef}
+            tabIndex={-1}
+          >
           <div className="iq-panel-title">
             <CampaignOutlinedIcon />
             <div>
-              <strong>관리자 공지</strong>
+              <strong id="iq-notices-title">관리자 공지</strong>
             </div>
           </div>
 
@@ -407,13 +451,20 @@ export default function Inquiry() {
               </article>
             </div>
           )}
-        </section>
+          </section>
+        )}
 
-        <section className="iq-panel iq-chat">
+        {showChat && (
+          <section
+            aria-labelledby="iq-chat-title"
+            className="iq-panel iq-chat"
+            ref={chatPanelRef}
+            tabIndex={-1}
+          >
           <div className="iq-chat-head">
             <span>1:1</span>
             <div>
-              <strong>1:1 문의 게시판</strong>
+              <strong id="iq-chat-title">1:1 문의 게시판</strong>
               <p>관리자와 나만 보는 대화방입니다.</p>
             </div>
           </div>
@@ -519,7 +570,8 @@ export default function Inquiry() {
               전송
             </button>
           </div>
-        </section>
+          </section>
+        )}
       </main>
 
       <p className="app-foot">자격증공장 재택근무반</p>
