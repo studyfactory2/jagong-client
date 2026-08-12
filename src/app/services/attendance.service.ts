@@ -5,6 +5,8 @@ import type { AttendanceRecord, AttendanceStatusName } from "../../lib/types";
 
 export async function getMyAttendance(input?: {
   date?: string;
+  from?: string;
+  to?: string;
 }): Promise<AttendanceRecord[]> {
   const { data } = await http.get<AttendanceRecord[]>("/attendance/me", {
     params: input,
