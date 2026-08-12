@@ -1622,23 +1622,33 @@
 
   .wr-time-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px 6px;
+    gap: 6px 8px;
   }
 
   .wr-time-column {
-    gap: 4px;
+    gap: 5px;
   }
 
   .wr-time-row {
-    min-height: 32px;
-    grid-template-columns: 16px 42px minmax(0, 1fr);
-    gap: 4px;
+    min-height: 36px;
+    grid-template-columns: 18px 48px minmax(0, 1fr);
+    gap: 5px;
     padding: 0 6px;
-    font-size: 10px;
+    font-size: 10.5px;
   }
 
   .wr-time-row svg {
-    font-size: 16px;
+    font-size: 17px;
+  }
+
+  .wr-time-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .wr-time-range {
+    font-size: 10px;
   }
 
   .wr-time-duration {
@@ -1693,16 +1703,27 @@
   }
 
   .wr-shortcuts {
-    gap: 6px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 7px;
   }
 
   .wr-shortcuts button {
-    min-height: 42px;
-    font-size: 10px;
+    grid-column: span 2;
+    min-height: 48px;
+    padding: 6px 5px;
+    font-size: 10.5px;
+  }
+
+  .wr-shortcuts button:nth-child(4):nth-last-child(2) {
+    grid-column: 2 / span 2;
+  }
+
+  .wr-shortcuts button:nth-child(5):last-child {
+    grid-column: 4 / span 2;
   }
 
   .wr-shortcuts svg {
-    font-size: 17px;
+    font-size: 18px;
   }
 }
 
@@ -1769,10 +1790,10 @@
   }
 
   .wr-time-row {
-    min-height: 30px;
-    grid-template-columns: 15px 38px minmax(0, 1fr);
+    min-height: 34px;
+    grid-template-columns: 15px 39px minmax(0, 1fr);
     gap: 3px;
-    padding: 0 5px;
+    padding: 0 4px;
     font-size: 9.5px;
   }
 
@@ -1782,6 +1803,10 @@
 
   .wr-time-range {
     font-size: 9px;
+  }
+
+  .wr-time-duration {
+    display: none;
   }
 
   .wr-countdown {
@@ -1794,12 +1819,15 @@
   }
 
   .wr-shortcuts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .wr-shortcuts button {
-    min-height: 42px;
-    font-size: 10.5px;
+    min-height: 54px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 3px;
+    font-size: 10px;
   }
 }
 

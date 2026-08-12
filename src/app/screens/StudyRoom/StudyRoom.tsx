@@ -14,7 +14,6 @@ import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoub
 import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
@@ -127,7 +126,6 @@ export default function StudyRoom() {
     studyStatusError,
     studyActionPending,
     selectCamera,
-    startSession,
     leaveSession,
     syncAttendanceSlot,
     refreshStudyStatus,
@@ -384,15 +382,9 @@ export default function StudyRoom() {
     await selectCamera(deviceId);
   }
 
-  async function toggleJoin() {
-    if (joined && !window.confirm("작업실에서 퇴장하시겠습니까?")) return;
-
-    if (joined) {
-      await leaveSession();
-      return;
-    }
-
-    await startSession(attendanceSlot ?? undefined);
+  async function handleLeave() {
+    if (!window.confirm("작업실에서 퇴장하시겠습니까?")) return;
+    await leaveSession();
   }
 
   async function handleStudyAction() {
@@ -413,7 +405,7 @@ export default function StudyRoom() {
     setBreakConfirmOpen(false);
   }
 
-  function goWaitingRoom() {
+  async function goWaitingRoom() {
     if (
       joined &&
       !window.confirm(
@@ -422,13 +414,19 @@ export default function StudyRoom() {
     ) {
       return;
     }
+    await leaveSession();
     navigate("/waiting-room");
   }
 
   return (
     <div className={`sr${cameraOnly ? " is-camera-only" : ""}`}>
       <header className="sr-head">
-        <button className="sr-back" onClick={goWaitingRoom}>
+        <button
+          className="sr-back"
+          disabled={joining}
+          onClick={() => void goWaitingRoom()}
+          type="button"
+        >
           <ArrowBackIcon /> 대기장
         </button>
 
@@ -506,7 +504,7 @@ export default function StudyRoom() {
               {joined && (
                 <button
                   className="sr-quick-leave"
-                  onClick={toggleJoin}
+                  onClick={() => void handleLeave()}
                   type="button"
                   disabled={joining}
                 >
@@ -515,15 +513,6 @@ export default function StudyRoom() {
               )}
             </div>
           </div>
-
-          {!joined ? (
-            <WorkroomCameraSetup
-              title="작업실 입장 준비"
-              description="입장 후에는 큰 셀프 영상 대신 전국 단체 작업 캠에서 함께 확인할 수 있습니다."
-              confirmLabel="하루 작업실 입장"
-              onConfirm={toggleJoin}
-            />
-          ) : null}
 
           {joined && (
             <div

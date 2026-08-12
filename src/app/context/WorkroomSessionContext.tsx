@@ -89,6 +89,11 @@ const ATTENDANCE_SYNC_TIMEOUT_MS = 8000;
 const CAMERA_RESUME_RETRY_DELAYS_MS = [0, 200, 500];
 const CAMERA_NOT_READY_ERROR = "카메라를 켠 뒤 공부를 계속할 수 있습니다.";
 
+// A provider unmount can overlap a fast return to the workroom route. Keep
+// camera teardown process-wide so the next provider never captures while the
+// previous processor/track is still stopping.
+let pendingCameraCleanup: Promise<void> | null = null;
+
 function isConfirmedStudyResume(status: StudyTimeStatus): boolean {
   return (
     status.active === true &&
@@ -240,6 +245,8 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const [studyActionPending, setStudyActionPending] =
     useState<StudyAction | null>(null);
   const localVideoTrackRef = useRef<LocalVideoTrack | null>(null);
+  const cameraCleanupPromiseRef = useRef<Promise<void> | null>(null);
+  const leaveSessionPromiseRef = useRef<Promise<void> | null>(null);
   const faceEffectProcessorRef =
     useRef<ProcessorWrapper<FaceEffectOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
@@ -1142,7 +1149,11 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setSelectedDeviceId((current) => current || cameras[0]?.deviceId || "");
   }, []);
 
-  const stopLocalCamera = useCallback(async () => {
+  const stopLocalCamera = useCallback((): Promise<void> => {
+    if (cameraCleanupPromiseRef.current) {
+      return cameraCleanupPromiseRef.current;
+    }
+
     const track = localVideoTrackRef.current;
 
     localVideoTrackRef.current = null;
@@ -1155,19 +1166,38 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     setEffectError("");
     faceEffectProcessorRef.current = null;
 
-    if (!track) return;
+    const cleanup = (async () => {
+      if (!track) return;
 
-    try {
-      if (track.getProcessor()) await track.stopProcessor(false);
-    } catch {
-      // The camera track still has to stop when processor cleanup fails.
-    } finally {
-      track.stop();
-    }
+      try {
+        if (track.getProcessor()) await track.stopProcessor(false);
+      } catch {
+        // The camera track still has to stop when processor cleanup fails.
+      } finally {
+        try {
+          track.stop();
+        } catch {
+          // The browser may already have ended the source track.
+        }
+      }
+    })();
+    cameraCleanupPromiseRef.current = cleanup;
+    pendingCameraCleanup = cleanup;
+
+    void cleanup.finally(() => {
+      if (cameraCleanupPromiseRef.current === cleanup) {
+        cameraCleanupPromiseRef.current = null;
+      }
+      if (pendingCameraCleanup === cleanup) pendingCameraCleanup = null;
+    });
+    return cleanup;
   }, [resetCameraPausedForBreak]);
 
   const startLocalCamera = useCallback(
     async (deviceId?: string, connectionGeneration?: number) => {
+      const cleanup = pendingCameraCleanup;
+      if (cleanup) await cleanup;
+
       const isCurrentGeneration = () =>
         connectionGeneration === undefined ||
         connectionGenerationRef.current === connectionGeneration;
@@ -1216,34 +1246,38 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           frameRate: 24,
         },
       });
+      let adopted = false;
 
-      if (!isCurrentGeneration()) {
-        track.stop();
-        throw new WorkroomConnectionCancelledError();
-      }
-
-      const activeDeviceId = (await track.getDeviceId()) ?? deviceId ?? "";
-      if (!isCurrentGeneration()) {
-        track.stop();
-        throw new WorkroomConnectionCancelledError();
-      }
-
-      localVideoTrackRef.current = track;
-      resetCameraPausedForBreak();
-      setLocalVideoTrack(track);
-      setCameraReady(true);
-      setSelectedDeviceId(activeDeviceId);
-      await refreshDevices();
-      if (!isCurrentGeneration()) {
-        if (localVideoTrackRef.current === track) {
-          localVideoTrackRef.current = null;
-          setLocalVideoTrack(null);
-          setCameraReady(false);
-          track.stop();
+      try {
+        if (!isCurrentGeneration()) {
+          throw new WorkroomConnectionCancelledError();
         }
-        throw new WorkroomConnectionCancelledError();
+
+        const activeDeviceId = (await track.getDeviceId()) ?? deviceId ?? "";
+        if (!isCurrentGeneration()) {
+          throw new WorkroomConnectionCancelledError();
+        }
+
+        localVideoTrackRef.current = track;
+        adopted = true;
+        resetCameraPausedForBreak();
+        setLocalVideoTrack(track);
+        setCameraReady(true);
+        setSelectedDeviceId(activeDeviceId);
+        await refreshDevices();
+        if (!isCurrentGeneration()) {
+          if (localVideoTrackRef.current === track) {
+            localVideoTrackRef.current = null;
+            setLocalVideoTrack(null);
+            setCameraReady(false);
+            track.stop();
+          }
+          throw new WorkroomConnectionCancelledError();
+        }
+        return track;
+      } finally {
+        if (!adopted) track.stop();
       }
-      return track;
     },
     [refreshDevices, resetCameraPausedForBreak],
   );
@@ -1572,6 +1606,59 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const leaveSession = useCallback((): Promise<void> => {
+    if (leaveSessionPromiseRef.current) {
+      return leaveSessionPromiseRef.current;
+    }
+
+    const leavePromise = (async () => {
+      const participantSid = participantSidRef.current;
+      const leaveGeneration = connectionGenerationRef.current + 1;
+      connectionGenerationRef.current = leaveGeneration;
+      leavingRef.current = true;
+      joiningRef.current = true;
+      joinedRef.current = false;
+      participantSidRef.current = null;
+      setJoining(true);
+      setJoined(false);
+      setError("");
+      resetStudyStatus();
+      resetAttendanceSync();
+
+      try {
+        await disconnectLiveKit();
+        await stopLocalCamera();
+
+        if (participantSid) {
+          void leaveCam({ participantSid })
+            .catch(() => undefined)
+            .finally(() => void refreshRoomMembers());
+        } else {
+          void refreshRoomMembers();
+        }
+      } finally {
+        leavingRef.current = false;
+        if (connectionGenerationRef.current === leaveGeneration) {
+          joiningRef.current = false;
+          if (mountedRef.current) setJoining(false);
+        }
+      }
+    })();
+    leaveSessionPromiseRef.current = leavePromise;
+    void leavePromise.finally(() => {
+      if (leaveSessionPromiseRef.current === leavePromise) {
+        leaveSessionPromiseRef.current = null;
+      }
+    });
+    return leavePromise;
+  }, [
+    disconnectLiveKit,
+    refreshRoomMembers,
+    resetAttendanceSync,
+    resetStudyStatus,
+    stopLocalCamera,
+  ]);
+
   const previewCamera = useCallback(
     async (deviceId?: string) => {
       setError("");
@@ -1608,55 +1695,16 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         await startLocalCamera(deviceId || undefined, connectionGeneration);
       } catch (err) {
         if (err instanceof WorkroomConnectionCancelledError) return;
-        setError(
-          err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.",
-        );
+        const message =
+          err instanceof Error ? err.message : "카메라를 변경하지 못했습니다.";
+
+        if (joinedRef.current) await leaveSession();
+        else await stopLocalCamera();
+        setError(`${message} 카메라 미리보기를 다시 확인해 주세요.`);
       }
     },
-    [startLocalCamera],
+    [leaveSession, startLocalCamera, stopLocalCamera],
   );
-
-  const leaveSession = useCallback(async () => {
-    if (leavingRef.current) return;
-
-    const participantSid = participantSidRef.current;
-    const leaveGeneration = connectionGenerationRef.current + 1;
-    connectionGenerationRef.current = leaveGeneration;
-    leavingRef.current = true;
-    joiningRef.current = true;
-    joinedRef.current = false;
-    participantSidRef.current = null;
-    setJoining(true);
-    setJoined(false);
-    setError("");
-    resetStudyStatus();
-    resetAttendanceSync();
-
-    try {
-      await disconnectLiveKit();
-      await stopLocalCamera();
-
-      if (participantSid) {
-        void leaveCam({ participantSid })
-          .catch(() => undefined)
-          .finally(() => void refreshRoomMembers());
-      } else {
-        void refreshRoomMembers();
-      }
-    } finally {
-      leavingRef.current = false;
-      if (connectionGenerationRef.current === leaveGeneration) {
-        joiningRef.current = false;
-        if (mountedRef.current) setJoining(false);
-      }
-    }
-  }, [
-    disconnectLiveKit,
-    refreshRoomMembers,
-    resetAttendanceSync,
-    resetStudyStatus,
-    stopLocalCamera,
-  ]);
 
   const startSession = useCallback(
     async (slot?: number) => {
@@ -1676,6 +1724,12 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         const token = await issueCamToken();
         if (connectionGenerationRef.current !== connectionGeneration) {
           throw new WorkroomConnectionCancelledError();
+        }
+        if (
+          localVideoTrackRef.current &&
+          localVideoTrackRef.current.mediaStreamTrack.readyState !== "live"
+        ) {
+          await stopLocalCamera();
         }
         if (!localVideoTrackRef.current) {
           await startLocalCamera(

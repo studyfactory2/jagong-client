@@ -9,7 +9,6 @@ import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -66,7 +65,6 @@ export default function StudyLine() {
   const {
     joined,
     joining,
-    cameraReady,
     cameraPausedForBreak,
     error,
     localVideoTrack,
@@ -75,7 +73,7 @@ export default function StudyLine() {
     studyStatusLoading,
     studyStatusError,
     studyActionPending,
-    startSession,
+    leaveSession,
     syncAttendanceSlot,
     refreshStudyStatus,
     startStudyBreak,
@@ -185,15 +183,7 @@ export default function StudyLine() {
     syncAttendanceSlot(activeAttendanceSlot);
   }, [activeAttendanceSlot, joined, syncAttendanceSlot]);
 
-  const cameraStatus = joined
-    ? cameraPausedForBreak
-      ? "휴식 중"
-      : "연결됨"
-    : joining
-      ? "준비 중"
-      : cameraReady
-        ? "미리보기"
-        : "설정 필요";
+  const cameraStatus = cameraPausedForBreak ? "휴식 중" : "연결됨";
   const currentStudyState = createStudyRecordingView({
     cameraPausedForBreak,
     loading: studyStatusLoading,
@@ -209,10 +199,6 @@ export default function StudyLine() {
     studyStatusLoading ||
     Boolean(studyStatusError) ||
     studyActionPending !== null;
-
-  const handleJoin = async () => {
-    await startSession(activeAttendanceSlot);
-  };
 
   const handleStudyAction = async () => {
     if (currentStudyState.action === "BREAK") {
@@ -241,10 +227,27 @@ export default function StudyLine() {
     });
   };
 
+  const goWaitingRoom = async () => {
+    if (
+      !window.confirm(
+        "작업장을 나가면 교시 중에는 다시 입장하지 못할 수 있습니다. 대기장으로 이동할까요?",
+      )
+    ) {
+      return;
+    }
+    await leaveSession();
+    navigate("/waiting-room");
+  };
+
   return (
     <div className="sl">
       <header className="sl-head">
-        <button className="sl-back" onClick={() => navigate("/waiting-room")}>
+        <button
+          className="sl-back"
+          disabled={joining}
+          onClick={() => void goWaitingRoom()}
+          type="button"
+        >
           <ArrowBackIcon /> 대기장
         </button>
         <h1>개인작업실</h1>
@@ -351,15 +354,6 @@ export default function StudyLine() {
               {studyStatusLoading ? "확인 중…" : "다시 확인"}
             </button>
           </div>
-        )}
-
-        {!joined && (
-          <WorkroomCameraSetup
-            title="개인 작업실 입장 준비"
-            description="미리보기에서 카메라와 화면 효과를 확인한 뒤 개인 작업실에 입장해 주세요."
-            confirmLabel="개인 작업실 입장"
-            onConfirm={handleJoin}
-          />
         )}
 
         {joined && error && (

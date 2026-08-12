@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import ProtectedRoute from "./app/components/ProtectedRoute";
 import MembershipRoute from "./app/components/MembershipRoute";
@@ -12,11 +12,17 @@ import PaymentSuccess from "./app/screens/PaymentSuccess";
 import PaymentFail from "./app/screens/PaymentFail";
 import MyPage from "./app/screens/MyPage";
 import { useAuth } from "./app/context/AuthContext";
-import { WorkroomSessionProvider } from "./app/context/WorkroomSessionContext";
+import {
+  WorkroomSessionProvider,
+  useWorkroomSession,
+} from "./app/context/WorkroomSessionContext";
 import { memberHomePath } from "./app/utils/access";
 import AppLoading from "./app/components/ui/AppLoading";
 
 const WaitingRoom = lazy(() => import("./app/screens/WaitingRoom"));
+const WorkroomPreparation = lazy(
+  () => import("./app/screens/WorkroomPreparation"),
+);
 const StudyLine = lazy(() => import("./app/screens/StudyLine"));
 const StudyRoom = lazy(() => import("./app/screens/StudyRoom"));
 const WeeklyPlan = lazy(() => import("./app/screens/WeeklyPlan"));
@@ -52,6 +58,23 @@ function WorkroomSessionLayout() {
   );
 }
 
+function JoinedWorkroomRoute({
+  mode,
+  children,
+}: {
+  mode: "line" | "group";
+  children: ReactNode;
+}) {
+  const { joined, joining } = useWorkroomSession();
+
+  if (joined) return <>{children}</>;
+  if (joining) {
+    return <AppLoading message="작업장 연결을 확인하고 있습니다." />;
+  }
+
+  return <Navigate replace to={`/workroom/prepare?mode=${mode}`} />;
+}
+
 export default function App() {
   return (
     <Suspense fallback={<AppLoading message="화면을 불러오는 중입니다." />}>
@@ -77,8 +100,26 @@ export default function App() {
           <Route element={<MembershipRoute />}>
             <Route path="/waiting-room/*" element={<WaitingRoom />} />
             <Route element={<WorkroomSessionLayout />}>
-              <Route path="/study-line" element={<StudyLine />} />
-              <Route path="/study-room" element={<StudyRoom />} />
+              <Route
+                path="/workroom/prepare"
+                element={<WorkroomPreparation />}
+              />
+              <Route
+                path="/study-line"
+                element={
+                  <JoinedWorkroomRoute mode="line">
+                    <StudyLine />
+                  </JoinedWorkroomRoute>
+                }
+              />
+              <Route
+                path="/study-room"
+                element={
+                  <JoinedWorkroomRoute mode="group">
+                    <StudyRoom />
+                  </JoinedWorkroomRoute>
+                }
+              />
             </Route>
             <Route path="/weekly-plan" element={<WeeklyPlan />} />
             <Route path="/leaves" element={<LeaveRequest />} />

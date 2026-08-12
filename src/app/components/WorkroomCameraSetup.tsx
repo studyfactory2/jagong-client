@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import BlurOnRoundedIcon from "@mui/icons-material/BlurOnRounded";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
 import FilterNoneRoundedIcon from "@mui/icons-material/FilterNoneRounded";
@@ -39,6 +39,7 @@ export default function WorkroomCameraSetup({
     selectCameraEffect,
   } = useWorkroomSession();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [deviceChanging, setDeviceChanging] = useState(false);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -56,6 +57,16 @@ export default function WorkroomCameraSetup({
     await selectCameraEffect(effect);
   };
 
+  const handleDeviceChange = async (deviceId: string) => {
+    if (deviceChanging) return;
+    setDeviceChanging(true);
+    try {
+      await selectCamera(deviceId);
+    } finally {
+      setDeviceChanging(false);
+    }
+  };
+
   const renderEffect = (
     id: CameraEffect,
     title: string,
@@ -71,6 +82,7 @@ export default function WorkroomCameraSetup({
     const disabled =
       !cameraReady ||
       joining ||
+      deviceChanging ||
       effectLoading ||
       (isOriginal ? selected && !effectError : unsupported || selected);
     return (
@@ -115,6 +127,7 @@ export default function WorkroomCameraSetup({
     <section
       className="workroom-camera-setup"
       aria-labelledby="camera-setup-title"
+      aria-busy={joining || deviceChanging || effectLoading}
     >
       <div className="workroom-camera-setup__video">
         <video ref={videoRef} muted playsInline />
@@ -134,8 +147,10 @@ export default function WorkroomCameraSetup({
           <span>카메라 선택</span>
           <select
             value={selectedDeviceId}
-            onChange={(event) => void selectCamera(event.target.value)}
-            disabled={joining || devices.length === 0}
+            onChange={(event) => void handleDeviceChange(event.target.value)}
+            disabled={
+              joining || deviceChanging || effectLoading || devices.length === 0
+            }
           >
             {devices.length === 0 && (
               <option value="">미리보기 후 선택 가능</option>
@@ -305,7 +320,9 @@ export default function WorkroomCameraSetup({
             className="workroom-camera-setup__preview"
             type="button"
             onClick={() => void previewCamera(selectedDeviceId || undefined)}
-            disabled={joining || cameraReady}
+            disabled={
+              joining || deviceChanging || effectLoading || cameraReady
+            }
           >
             {cameraReady ? "미리보기 준비됨" : "카메라 미리보기"}
           </button>
@@ -314,10 +331,16 @@ export default function WorkroomCameraSetup({
             onClick={() => void onConfirm()}
             type="button"
             disabled={
-              joining || effectLoading || !cameraReady || Boolean(effectError)
+              joining ||
+              deviceChanging ||
+              effectLoading ||
+              !cameraReady ||
+              Boolean(effectError)
             }
           >
-            {joining
+            {deviceChanging
+              ? "카메라 변경 중..."
+              : joining
               ? busyLabel
               : cameraReady
                 ? confirmLabel

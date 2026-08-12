@@ -1,6 +1,9 @@
 .attendance-shell .app-shell-body {
-  max-width: 980px;
+  width: 100%;
+  max-width: 1040px;
+  margin-inline: auto;
   display: block;
+  box-sizing: border-box;
 }
 
 .attendance-refresh {
@@ -149,7 +152,7 @@
 }
 
 .attendance-calendar td {
-  height: 72px;
+  height: 64px;
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   background: var(--card-2);
@@ -500,28 +503,27 @@
 @media (max-width: 620px) {
   .attendance-shell .app-shell-body {
     max-width: 100%;
-    padding-inline: 12px;
+    padding-inline: 10px;
   }
 
   .attendance-report {
-    gap: 12px;
+    gap: 10px;
   }
 
   .attendance-calendar-card,
   .attendance-weekly-card {
     border-radius: 14px;
-    padding: 13px 10px;
+    padding: 10px 8px;
   }
 
   .attendance-section-heading {
-    align-items: flex-start;
+    align-items: center;
     gap: 6px;
   }
 
   .attendance-section-heading h2 {
     flex: 0 0 auto;
     gap: 3px;
-    padding-top: 11px;
     font-size: 12px;
   }
 
@@ -530,16 +532,16 @@
   }
 
   .attendance-month-navigation {
-    width: min(210px, calc(100% - 118px));
-    min-width: 162px;
+    width: min(196px, calc(100% - 112px));
+    min-width: 154px;
     margin-left: auto;
-    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
     gap: 0;
   }
 
   .attendance-month-navigation button {
-    width: 40px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 
   .attendance-month-navigation strong {
@@ -548,30 +550,40 @@
 
   .attendance-calendar {
     width: calc(100% + 4px);
-    margin-inline: -2px;
+    margin: 6px -2px 0;
     border-spacing: 2px;
   }
 
+  .attendance-calendar th {
+    height: 20px;
+    font-size: 9px;
+  }
+
   .attendance-calendar td {
-    height: 62px;
+    height: clamp(46px, 12vw, 52px);
     border-radius: 8px;
   }
 
   .attendance-calendar td > button {
-    gap: 7px;
-    padding: 7px 2px 5px;
+    gap: 3px;
+    padding: 4px 1px 3px;
+  }
+
+  .attendance-calendar time {
+    font-size: 9px;
   }
 
   .attendance-status-circle {
-    width: 27px;
-    height: 27px;
-    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
   }
 
   .attendance-legend {
-    justify-content: flex-start;
-    gap: 6px 9px;
-    margin-top: 10px;
+    justify-content: center;
+    gap: 4px 8px;
+    margin-top: 8px;
+    font-size: 8px;
   }
 
   .attendance-selected-week {
@@ -590,7 +602,58 @@
   }
 
   .attendance-weekly-scroll {
-    margin-top: 10px;
+    margin-top: 8px;
+  }
+
+  .attendance-weekly-table {
+    min-width: 0;
+  }
+
+  .attendance-weekly-table thead th {
+    height: 28px;
+    font-size: 7.5px;
+  }
+
+  .attendance-weekly-table thead th:first-child,
+  .attendance-weekly-table tbody th {
+    width: 50px;
+  }
+
+  .attendance-weekday-label {
+    min-height: 44px;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .attendance-weekday-label > span {
+    font-size: 10px;
+  }
+
+  .attendance-weekday-label time {
+    font-size: 7.5px;
+  }
+
+  .attendance-weekly-table td {
+    height: 44px;
+    padding: 3px 1px;
+  }
+
+  .attendance-period-status {
+    width: min(34px, calc(100% - 4px));
+    min-height: 34px;
+    border-radius: 8px;
+    gap: 2px;
+    padding: 2px 1px;
+  }
+
+  .attendance-period-status b {
+    font-size: 10px;
+  }
+
+  .attendance-period-status small {
+    max-width: 100%;
+    font-size: 7.5px;
+    letter-spacing: -0.04em;
   }
 
   .attendance-status {
@@ -599,14 +662,25 @@
   }
 }
 
+@media (max-width: 480px) {
+  .attendance-refresh {
+    width: 40px;
+    padding: 0;
+  }
+
+  .attendance-refresh span {
+    display: none;
+  }
+}
+
 @media (max-width: 380px) {
   .attendance-shell .app-shell-body {
-    padding-inline: 9px;
+    padding-inline: 8px;
   }
 
   .attendance-calendar-card,
   .attendance-weekly-card {
-    padding-inline: 8px;
+    padding-inline: 6px;
   }
 
   .attendance-section-heading h2 {
@@ -614,26 +688,48 @@
   }
 
   .attendance-month-navigation {
-    width: min(194px, calc(100% - 104px));
+    width: min(184px, calc(100% - 100px));
     min-width: 154px;
-    grid-template-columns: 37px minmax(0, 1fr) 37px;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
   }
 
   .attendance-month-navigation button {
-    width: 37px;
+    width: 44px;
+    height: 44px;
   }
 
   .attendance-calendar td {
-    height: 57px;
+    height: 46px;
   }
 
   .attendance-status-circle {
-    width: 25px;
-    height: 25px;
+    width: 21px;
+    height: 21px;
   }
 
   .attendance-legend {
     font-size: 8px;
+  }
+
+  .attendance-weekly-table thead th:first-child,
+  .attendance-weekly-table tbody th {
+    width: 46px;
+  }
+
+  .attendance-period-status {
+    width: min(32px, calc(100% - 2px));
+  }
+}
+
+@media (max-width: 340px) {
+  .attendance-weekly-table {
+    min-width: 330px;
+  }
+}
+
+@media (min-width: 621px) and (max-width: 899px) {
+  .attendance-weekly-table {
+    min-width: 100%;
   }
 }
 
@@ -644,12 +740,12 @@
   }
 
   .attendance-calendar td {
-    height: 82px;
+    height: 66px;
   }
 
   .attendance-status-circle {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 }
 

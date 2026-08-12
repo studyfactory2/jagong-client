@@ -1415,7 +1415,7 @@ export default function WaitingRoom() {
           <button
             className="wr-entry-btn is-private"
             disabled={!canEnterRoom}
-            onClick={() => navigate("/study-line")}
+            onClick={() => navigate("/workroom/prepare?mode=line")}
             type="button"
           >
             <DoorFrontOutlinedIcon />
@@ -1432,7 +1432,7 @@ export default function WaitingRoom() {
           <button
             className="wr-entry-btn is-group"
             disabled={!canEnterRoom}
-            onClick={() => navigate("/study-room")}
+            onClick={() => navigate("/workroom/prepare?mode=group")}
             type="button"
           >
             <GroupsOutlinedIcon />
