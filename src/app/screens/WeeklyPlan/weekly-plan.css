@@ -1223,9 +1223,26 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .wp-table-head b,
-  .wp-period {
+  .wp-table-head b {
     position: static;
     box-shadow: none;
+  }
+
+  .wp-table-head b:first-child,
+  .wp-period {
+    position: sticky;
+    left: 0;
+    background: rgba(255, 254, 250, 0.99);
+    box-shadow: 1px 0 0 rgba(20, 63, 86, 0.12);
+  }
+
+  .wp-table-head b:first-child {
+    top: auto;
+    z-index: 6;
+    background: rgba(250, 254, 251, 0.99);
+  }
+
+  .wp-period {
+    z-index: 3;
   }
 }
