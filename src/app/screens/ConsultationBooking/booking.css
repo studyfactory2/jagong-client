@@ -273,7 +273,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  color: var(--placeholder);
+  color: var(--ink);
   font-family: var(--sans);
   font-size: 13px;
   font-weight: 400;
@@ -282,10 +282,6 @@
 
 .bk-fin::placeholder {
   color: var(--placeholder);
-}
-
-.bk-fin--hint::placeholder {
-  color: var(--ink-2);
 }
 
 .bk-select-field {
@@ -788,9 +784,19 @@
 .bk-price-note {
   margin: 12px 0 0;
   color: var(--ink-2);
+  display: grid;
+  grid-template-columns: 19px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
   font-size: 12px;
   line-height: 1.55;
   word-break: keep-all;
+}
+
+.bk-price-note > svg {
+  margin-top: 1px;
+  color: var(--accent);
+  font-size: 18px;
 }
 
 .bk-transfer-note {
@@ -847,6 +853,8 @@
 .bk-modal {
   width: 100%;
   max-width: 330px;
+  max-height: calc(100dvh - 56px);
+  overflow-y: auto;
   border-radius: 22px;
   background: var(--card);
   padding: 28px 24px 22px;
@@ -899,7 +907,33 @@
 }
 
 .bk-bank-modal {
-  max-width: 370px;
+  max-width: 620px;
+}
+
+.bk-bank-modal .bk-price-section {
+  text-align: left;
+}
+
+.bk-bank-modal .bk-price-head h2 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.bk-bank-modal .bk-price-note {
+  margin: 12px 0 0;
+  color: var(--ink-2);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.bk-bank-modal .bk-bank-details {
+  margin-top: 14px;
+}
+
+.bk-bank-modal .bk-transfer-note {
+  margin: 13px 0 18px;
+  text-align: left;
 }
 
 .bk-bank-details {
@@ -958,14 +992,6 @@
   color: var(--mint-deep);
   font-size: 11px;
   font-style: normal;
-}
-
-.bk-bank-receipt {
-  margin: 13px 0 18px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.55;
-  word-break: keep-all;
 }
 
 .bk-modal-actions {

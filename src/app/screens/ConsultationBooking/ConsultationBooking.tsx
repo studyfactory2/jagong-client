@@ -13,6 +13,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import PersonOutlineIcon from "@mui/icons-material/Person2Outlined";
 import { createConsultation } from "../../services/consultation.service";
 import { getCurrentPolicyVersion } from "../../services/policy.service";
@@ -99,7 +100,9 @@ export default function ConsultationBooking() {
     if (!phone.trim()) return "연락처를 입력해 주세요.";
     if (!residenceArea.trim()) return "거주지역을 입력해 주세요.";
     if (!exam) return "시험 종류를 선택해 주세요.";
-    if (!challengeChoice) return "주 60시간 도전 여부를 선택해 주세요.";
+    if (!challengeChoice) {
+      return "주 60시간 도전 참여 희망 여부를 선택해 주세요.";
+    }
     if (!privacyAgreed) return "개인정보 수집 및 이용에 동의해 주세요.";
     return "";
   }
@@ -222,9 +225,8 @@ export default function ConsultationBooking() {
             <span className="bk-fl">연령</span>
             <span className="bk-fdiv" />
             <input
-              className="bk-fin bk-fin--hint"
+              className="bk-fin"
               inputMode="numeric"
-              placeholder="19~55세"
               value={age}
               disabled={applicationSubmitted}
               onChange={(event) =>
@@ -309,7 +311,7 @@ export default function ConsultationBooking() {
         </div>
 
         <div className="bk-fulltime">
-          <span className="bk-q">주 60시간 도전유무?</span>
+          <span className="bk-q">주 60시간 도전 참여 희망 여부</span>
           <label className="bk-radio">
             <input
               type="radio"
@@ -333,10 +335,11 @@ export default function ConsultationBooking() {
         </div>
 
         <div className="bk-warn">
-          <span className="bk-warn-tag">도전시</span>
+          <span className="bk-warn-tag">참여 안내</span>
           <p>
-            주 60시간 4주 성공 시, 다음 4주 도전 기회가 무료로 제공됩니다. 결제
-            후 가까운 월요일부터 도전이 시작됩니다.
+            주 60시간 4주 도전을 희망하는 경우 ‘예’를 선택해 주세요. 결제 및
+            회원가입 후 앱에서 최신 도전 기간과 규칙을 확인하고 참여를
+            확정합니다.
           </p>
         </div>
 
@@ -419,37 +422,6 @@ export default function ConsultationBooking() {
             <span>전화하기</span>
           </button>
         </div>
-
-        <section className="bk-price-section" aria-labelledby="price-title">
-          <div className="bk-price-head">
-            <div>
-              <span>이용요금</span>
-              <h2 id="price-title">기간별 할인가</h2>
-            </div>
-            <BoltIcon />
-          </div>
-          <div className="bk-price-grid">
-            {PRICES.map((price) => (
-              <div className="bk-price-card" key={price.months}>
-                <strong>{price.months}</strong>
-                {price.monthly && <small>{price.monthly}</small>}
-                <b>{price.total}</b>
-              </div>
-            ))}
-          </div>
-          <p className="bk-price-note">
-            주 60시간 도전자는 1·2·3개월 이용권에 따라 각각 1·2·3회 도전할 수
-            있습니다.
-          </p>
-        </section>
-
-        <div className="bk-transfer-note">
-          <strong>계좌이체 안내</strong>
-          <span>
-            현금영수증이 필요하신 경우 카카오채널에 이름과 발급번호를 남겨
-            주세요.
-          </span>
-        </div>
       </div>
 
       {bankOpen && (
@@ -464,8 +436,39 @@ export default function ConsultationBooking() {
             <div className="bk-modal-icon">
               <CheckCircleIcon />
             </div>
-            <h2 id="bank-modal-title">입사 신청이 완료되었습니다</h2>
-            <p>아래 계좌로 이용하실 기간에 맞는 금액을 입금해 주세요.</p>
+            <h2 id="bank-modal-title">결제안내 </h2>
+            <p>
+              현재 계좌이체만 가능합니다. 다른 결제방법을 원하실경우
+              카카오채널로 문의 주세요.
+            </p>
+
+            <section
+              className="bk-price-section"
+              aria-labelledby="bank-price-title"
+            >
+              <div className="bk-price-head">
+                <div>
+                  <h2 id="bank-price-title">이용요금</h2>
+                </div>
+                <BoltIcon />
+              </div>
+              <div className="bk-price-grid">
+                {PRICES.map((price) => (
+                  <div className="bk-price-card" key={price.months}>
+                    <strong>{price.months}</strong>
+                    {price.monthly && <small>{price.monthly}</small>}
+                    <b>{price.total}</b>
+                  </div>
+                ))}
+              </div>
+              <p className="bk-price-note">
+                <MenuBookOutlinedIcon aria-hidden="true" />
+                <span>
+                  주 60시간 도전자는 1·2·3개월 이용권에 따라 각각 1·2·3회 도전할
+                  수 있습니다.
+                </span>
+              </p>
+            </section>
 
             <div className="bk-bank-details">
               <span>{BANK_ACCOUNT.bank}</span>
@@ -481,8 +484,11 @@ export default function ConsultationBooking() {
               </em>
             </div>
 
-            <div className="bk-bank-receipt">
-              현금영수증 발급은 카카오채널에 이름과 발급번호를 남겨 주세요.
+            <div className="bk-transfer-note">
+              <span>
+                송금 후 카카오 채널로 말씀주시면 등록처리 해서 연락드리겠습니다.
+                감사합니다!
+              </span>
             </div>
             <div className="bk-modal-actions">
               <button
