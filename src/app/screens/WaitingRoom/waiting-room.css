@@ -588,7 +588,7 @@
 }
 
 .wr-study-report,
-.wr-attendance,
+.wr-attendance-strip,
 .wr-progress {
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -710,88 +710,206 @@
   cursor: default;
 }
 
-.wr-attendance {
-  min-height: 70px;
-  padding: 12px 14px;
+.wr-attendance-strip {
+  min-width: 0;
+  padding: 13px 14px;
+}
+
+.wr-attendance-strip-head,
+.wr-attendance-strip-head > div,
+.wr-attendance-strip-head > div > div {
+  min-width: 0;
+}
+
+.wr-attendance-strip-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.wr-att-main {
-  min-width: 0;
+.wr-attendance-strip-head > div {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
 }
 
-.wr-att-main svg {
+.wr-attendance-strip-head svg {
+  flex: 0 0 auto;
   color: var(--accent);
-  font-size: 30px;
+  font-size: 27px;
 }
 
-.wr-att-main div {
-  min-width: 0;
+.wr-attendance-strip-head > div > div {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
-.wr-att-main span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.wr-att-main strong {
+.wr-attendance-strip-head strong {
   color: var(--ink);
-  font-size: 16px;
-  line-height: 1.35;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.25;
   word-break: keep-all;
 }
 
-.wr-att-side {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.wr-attendance-strip-head span {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
-.wr-att-side span {
-  min-width: 50px;
-  border-radius: 999px;
-  background: var(--mint-soft);
-  color: var(--mint-deep);
-  padding: 7px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.wr-att-side span.is-late {
-  background: var(--gold-soft);
-  color: var(--gold);
-}
-
-.wr-att-side span.is-absent {
-  background: var(--accent-soft);
-  color: var(--accent-deep);
-}
-
-.wr-att-side span.is-excused {
-  background: var(--card-2);
-  color: var(--ink);
-}
-
-.wr-att-side button {
+.wr-attendance-strip-head > button {
+  flex: 0 0 auto;
   min-height: 34px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--card);
   color: var(--ink);
   padding: 0 12px;
-  font-size: 12px;
+  font-family: inherit;
+  font-size: 11px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.wr-attendance-periods {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  margin: 13px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wr-attendance-periods li {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.wr-attendance-period {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-attendance-period.is-present {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.wr-attendance-period.is-late {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: #8a6518;
+}
+
+.wr-attendance-period.is-absent {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.wr-attendance-period.is-excused {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--card);
+}
+
+.wr-attendance-period.is-checking {
+  border-color: var(--mint-line);
+  box-shadow: 0 0 0 3px var(--mint-soft);
+  color: var(--ink);
+}
+
+.wr-attendance-period.is-unrecorded {
+  border-style: dashed;
+}
+
+.wr-attendance-periods li > small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wr-attendance-periods li > small.is-present {
+  color: var(--mint-deep);
+}
+
+.wr-attendance-periods li > small.is-late {
+  color: #8a6518;
+}
+
+.wr-attendance-periods li > small.is-absent {
+  color: var(--accent-deep);
+}
+
+.wr-attendance-periods li > small.is-excused {
+  color: var(--ink);
+}
+
+.wr-attendance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px 12px;
+  margin-top: 11px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.wr-attendance-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wr-attendance-legend span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.wr-attendance-legend .is-present::before {
+  background: var(--mint-deep);
+}
+
+.wr-attendance-legend .is-late::before {
+  background: var(--gold);
+}
+
+.wr-attendance-legend .is-absent::before {
+  background: var(--accent);
+}
+
+.wr-attendance-legend .is-excused::before {
+  background: var(--ink);
 }
 
 .wr-progress {
@@ -874,77 +992,6 @@
   font-size: 22px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-}
-
-.wr-schedule-notice {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.wr-notice {
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 12px;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 1.35;
-  text-align: left;
-  transition:
-    border-color 0.16s ease,
-    background-color 0.16s ease,
-    transform 0.16s ease;
-}
-
-.wr-sound-toggle {
-  width: 42px;
-  min-width: 0;
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--card);
-  color: var(--muted);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition:
-    border-color 0.16s ease,
-    color 0.16s ease,
-    background-color 0.16s ease;
-}
-
-.wr-sound-toggle:hover,
-.wr-sound-toggle:focus-visible,
-.wr-sound-toggle.is-on {
-  border-color: var(--mint-line);
-  color: var(--mint-deep);
-  background: var(--mint-soft);
-}
-
-.wr-sound-toggle svg {
-  font-size: 21px;
-}
-
-.wr-notice:hover,
-.wr-notice:focus-visible {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-}
-
-.wr-notice span {
-  border: 1px solid var(--accent-line);
-  border-radius: 999px;
-  color: var(--accent-deep);
-  padding: 3px 12px;
-  font-weight: 700;
-  background: var(--accent-soft);
-  white-space: nowrap;
 }
 
 .wr-entry {
@@ -1218,6 +1265,49 @@
     font-size: 13px;
   }
 
+  .wr-attendance-strip {
+    padding: 11px 10px;
+  }
+
+  .wr-attendance-strip-head {
+    gap: 8px;
+  }
+
+  .wr-attendance-strip-head > div {
+    gap: 7px;
+  }
+
+  .wr-attendance-strip-head svg {
+    font-size: 24px;
+  }
+
+  .wr-attendance-strip-head strong {
+    font-size: 13px;
+  }
+
+  .wr-attendance-strip-head > button {
+    min-height: 32px;
+    padding-inline: 9px;
+    font-size: 10px;
+  }
+
+  .wr-attendance-periods {
+    gap: 5px;
+    margin-top: 11px;
+  }
+
+  .wr-attendance-period {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .wr-attendance-legend {
+    gap: 4px 8px;
+    margin-top: 9px;
+    font-size: 8px;
+  }
+
   .wr-panel-head {
     align-items: flex-start;
     margin-bottom: 9px;
@@ -1401,6 +1491,19 @@
     padding-inline: 10px;
   }
 
+  .wr-attendance-strip {
+    padding-inline: 8px;
+  }
+
+  .wr-attendance-periods {
+    gap: 3px;
+  }
+
+  .wr-attendance-period {
+    width: 32px;
+    height: 32px;
+  }
+
   .wr-panel-head {
     display: block;
   }
@@ -1528,8 +1631,8 @@
 
   .wr-panel,
   .wr-study-report,
+  .wr-attendance-strip,
   .wr-progress,
-  .wr-notice,
   .wr-entry-btn,
   .wr-shortcuts button {
     box-shadow: 0 14px 34px rgba(20, 63, 86, 0.07);
@@ -1623,11 +1726,6 @@
     font-size: 30px;
   }
 
-  .wr-notice {
-    min-height: 44px;
-    background: rgba(255, 254, 250, 0.92);
-  }
-
   .wr-entry-btn {
     min-height: 86px;
     border-radius: 18px;
@@ -1675,7 +1773,7 @@
       "workers time"
       "report report"
       "attendance progress"
-      "notice entry"
+      "attendance entry"
       "shortcuts shortcuts"
       "user user";
     align-items: start;
@@ -1691,14 +1789,12 @@
   .wr-time {
     grid-area: time;
   }
-  .wr-attendance {
+  .wr-attendance-strip {
     grid-area: attendance;
+    align-self: stretch;
   }
   .wr-progress {
     grid-area: progress;
-  }
-  .wr-schedule-notice {
-    grid-area: notice;
   }
   .wr-entry {
     grid-area: entry;
@@ -1710,16 +1806,10 @@
     grid-area: user;
   }
 
-  .wr-attendance,
+  .wr-attendance-strip,
   .wr-study-report,
-  .wr-progress,
-  .wr-notice {
+  .wr-progress {
     width: 100%;
-  }
-
-  .wr-notice {
-    border-radius: 16px;
-    padding: 10px 14px;
   }
 
   .wr-entry {

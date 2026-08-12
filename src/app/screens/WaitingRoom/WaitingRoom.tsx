@@ -16,8 +16,6 @@ import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import type { Room } from "livekit-client";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -45,11 +43,9 @@ import type {
   WeeklyStudyLeaderboardMember,
 } from "../../../lib/types";
 import {
-  getWorkdayAnnouncement,
   getScheduleSoundEnabled,
+  getWorkdayAnnouncement,
   playScheduleTone,
-  scheduleBellMessage,
-  setScheduleSoundEnabled,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import "./waiting-room.css";
@@ -137,6 +133,18 @@ const FALLBACK_TIMETABLE: TimetableSlot[] = [
   },
 ];
 
+const SEOUL_TIME_ZONE = "Asia/Seoul";
+const seoulDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: SEOUL_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
 const toSec = (time: string) => {
   const [hour, minute] = time.split(":");
   return Number(hour) * 3600 + Number(minute) * 60;
@@ -198,6 +206,71 @@ const ATTENDANCE_CLASS: Record<AttendanceStatusName, string> = {
   EXCUSED: "is-excused",
 };
 
+type AttendancePeriodView = {
+  className: string;
+  label: string;
+  shortLabel: string;
+};
+
+function isAttendanceStatus(value?: string): value is AttendanceStatusName {
+  return Boolean(value && value in ATTENDANCE_TEXT);
+}
+
+function attendancePeriodView(
+  slot: TimetableSlot,
+  displayNumber: number,
+  record: AttendanceRecord | undefined,
+  nowSeconds: number,
+): AttendancePeriodView {
+  if (record && isAttendanceStatus(record.status)) {
+    const detail: string[] = [
+      `${displayNumber}교시`,
+      ATTENDANCE_TEXT[record.status],
+    ];
+
+    if (record.status === "LATE") {
+      const lateDuration = formatLateDuration(record.lateSeconds);
+      const firstStudyClock = formatFirstStudyClock(record.firstStudyAt);
+      if (lateDuration) detail.push(lateDuration);
+      if (firstStudyClock) detail.push(`공부 시작 ${firstStudyClock}`);
+    }
+
+    if (record.status === "EXCUSED") {
+      const reason = record.reason?.trim() || record.reasonType?.trim();
+      if (reason) detail.push(reason);
+    }
+
+    return {
+      className: ATTENDANCE_CLASS[record.status],
+      label: detail.join(" · "),
+      shortLabel:
+        record.status === "EXCUSED" ? "사유" : ATTENDANCE_TEXT[record.status],
+    };
+  }
+
+  const startsAt = toSec(slot.startTime);
+  const endsAt = toSec(slot.endTime);
+  if (nowSeconds < startsAt) {
+    return {
+      className: "is-upcoming",
+      label: `${displayNumber}교시 · 예정`,
+      shortLabel: "예정",
+    };
+  }
+  if (nowSeconds < endsAt) {
+    return {
+      className: "is-checking",
+      label: `${displayNumber}교시 · 출석 확인 중`,
+      shortLabel: "확인중",
+    };
+  }
+  return {
+    className: "is-unrecorded",
+    label: `${displayNumber}교시 · 미기록`,
+    shortLabel: "미기록",
+  };
+}
+
 function studyRoomEntryStatusText(
   access: StudyRoomEntryAccess | null,
   loading: boolean,
@@ -228,11 +301,28 @@ function formatDate(date: Date) {
   )}. ${String(date.getDate()).padStart(2, "0")} (${days[date.getDay()]})`;
 }
 
+function seoulDateTimeParts(date: Date) {
+  const parts = seoulDateTimeFormatter.formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return {
+    year: part("year"),
+    month: part("month"),
+    day: part("day"),
+    hour: Number(part("hour")),
+    minute: Number(part("minute")),
+    second: Number(part("second")),
+  };
+}
+
 function isoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const { year, month, day } = seoulDateTimeParts(date);
   return `${year}-${month}-${day}`;
+}
+
+function seoulSecondOfDay(date: Date) {
+  const { hour, minute, second } = seoulDateTimeParts(date);
+  return hour * 3600 + minute * 60 + second;
 }
 
 function workerGradient(index: number) {
@@ -293,10 +383,6 @@ export default function WaitingRoom() {
 
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
-  const [bellMsg, setBellMsg] = useState("");
-  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
-    getScheduleSoundEnabled,
-  );
   const [roomMembers, setRoomMembers] = useState<CamRoomMember[] | null>(null);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [weeklyLeaderboard, setWeeklyLeaderboard] =
@@ -317,12 +403,10 @@ export default function WaitingRoom() {
   const [previewStatus, setPreviewStatus] = useState<
     "idle" | "connecting" | "connected" | "stub" | "error"
   >("idle");
-  const bellTimerRef = useRef<number | null>(null);
   const roomMembersRequestRef = useRef(0);
   const weeklyLeaderboardRequestRef = useRef(0);
   const studyStatisticsRequestRef = useRef(0);
   const entryAccessRequestRef = useRef(0);
-  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
   const previewIdsRef = useRef<string[]>([]);
   const previewReconnectRef = useRef<(manual?: boolean) => void>(() => {});
@@ -362,7 +446,8 @@ export default function WaitingRoom() {
       const records = await getMyAttendance({ date: isoDate(new Date()) });
       setAttendance(records);
     } catch {
-      setAttendance([]);
+      // Preserve the last successful result; the date filter below prevents
+      // yesterday's records from appearing after the Seoul day changes.
     }
   }, []);
 
@@ -450,9 +535,20 @@ export default function WaitingRoom() {
       void refreshRoomMembers();
       void refreshAttendance();
     }, 20000);
+    const refreshAttendanceWhenVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshAttendance();
+    };
+    window.addEventListener("focus", refreshAttendance);
+    document.addEventListener("visibilitychange", refreshAttendanceWhenVisible);
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
+      window.removeEventListener("focus", refreshAttendance);
+      document.removeEventListener(
+        "visibilitychange",
+        refreshAttendanceWhenVisible,
+      );
       roomMembersRequestRef.current += 1;
     };
   }, [refreshAttendance, refreshRoomMembers]);
@@ -526,25 +622,12 @@ export default function WaitingRoom() {
   }, []);
 
   useEffect(() => {
-    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
-  }, [scheduleSoundEnabled]);
-
-  useEffect(() => {
     if (!socket) return;
 
     const onBell = (data: ScheduleBellEvent) => {
       void refreshEntryAccess(false);
       if (getWorkdayAnnouncement(data)) return;
-      const message = scheduleBellMessage(data);
-
-      if (!message) return;
-      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
-      if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
-      setBellMsg(message);
-      bellTimerRef.current = window.setTimeout(() => {
-        setBellMsg("");
-        bellTimerRef.current = null;
-      }, 8000);
+      if (getScheduleSoundEnabled()) playScheduleTone(data.type);
     };
     const onEntryAccessChanged = (
       payload: StudyRoomEntryAccessChangedPayload,
@@ -569,15 +652,11 @@ export default function WaitingRoom() {
       socket.off("cam:leave", refreshRoomMembers);
       socket.off("connect", onConnect);
       socket.off("study-room:entry-access-changed", onEntryAccessChanged);
-      if (bellTimerRef.current) {
-        window.clearTimeout(bellTimerRef.current);
-        bellTimerRef.current = null;
-      }
     };
   }, [refreshEntryAccess, refreshRoomMembers, socket]);
 
-  const nowSec =
-    now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const nowSec = seoulSecondOfDay(now);
+  const todayDate = isoDate(now);
 
   const current = useMemo(
     () =>
@@ -629,57 +708,17 @@ export default function WaitingRoom() {
   );
   const showDefaultEntryDescription =
     canEnterRoom && entryAccess?.reason === "OPEN_WINDOW";
-  const scheduleNotice =
-    bellMsg ||
-    (current?.isBreak
-      ? `지금은 ${current.label} 시간입니다. ${current.endTime}까지 편하게 쉬세요.`
-      : `관리자 공지: ${current?.label ?? "다음 교시"} 시작 전 카메라 상태를 확인해 주세요.`);
-
-  const toggleScheduleSound = () => {
-    const next = !scheduleSoundEnabled;
-    setScheduleSoundPreference(next);
-    void setScheduleSoundEnabled(next).then((enabled) => {
-      if (next && enabled) playScheduleTone("preview");
-    });
-  };
   const canUseAdmin =
     session?.user.role === "ADMIN" || session?.user.role === "STAFF";
   const attendanceBySlot = useMemo(
-    () => new Map(attendance.map((record) => [record.slot, record])),
-    [attendance],
+    () =>
+      new Map(
+        attendance
+          .filter((record) => String(record.date).slice(0, 10) === todayDate)
+          .map((record) => [record.slot, record]),
+      ),
+    [attendance, todayDate],
   );
-  const workPeriodSlotNumbers = useMemo(
-    () => new Set(workPeriodSlots.map((slot) => slot.slot)),
-    [workPeriodSlots],
-  );
-  const currentAttendance = current
-    ? attendanceBySlot.get(current.slot)
-    : undefined;
-  const currentAttendanceStatus =
-    (currentAttendance?.status as AttendanceStatusName | undefined) ?? null;
-  const currentLateDuration =
-    currentAttendanceStatus === "LATE"
-      ? formatLateDuration(currentAttendance?.lateSeconds)
-      : null;
-  const currentFirstStudyClock =
-    currentAttendanceStatus === "LATE"
-      ? formatFirstStudyClock(currentAttendance?.firstStudyAt)
-      : null;
-  const currentAttendanceText = currentAttendanceStatus
-    ? `${ATTENDANCE_TEXT[currentAttendanceStatus]}${
-        currentLateDuration ? ` · ${currentLateDuration}` : ""
-      }`
-    : "기록 전";
-  const currentAttendanceLabel = `${current?.label ?? "대기"} · ${currentAttendanceText}${
-    currentFirstStudyClock ? ` · 공부 시작 ${currentFirstStudyClock}` : ""
-  }`;
-  const attendanceCount = attendance.filter(
-    (record) =>
-      workPeriodSlotNumbers.has(record.slot) &&
-      (record.status === "PRESENT" ||
-        record.status === "LATE" ||
-        record.status === "EXCUSED"),
-  ).length;
   const cameraConnectedMemberCount =
     roomMembers?.filter((member) => member.isWorking).length ?? null;
   const weeklyRankedMembers = useMemo(
@@ -1303,36 +1342,55 @@ export default function WaitingRoom() {
           )}
         </section>
 
-        <section className="wr-schedule-notice" aria-live="polite">
-          <button
-            className="wr-notice"
-            onClick={() => navigate("/inquiry")}
-            type="button"
-          >
-            <span>{bellMsg || current?.isBreak ? "일정" : "공지"}</span>
-            {scheduleNotice}
-          </button>
-          <button
-            className={`wr-sound-toggle${scheduleSoundEnabled ? " is-on" : ""}`}
-            type="button"
-            onClick={toggleScheduleSound}
-            aria-label={
-              scheduleSoundEnabled
-                ? "일정 알림 소리 끄기"
-                : "일정 알림 소리 켜기"
-            }
-            title={
-              scheduleSoundEnabled
-                ? "일정 알림 소리 끄기"
-                : "일정 알림 소리 켜기"
-            }
-          >
-            {scheduleSoundEnabled ? (
-              <VolumeUpRoundedIcon />
-            ) : (
-              <VolumeOffRoundedIcon />
-            )}
-          </button>
+        <section
+          aria-labelledby="wr-attendance-strip-title"
+          className="wr-attendance-strip"
+        >
+          <header className="wr-attendance-strip-head">
+            <div>
+              <FactCheckOutlinedIcon aria-hidden="true" />
+              <div>
+                <strong id="wr-attendance-strip-title">
+                  오늘 나의 출석현황
+                </strong>
+              </div>
+            </div>
+            <button type="button" onClick={() => navigate("/attendance")}>
+              자세히 보기
+            </button>
+          </header>
+
+          <ol className="wr-attendance-periods" aria-label="오늘 교시별 출석 상태">
+            {workPeriodSlots.map((slot, index) => {
+              const view = attendancePeriodView(
+                slot,
+                index + 1,
+                attendanceBySlot.get(slot.slot),
+                nowSec,
+              );
+              return (
+                <li key={slot.slot}>
+                  <span
+                    aria-label={view.label}
+                    className={`wr-attendance-period ${view.className}`}
+                    role="img"
+                    title={view.label}
+                  >
+                    {index + 1}
+                  </span>
+                  <small className={view.className}>{view.shortLabel}</small>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="wr-attendance-legend" aria-label="출석 상태 색상 안내">
+            <span className="is-present">출석</span>
+            <span className="is-late">지각</span>
+            <span className="is-absent">결석</span>
+            <span className="is-excused">사유 인정</span>
+            <span className="is-pending">예정·미기록</span>
+          </div>
         </section>
 
         <section aria-busy={entryAccessLoading} className="wr-entry">
@@ -1422,36 +1480,6 @@ export default function WaitingRoom() {
                 {column.map(renderTimeRow)}
               </div>
             ))}
-          </div>
-        </section>
-
-        <section className="wr-attendance">
-          <div className="wr-att-main">
-            <FactCheckOutlinedIcon />
-            <div>
-              <span>오늘 출석현황</span>
-              <strong
-                aria-label={currentAttendanceLabel}
-                title={currentAttendanceLabel}
-              >
-                {current?.label ?? "대기"} · {currentAttendanceText}
-              </strong>
-            </div>
-          </div>
-
-          <div className="wr-att-side">
-            <span
-              className={
-                currentAttendanceStatus
-                  ? ATTENDANCE_CLASS[currentAttendanceStatus]
-                  : ""
-              }
-            >
-              {attendanceCount}/{totalWorkSlots}
-            </span>
-            <button type="button" onClick={() => navigate("/attendance")}>
-              자세히 보기
-            </button>
           </div>
         </section>
 
