@@ -619,6 +619,27 @@ export interface MyStudyStatistics {
   currentMonth: StudyDurationTotal;
 }
 
+export interface MonthlyStudyDay {
+  date: string;
+  studySeconds: number;
+}
+
+export interface MonthlyStudyWeek {
+  startsOn: string;
+  endsOnInclusive: string;
+  studySeconds: number;
+}
+
+export interface MonthlyStudyReport {
+  generatedAt: string;
+  countedThroughAt: string;
+  month: string;
+  window: StudyStatisticsWindow;
+  days: MonthlyStudyDay[];
+  weeks: MonthlyStudyWeek[];
+  monthStudySeconds: number;
+}
+
 export interface WeeklyStudyLeaderboardMember {
   rank: number;
   userId: string;

@@ -1,5 +1,6 @@
 import { http } from "./http";
 import type {
+  MonthlyStudyReport,
   MyStudyStatistics,
   OvernightVoluntaryStudyReport,
   WeeklyStudyLeaderboard,
@@ -9,6 +10,16 @@ import type {
 
 export async function getMyStudyStatistics(): Promise<MyStudyStatistics> {
   const { data } = await http.get<MyStudyStatistics>("/study-statistics/me");
+  return data;
+}
+
+export async function getMyMonthlyStudyReport(
+  month: string,
+): Promise<MonthlyStudyReport> {
+  const { data } = await http.get<MonthlyStudyReport>(
+    "/study-statistics/me/monthly",
+    { params: { month } },
+  );
   return data;
 }
 

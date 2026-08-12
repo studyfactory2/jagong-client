@@ -24,7 +24,10 @@ import { useSocket } from "../../context/SocketContext";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getCamRoomMembers, issueCamToken } from "../../services/cam.service";
 import { getMyStudyRoomEntryAccess } from "../../services/study-room-entry.service";
-import { getWeeklyStudyLeaderboard } from "../../services/study-statistics.service";
+import {
+  getMyStudyStatistics,
+  getWeeklyStudyLeaderboard,
+} from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
 import {
   formatFirstStudyClock,
@@ -34,6 +37,7 @@ import type {
   AttendanceRecord,
   AttendanceStatusName,
   CamRoomMember,
+  MyStudyStatistics,
   StudyRoomEntryAccess,
   StudyRoomEntryAccessChangedPayload,
   TimetableSlot,
@@ -158,6 +162,20 @@ const formatStudyTime = (seconds?: number) => {
   if (hours === 0) return `${minutes}분`;
   if (minutes === 0) return `${hours}시간`;
   return `${hours}시간 ${minutes}분`;
+};
+
+const seoulClockFormatter = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const formatStudyStatisticsTime = (value?: string) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return `${seoulClockFormatter.format(parsed)} 기준`;
 };
 
 const isClockInSlot = (slot?: TimetableSlot | null) =>
@@ -286,6 +304,10 @@ export default function WaitingRoom() {
   const [weeklyLeaderboardLoading, setWeeklyLeaderboardLoading] =
     useState(true);
   const [weeklyLeaderboardError, setWeeklyLeaderboardError] = useState("");
+  const [studyStatistics, setStudyStatistics] =
+    useState<MyStudyStatistics | null>(null);
+  const [studyStatisticsLoading, setStudyStatisticsLoading] = useState(true);
+  const [studyStatisticsError, setStudyStatisticsError] = useState("");
   const [entryAccess, setEntryAccess] = useState<StudyRoomEntryAccess | null>(
     null,
   );
@@ -298,6 +320,7 @@ export default function WaitingRoom() {
   const bellTimerRef = useRef<number | null>(null);
   const roomMembersRequestRef = useRef(0);
   const weeklyLeaderboardRequestRef = useRef(0);
+  const studyStatisticsRequestRef = useRef(0);
   const entryAccessRequestRef = useRef(0);
   const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const previewRoomRef = useRef<Room | null>(null);
@@ -394,6 +417,30 @@ export default function WaitingRoom() {
     }
   }, []);
 
+  const refreshStudyStatistics = useCallback(async () => {
+    const requestId = studyStatisticsRequestRef.current + 1;
+    studyStatisticsRequestRef.current = requestId;
+    setStudyStatisticsLoading(true);
+    setStudyStatisticsError("");
+
+    try {
+      const statistics = await getMyStudyStatistics();
+      if (requestId !== studyStatisticsRequestRef.current) return;
+      setStudyStatistics(statistics);
+    } catch (error) {
+      if (requestId !== studyStatisticsRequestRef.current) return;
+      setStudyStatisticsError(
+        error instanceof Error
+          ? error.message
+          : "공부시간 리포트를 불러오지 못했습니다.",
+      );
+    } finally {
+      if (requestId === studyStatisticsRequestRef.current) {
+        setStudyStatisticsLoading(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
       void refreshRoomMembers();
@@ -413,17 +460,29 @@ export default function WaitingRoom() {
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
       void refreshWeeklyLeaderboard();
+      void refreshStudyStatistics();
     }, 0);
     const timer = window.setInterval(() => {
       void refreshWeeklyLeaderboard();
+      void refreshStudyStatistics();
     }, 60000);
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshStudyStatistics();
+    };
+    window.addEventListener("focus", refreshStudyStatistics);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
+      window.removeEventListener("focus", refreshStudyStatistics);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       weeklyLeaderboardRequestRef.current += 1;
+      studyStatisticsRequestRef.current += 1;
     };
-  }, [refreshWeeklyLeaderboard]);
+  }, [refreshStudyStatistics, refreshWeeklyLeaderboard]);
 
   useEffect(() => {
     const refreshWithoutSpinner = () => {
@@ -1172,6 +1231,78 @@ export default function WaitingRoom() {
           </div>
         </section>
 
+        <section
+          aria-busy={studyStatisticsLoading}
+          aria-labelledby="wr-study-report-title"
+          className="wr-study-report"
+        >
+          <div className="wr-study-report-head">
+            <div className="wr-study-report-title">
+              <QueryStatsOutlinedIcon />
+              <div>
+                <strong id="wr-study-report-title">
+                  나의 작업시간 리포트
+                </strong>
+                <span>
+                  {formatStudyStatisticsTime(studyStatistics?.generatedAt) ??
+                    (studyStatisticsLoading ? "집계 중" : "집계 시간 확인 중")}
+                </span>
+              </div>
+            </div>
+            <button type="button" onClick={() => navigate("/study-records")}>
+              자세히 보기
+            </button>
+          </div>
+
+          <div className="wr-study-report-metrics">
+            {[
+              {
+                label: "오늘",
+                seconds: studyStatistics?.today.studySeconds,
+              },
+              {
+                label: "이번 주",
+                seconds: studyStatistics?.currentWeek.studySeconds,
+              },
+              {
+                label: "이번 달",
+                seconds: studyStatistics?.currentMonth.studySeconds,
+              },
+            ].map(({ label, seconds }) => {
+              const value = formatStudyTime(
+                typeof seconds === "number" ? seconds : undefined,
+              );
+              return (
+                <div
+                  aria-label={`${label} 실제 공부시간 ${value}`}
+                  className="wr-study-report-metric"
+                  key={label}
+                >
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              );
+            })}
+          </div>
+
+          {studyStatisticsError && (
+            <div className="wr-study-report-status" role="alert">
+              <span>
+                {studyStatistics
+                  ? "최신 공부시간을 확인하지 못해 이전 집계를 표시합니다."
+                  : studyStatisticsError}
+              </span>
+              <button
+                disabled={studyStatisticsLoading}
+                onClick={() => void refreshStudyStatistics()}
+                type="button"
+              >
+                {studyStatisticsLoading ? "확인 중" : "다시 시도"}
+              </button>
+            </div>
+          )}
+        </section>
+
         <section className="wr-schedule-notice" aria-live="polite">
           <button
             className="wr-notice"
@@ -1332,10 +1463,6 @@ export default function WaitingRoom() {
           <button onClick={() => navigate("/leaves")}>
             <LockOutlinedIcon />
             휴가내역 및 신청
-          </button>
-          <button onClick={() => navigate("/study-records")}>
-            <QueryStatsOutlinedIcon />
-            공부기록
           </button>
           <button onClick={() => navigate("/inquiry")}>
             <ArticleOutlinedIcon />

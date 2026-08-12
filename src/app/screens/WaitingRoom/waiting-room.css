@@ -587,11 +587,127 @@
   white-space: nowrap;
 }
 
+.wr-study-report,
 .wr-attendance,
 .wr-progress {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--card);
+}
+
+.wr-study-report {
+  padding: 13px 14px;
+}
+
+.wr-study-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.wr-study-report-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wr-study-report-title > svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 29px;
+}
+
+.wr-study-report-title > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wr-study-report-title strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.wr-study-report-title span {
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-study-report-head > button,
+.wr-study-report-status button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink);
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.wr-study-report-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.wr-study-report-metric {
+  min-width: 0;
+  min-height: 66px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--card-2);
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 9px 6px;
+  text-align: center;
+}
+
+.wr-study-report-metric span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.wr-study-report-metric strong {
+  color: var(--accent-deep);
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-study-report-status {
+  margin-top: 9px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--bad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.wr-study-report-status span {
+  min-width: 0;
+}
+
+.wr-study-report-status button:disabled {
+  color: var(--muted);
+  cursor: default;
 }
 
 .wr-attendance {
@@ -983,6 +1099,8 @@
 .wr-entry-status > button:focus-visible,
 .wr-worker-empty button:focus-visible,
 .wr-preview-note button:focus-visible,
+.wr-study-report-head > button:focus-visible,
+.wr-study-report-status button:focus-visible,
 .wr-shortcuts button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
@@ -1063,6 +1181,41 @@
 
   .wr-panel {
     padding: 10px;
+  }
+
+  .wr-study-report {
+    padding: 11px;
+  }
+
+  .wr-study-report-title {
+    gap: 7px;
+  }
+
+  .wr-study-report-title > svg {
+    font-size: 25px;
+  }
+
+  .wr-study-report-title strong {
+    font-size: 14px;
+  }
+
+  .wr-study-report-head > button {
+    min-height: 32px;
+    padding-inline: 10px;
+    font-size: 10.5px;
+  }
+
+  .wr-study-report-metrics {
+    gap: 6px;
+  }
+
+  .wr-study-report-metric {
+    min-height: 61px;
+    padding-inline: 4px;
+  }
+
+  .wr-study-report-metric strong {
+    font-size: 13px;
   }
 
   .wr-panel-head {
@@ -1374,6 +1527,7 @@
   }
 
   .wr-panel,
+  .wr-study-report,
   .wr-progress,
   .wr-notice,
   .wr-entry-btn,
@@ -1519,6 +1673,7 @@
     grid-template-columns: minmax(720px, 1.55fr) minmax(420px, 0.95fr);
     grid-template-areas:
       "workers time"
+      "report report"
       "attendance progress"
       "notice entry"
       "shortcuts shortcuts"
@@ -1529,6 +1684,9 @@
 
   .wr-workers {
     grid-area: workers;
+  }
+  .wr-study-report {
+    grid-area: report;
   }
   .wr-time {
     grid-area: time;
@@ -1553,6 +1711,7 @@
   }
 
   .wr-attendance,
+  .wr-study-report,
   .wr-progress,
   .wr-notice {
     width: 100%;

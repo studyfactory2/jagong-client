@@ -1132,3 +1132,388 @@
     transform: rotate(360deg);
   }
 }
+
+/* Calendar-first work-time report */
+.study-records-report {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "tracker"
+    "challenge";
+  gap: 16px;
+}
+
+.study-records-tracker {
+  grid-area: tracker;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.study-records-calendar-card,
+.study-records-weekly-card,
+.study-records-month-total {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.study-records-calendar-card,
+.study-records-weekly-card {
+  padding: 15px;
+}
+
+.study-records-section-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.study-records-section-heading h2 {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.study-records-section-heading h2 svg {
+  flex: 0 0 auto;
+  color: var(--study-records-coral-ink);
+  font-size: 21px;
+}
+
+.study-records-month-navigation {
+  display: grid;
+  grid-template-columns: 44px minmax(112px, auto) 44px;
+  align-items: center;
+  gap: 3px;
+}
+
+.study-records-month-navigation button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+  cursor: pointer;
+}
+
+.study-records-month-navigation button:not(:disabled):hover {
+  border-color: var(--line-soft);
+  background: var(--card-2);
+}
+
+.study-records-month-navigation button svg {
+  font-size: 24px;
+}
+
+.study-records-month-navigation strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.study-records-month-navigation > small {
+  grid-column: 1 / -1;
+  margin-top: -5px;
+  color: var(--study-records-secondary);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.study-records-calendar {
+  width: calc(100% + 8px);
+  margin: 11px -4px -3px;
+  border-collapse: separate;
+  border-spacing: 4px;
+  table-layout: fixed;
+}
+
+.study-records-calendar th {
+  height: 25px;
+  color: var(--study-records-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.study-records-calendar th:nth-child(6) {
+  color: #397ba7;
+}
+
+.study-records-calendar th:nth-child(7) {
+  color: var(--study-records-coral-ink);
+}
+
+.study-records-calendar td {
+  height: 64px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--card-2);
+  padding: 7px 4px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.study-records-calendar td.is-empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.study-records-calendar td.is-today {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.study-records-calendar td.is-future {
+  background: color-mix(in srgb, var(--card-2) 55%, transparent);
+  opacity: 0.6;
+}
+
+.study-records-calendar time,
+.study-records-calendar strong {
+  display: block;
+}
+
+.study-records-calendar time {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.study-records-calendar td:nth-child(6) time {
+  color: #397ba7;
+}
+
+.study-records-calendar td:nth-child(7) time {
+  color: var(--study-records-coral-ink);
+}
+
+.study-records-calendar strong {
+  margin-top: 12px;
+  color: var(--study-records-secondary);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.study-records-calendar td.has-study strong {
+  color: var(--study-records-coral-ink);
+}
+
+.study-records-weekly-column-head,
+.study-records-weekly-card li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.study-records-weekly-column-head {
+  margin-top: 12px;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--study-records-secondary);
+  padding: 0 4px 7px;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.study-records-weekly-column-head span:last-child {
+  text-align: right;
+}
+
+.study-records-weekly-card ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.study-records-weekly-card li {
+  min-height: 42px;
+  border-bottom: 1px solid var(--line-soft);
+  padding: 8px 4px;
+}
+
+.study-records-weekly-card li:last-child {
+  border-bottom: 0;
+  padding-bottom: 1px;
+}
+
+.study-records-weekly-card li span {
+  color: var(--ink-2);
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.study-records-weekly-card li strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.study-records-month-total {
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 19px;
+}
+
+.study-records-month-total > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.study-records-month-total > div svg {
+  color: var(--study-records-coral-ink);
+  font-size: 21px;
+}
+
+.study-records-month-total > strong {
+  color: var(--study-records-coral-ink);
+  font-size: clamp(18px, 5vw, 25px);
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .study-records-section-heading {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .study-records-section-heading h2 {
+    flex: 0 0 auto;
+    gap: 3px;
+    padding-top: 11px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .study-records-section-heading h2 svg {
+    font-size: 18px;
+  }
+
+  .study-records-month-navigation {
+    width: min(210px, calc(100% - 108px));
+    min-width: 164px;
+    margin-left: auto;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 0;
+  }
+
+  .study-records-month-navigation button {
+    width: 40px;
+    height: 44px;
+  }
+
+  .study-records-month-navigation strong {
+    font-size: 12px;
+  }
+
+  .study-records-month-navigation > small {
+    font-size: 9px;
+  }
+
+  .study-records-calendar-card,
+  .study-records-weekly-card {
+    padding: 13px 10px;
+  }
+
+  .study-records-calendar {
+    width: calc(100% + 4px);
+    margin-inline: -2px;
+    border-spacing: 2px;
+  }
+
+  .study-records-calendar td {
+    height: 55px;
+    border-radius: 8px;
+    padding: 6px 2px;
+  }
+
+  .study-records-calendar time,
+  .study-records-calendar strong {
+    font-size: 10px;
+  }
+
+  .study-records-calendar strong {
+    margin-top: 10px;
+  }
+
+  .study-records-weekly-card li span {
+    font-size: 10.5px;
+  }
+
+  .study-records-month-total {
+    min-height: 76px;
+    padding: 15px 13px;
+  }
+
+  .study-records-month-total > div {
+    font-size: 12px;
+  }
+
+  .study-records-month-total > strong {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 900px) {
+  .study-records-report {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "tracker"
+      "challenge";
+    gap: 18px;
+  }
+
+  .study-records-calendar-card,
+  .study-records-weekly-card {
+    padding: 19px;
+  }
+
+  .study-records-calendar td {
+    height: 76px;
+    padding-top: 9px;
+  }
+
+  .study-records-calendar time {
+    font-size: 11px;
+  }
+
+  .study-records-calendar strong {
+    margin-top: 16px;
+    font-size: 11px;
+  }
+}

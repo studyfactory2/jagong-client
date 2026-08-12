@@ -1,18 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
-import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftRounded";
+import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import AppShell from "../../components/ui/AppShell";
-import {
-  getMyStudyStatistics,
-  getWeeklyStudyLeaderboard,
-} from "../../services/study-statistics.service";
+import { getMyMonthlyStudyReport } from "../../services/study-statistics.service";
 import type {
-  MyStudyStatistics,
-  StudyDurationTotal,
-  StudyStatisticsWindow,
-  WeeklyStudyLeaderboard,
+  MonthlyStudyDay,
+  MonthlyStudyReport,
+  MonthlyStudyWeek,
 } from "../../../lib/types";
 import StudyChallengePanel from "./StudyChallengePanel";
 import "./study-records.css";
@@ -23,408 +19,398 @@ type ResourceState<T> = {
   error: string;
 };
 
+type CalendarCell = MonthlyStudyDay | null;
+
 const SEOUL_TIME_ZONE = "Asia/Seoul";
 const REFRESH_INTERVAL_MS = 60000;
+const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"] as const;
 
-const shortDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+const countedThroughFormatter = new Intl.DateTimeFormat("ko-KR", {
   timeZone: SEOUL_TIME_ZONE,
   month: "numeric",
   day: "numeric",
-});
-
-const updatedTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: SEOUL_TIME_ZONE,
   hour: "2-digit",
   minute: "2-digit",
 });
-
-function formatStudyTime(seconds?: number): string {
-  if (seconds === undefined || !Number.isFinite(seconds)) return "--";
-
-  const safeSeconds = Math.max(0, seconds);
-  if (safeSeconds > 0 && safeSeconds < 60) return "1분 미만";
-
-  const totalMinutes = Math.floor(safeSeconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours === 0) return `${minutes}분`;
-  if (minutes === 0) return `${hours}시간`;
-  return `${hours}시간 ${minutes}분`;
-}
-
-function formatPeriod(period?: StudyStatisticsWindow): string {
-  if (!period) return "기간 확인 중";
-
-  const startsAt = new Date(period.startsAt);
-  const endsAt = new Date(period.endsAtExclusive);
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
-    return "기간 확인 중";
-  }
-
-  const inclusiveEnd = new Date(endsAt.getTime() - 1);
-  const startText = shortDateFormatter.format(startsAt);
-  const endText = shortDateFormatter.format(inclusiveEnd);
-  return startText === endText ? startText : `${startText} – ${endText}`;
-}
-
-function formatUpdatedTime(value?: string): string {
-  if (!value) return "집계 전";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "집계 전";
-  return updatedTimeFormatter.format(date);
-}
-
-function formatUpdatedDate(value?: string): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return shortDateFormatter.format(date);
-}
-
-function studyTimeParts(seconds?: number): {
-  primary: string;
-  secondary: string;
-} {
-  if (seconds === undefined || !Number.isFinite(seconds)) {
-    return { primary: "--", secondary: "" };
-  }
-
-  const safeSeconds = Math.max(0, seconds);
-  if (safeSeconds > 0 && safeSeconds < 60) {
-    return { primary: "1분", secondary: "미만" };
-  }
-
-  const totalMinutes = Math.floor(safeSeconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return { primary: `${minutes}분`, secondary: "" };
-  return {
-    primary: `${hours}시간`,
-    secondary: minutes > 0 ? `${minutes}분` : "",
-  };
-}
 
 function requestError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-function sameWindow(
-  left?: StudyStatisticsWindow,
-  right?: StudyStatisticsWindow,
-): boolean {
-  if (!left || !right) return false;
-  const leftStart = new Date(left.startsAt).getTime();
-  const leftEnd = new Date(left.endsAtExclusive).getTime();
-  const rightStart = new Date(right.startsAt).getTime();
-  const rightEnd = new Date(right.endsAtExclusive).getTime();
+function seoulDateKey(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SEOUL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
 
-  return (
-    Number.isFinite(leftStart) &&
-    Number.isFinite(leftEnd) &&
-    leftStart === rightStart &&
-    leftEnd === rightEnd
+function currentSeoulMonth(): string {
+  return seoulDateKey().slice(0, 7);
+}
+
+function parseDateKey(value: string): {
+  year: number;
+  month: number;
+  day: number;
+} | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  ) {
+    return null;
+  }
+  return { year, month, day };
+}
+
+function shiftMonth(month: string, offset: number): string {
+  const parsed = parseDateKey(`${month}-01`);
+  if (!parsed) return currentSeoulMonth();
+  const monthIndex = parsed.year * 12 + parsed.month - 1 + offset;
+  const nextYear = Math.floor(monthIndex / 12);
+  const nextMonth = (monthIndex % 12) + 1;
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+}
+
+function mondayFirstWeekday(date: string): number {
+  const parsed = parseDateKey(date);
+  if (!parsed) return 0;
+  const weekday = new Date(
+    Date.UTC(parsed.year, parsed.month - 1, parsed.day),
+  ).getUTCDay();
+  return (weekday + 6) % 7;
+}
+
+function calendarRows(days: MonthlyStudyDay[]): CalendarCell[][] {
+  if (days.length === 0) return [];
+  const ordered = [...days].sort((left, right) =>
+    left.date.localeCompare(right.date),
   );
+  const cells: CalendarCell[] = [
+    ...Array.from<CalendarCell>({
+      length: mondayFirstWeekday(ordered[0].date),
+    }).fill(null),
+    ...ordered,
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const rows: CalendarCell[][] = [];
+  for (let index = 0; index < cells.length; index += 7) {
+    rows.push(cells.slice(index, index + 7));
+  }
+  return rows;
+}
+
+function safeSeconds(value?: number): number | null {
+  if (value === undefined || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.floor(value));
+}
+
+function formatClockDuration(value?: number): string {
+  const seconds = safeSeconds(value);
+  if (seconds === null) return "--";
+  const totalMinutes = Math.floor(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+function formatLongDuration(value?: number): string {
+  const seconds = safeSeconds(value);
+  if (seconds === null) return "집계 전";
+  const totalMinutes = Math.floor(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}시간 ${minutes}분`;
+}
+
+function monthLabel(month: string): string {
+  const parsed = parseDateKey(`${month}-01`);
+  if (!parsed) return month;
+  return `${parsed.year}년 ${parsed.month}월`;
+}
+
+function dayLabel(date: string): string {
+  const parsed = parseDateKey(date);
+  if (!parsed) return date;
+  return `${parsed.month}월 ${parsed.day}일`;
+}
+
+function weekDateLabel(date: string): string {
+  const parsed = parseDateKey(date);
+  if (!parsed) return date;
+  const weekday = WEEKDAYS[mondayFirstWeekday(date)];
+  return `${parsed.month}월 ${parsed.day}일(${weekday})`;
+}
+
+function weekLabel(week: MonthlyStudyWeek): string {
+  return `${weekDateLabel(week.startsOn)} – ${weekDateLabel(
+    week.endsOnInclusive,
+  )}`;
+}
+
+function countedThroughLabel(value?: string): string {
+  if (!value) return "집계 기준 확인 중";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "집계 기준 확인 중";
+  return `${countedThroughFormatter.format(date)} 기준`;
 }
 
 export default function StudyRecords() {
-  const statisticsRequestRef = useRef(0);
-  const leaderboardRequestRef = useRef(0);
-  const [statistics, setStatistics] = useState<
-    ResourceState<MyStudyStatistics>
-  >({ data: null, loading: true, error: "" });
-  const [leaderboard, setLeaderboard] = useState<
-    ResourceState<WeeklyStudyLeaderboard>
+  const monthlyRequestRef = useRef(0);
+  const [selectedMonth, setSelectedMonth] = useState(currentSeoulMonth);
+  const [monthlyReport, setMonthlyReport] = useState<
+    ResourceState<MonthlyStudyReport>
   >({ data: null, loading: true, error: "" });
   const [challengeRefreshToken, setChallengeRefreshToken] = useState(0);
 
-  const refreshStatistics = useCallback(async () => {
-    const requestId = statisticsRequestRef.current + 1;
-    statisticsRequestRef.current = requestId;
-    setStatistics((current) => ({ ...current, loading: true, error: "" }));
+  const refreshMonthlyReport = useCallback(async (month: string) => {
+    const requestId = monthlyRequestRef.current + 1;
+    monthlyRequestRef.current = requestId;
+    setMonthlyReport((current) => ({
+      data: current.data?.month === month ? current.data : null,
+      loading: true,
+      error: "",
+    }));
 
     try {
-      const data = await getMyStudyStatistics();
-      if (requestId !== statisticsRequestRef.current) return;
-      setStatistics({ data, loading: false, error: "" });
+      const data = await getMyMonthlyStudyReport(month);
+      if (requestId !== monthlyRequestRef.current) return;
+      if (data.month !== month) {
+        throw new Error("선택한 달의 공부기록을 확인하지 못했습니다.");
+      }
+      setMonthlyReport({ data, loading: false, error: "" });
     } catch (error) {
-      if (requestId !== statisticsRequestRef.current) return;
-      setStatistics((current) => ({
-        ...current,
+      if (requestId !== monthlyRequestRef.current) return;
+      setMonthlyReport((current) => ({
+        data: current.data?.month === month ? current.data : null,
         loading: false,
         error: requestError(
           error,
-          "공부기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
-        ),
-      }));
-    }
-  }, []);
-
-  const refreshLeaderboard = useCallback(async () => {
-    const requestId = leaderboardRequestRef.current + 1;
-    leaderboardRequestRef.current = requestId;
-    setLeaderboard((current) => ({ ...current, loading: true, error: "" }));
-
-    try {
-      const data = await getWeeklyStudyLeaderboard();
-      if (requestId !== leaderboardRequestRef.current) return;
-      setLeaderboard({ data, loading: false, error: "" });
-    } catch (error) {
-      if (requestId !== leaderboardRequestRef.current) return;
-      setLeaderboard((current) => ({
-        ...current,
-        loading: false,
-        error: requestError(
-          error,
-          "주간 순위를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
+          "월별 공부기록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.",
         ),
       }));
     }
   }, []);
 
   useEffect(() => {
-    const initialTimer = window.setTimeout(() => {
-      void refreshStatistics();
-      void refreshLeaderboard();
-    }, 0);
-    const refreshTimer = window.setInterval(() => {
-      void refreshStatistics();
-      void refreshLeaderboard();
-    }, REFRESH_INTERVAL_MS);
+    void refreshMonthlyReport(selectedMonth);
+    const refreshTimer =
+      selectedMonth === currentSeoulMonth()
+        ? window.setInterval(() => {
+            void refreshMonthlyReport(selectedMonth);
+          }, REFRESH_INTERVAL_MS)
+        : null;
 
     return () => {
-      window.clearTimeout(initialTimer);
-      window.clearInterval(refreshTimer);
-      statisticsRequestRef.current += 1;
-      leaderboardRequestRef.current += 1;
+      if (refreshTimer !== null) window.clearInterval(refreshTimer);
+      monthlyRequestRef.current += 1;
     };
-  }, [refreshLeaderboard, refreshStatistics]);
+  }, [refreshMonthlyReport, selectedMonth]);
 
-  const metrics: Array<{
-    key: "today" | "currentWeek" | "currentMonth";
-    label: string;
-    value?: StudyDurationTotal;
-  }> = [
-    {
-      key: "today",
-      label: "오늘",
-      value: statistics.data?.today,
-    },
-    {
-      key: "currentWeek",
-      label: "이번 주",
-      value: statistics.data?.currentWeek,
-    },
-    {
-      key: "currentMonth",
-      label: "이번 달",
-      value: statistics.data?.currentMonth,
-    },
-  ];
+  const report =
+    monthlyReport.data?.month === selectedMonth ? monthlyReport.data : null;
+  const rows = useMemo(() => calendarRows(report?.days ?? []), [report?.days]);
+  const today = seoulDateKey();
+  const latestMonth = currentSeoulMonth();
+  const canMoveNext = selectedMonth < latestMonth;
 
-  const myWeeklyRank =
-    leaderboard.data?.members.find((member) => member.isMe) ?? null;
-  const positiveMemberCount =
-    leaderboard.data?.members.filter(
-      (member) =>
-        Number.isFinite(member.studySeconds) && member.studySeconds > 0,
-    ).length ?? 0;
-  const weeklyWindowsMatch =
-    !statistics.data ||
-    !leaderboard.data ||
-    sameWindow(statistics.data.currentWeek, leaderboard.data.window);
-  const generatedAt =
-    statistics.data?.generatedAt ?? leaderboard.data?.generatedAt;
-  const refreshing = statistics.loading || leaderboard.loading;
+  function moveMonth(offset: number) {
+    const nextMonth = shiftMonth(selectedMonth, offset);
+    if (nextMonth > currentSeoulMonth()) return;
+    setSelectedMonth(nextMonth);
+  }
 
   function refreshAll() {
-    void refreshStatistics();
-    void refreshLeaderboard();
+    void refreshMonthlyReport(selectedMonth);
     setChallengeRefreshToken((current) => current + 1);
   }
 
   return (
     <AppShell
-      title="공부기록"
+      title="작업시간"
       wide
       footer={false}
       className="study-records-shell"
       actions={
         <button
-          aria-label="공부기록 새로고침"
+          aria-label="작업시간 새로고침"
           className="study-records-refresh"
-          disabled={refreshing}
+          disabled={monthlyReport.loading}
           onClick={refreshAll}
           type="button"
         >
           <RefreshRoundedIcon />
-          <span>{refreshing ? "반영 중" : "새로고침"}</span>
+          <span>{monthlyReport.loading ? "반영 중" : "새로고침"}</span>
         </button>
       }
     >
       <div className="study-records-report">
-        <div className="study-records-banner-stack">
-          <section
-            aria-busy={refreshing}
-            className="study-records-banner"
-          >
-            <div className="study-records-banner-copy">
-              <span className="study-records-banner-icon">
-                <QueryStatsOutlinedIcon />
-              </span>
-              <div>
-                <h2>나의 공부시간 리포트</h2>
-                <p>실제로 공부 상태로 기록된 시간을 확인합니다.</p>
-              </div>
-            </div>
-            <div className="study-records-updated">
-              <span>최근 집계</span>
-              <strong>{formatUpdatedTime(generatedAt)}</strong>
-              {formatUpdatedDate(generatedAt) && (
-                <small>{formatUpdatedDate(generatedAt)}</small>
-              )}
-            </div>
-          </section>
-
-          {!statistics.data && statistics.loading && (
-            <p className="study-records-status" role="status">
-              공부기록을 불러오는 중입니다.
-            </p>
-          )}
-
-          {statistics.error && (
+        <section
+          aria-busy={monthlyReport.loading}
+          className="study-records-tracker"
+        >
+          {monthlyReport.error && (
             <div className="study-records-status is-error" role="alert">
               <span>
-                {statistics.data
-                  ? "최신 공부기록을 확인하지 못해 이전 기록을 표시합니다."
-                  : statistics.error}
+                {report
+                  ? "최신 기록을 확인하지 못해 이전 기록을 표시합니다."
+                  : monthlyReport.error}
               </span>
               <button
-                disabled={statistics.loading}
-                onClick={() => void refreshStatistics()}
+                disabled={monthlyReport.loading}
+                onClick={() => void refreshMonthlyReport(selectedMonth)}
                 type="button"
               >
                 다시 불러오기
               </button>
             </div>
           )}
-        </div>
+
+          {!report && monthlyReport.loading && (
+            <p className="study-records-status" role="status">
+              월별 작업시간을 불러오는 중입니다.
+            </p>
+          )}
+
+          {report && (
+            <>
+              <section
+                aria-label={`${monthLabel(selectedMonth)} 일별 작업 기록`}
+                className="study-records-calendar-card"
+              >
+                <header className="study-records-section-heading">
+                  <h2>
+                    <KeyboardArrowDownRoundedIcon aria-hidden="true" />
+                    일별 작업 기록
+                  </h2>
+                  <div className="study-records-month-navigation">
+                    <button
+                      aria-label="이전 달 보기"
+                      onClick={() => moveMonth(-1)}
+                      type="button"
+                    >
+                      <KeyboardArrowLeftRoundedIcon />
+                    </button>
+                    <strong>{monthLabel(selectedMonth)}</strong>
+                    <button
+                      aria-label="다음 달 보기"
+                      disabled={!canMoveNext}
+                      onClick={() => moveMonth(1)}
+                      type="button"
+                    >
+                      <KeyboardArrowRightRoundedIcon />
+                    </button>
+                    <small>{countedThroughLabel(report.countedThroughAt)}</small>
+                  </div>
+                </header>
+
+                <table className="study-records-calendar">
+                  <thead>
+                    <tr>
+                      {WEEKDAYS.map((weekday) => (
+                        <th key={weekday} scope="col">
+                          {weekday}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row, rowIndex) => (
+                      <tr key={`week-${rowIndex}`}>
+                        {row.map((day, dayIndex) => {
+                          if (!day) {
+                            return (
+                              <td
+                                aria-hidden="true"
+                                className="is-empty"
+                                key={`empty-${rowIndex}-${dayIndex}`}
+                              />
+                            );
+                          }
+
+                          const parsed = parseDateKey(day.date);
+                          const isFuture = day.date > today;
+                          const isToday = day.date === today;
+                          const hasStudy = day.studySeconds > 0;
+                          const duration = isFuture
+                            ? "—"
+                            : formatClockDuration(day.studySeconds);
+                          const accessibleDuration = isFuture
+                            ? "아직 집계 전"
+                            : formatLongDuration(day.studySeconds);
+
+                          return (
+                            <td
+                              aria-label={`${dayLabel(
+                                day.date,
+                              )} 작업시간 ${accessibleDuration}`}
+                              className={[
+                                isToday ? "is-today" : "",
+                                isFuture ? "is-future" : "",
+                                hasStudy ? "has-study" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              key={day.date}
+                            >
+                              <time dateTime={day.date}>{parsed?.day}</time>
+                              <strong>{duration}</strong>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+
+              <section className="study-records-weekly-card">
+                <header className="study-records-section-heading">
+                  <h2>
+                    <KeyboardArrowDownRoundedIcon aria-hidden="true" />
+                    주간 작업기록
+                  </h2>
+                </header>
+                <div
+                  className="study-records-weekly-column-head"
+                  aria-hidden="true"
+                >
+                  <span>날짜</span>
+                  <span>공부시간</span>
+                </div>
+                <ol>
+                  {report.weeks.map((week) => (
+                    <li key={`${week.startsOn}-${week.endsOnInclusive}`}>
+                      <span>{weekLabel(week)}</span>
+                      <strong>{formatClockDuration(week.studySeconds)}</strong>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+
+              <section className="study-records-month-total">
+                <div>
+                  <KeyboardArrowDownRoundedIcon aria-hidden="true" />
+                  <span>이번달 총작업량</span>
+                </div>
+                <strong>{formatLongDuration(report.monthStudySeconds)}</strong>
+              </section>
+            </>
+          )}
+        </section>
 
         <StudyChallengePanel refreshToken={challengeRefreshToken} />
-
-        <section
-          aria-busy={statistics.loading}
-          aria-label="기간별 실제 공부시간"
-          className="study-records-metrics"
-        >
-          {metrics.map((metric) => {
-            const time = studyTimeParts(metric.value?.studySeconds);
-            return (
-              <article
-                aria-label={`${metric.label} 공부시간 ${formatStudyTime(
-                  metric.value?.studySeconds,
-                )}`}
-                className={`is-${metric.key}`}
-                key={metric.key}
-              >
-                <h2>{metric.label}</h2>
-                <div className="study-records-duration">
-                  <strong>{time.primary}</strong>
-                  {time.secondary && <em>{time.secondary}</em>}
-                </div>
-                <small>{formatPeriod(metric.value)}</small>
-              </article>
-            );
-          })}
-        </section>
-
-        <section
-          aria-busy={leaderboard.loading}
-          className="study-records-rank"
-        >
-          <header>
-            <div>
-              <h2>이번 주 내 순위</h2>
-              <small>{formatPeriod(leaderboard.data?.window)}</small>
-            </div>
-            <span aria-hidden="true">
-              <EmojiEventsOutlinedIcon />
-            </span>
-          </header>
-
-          {!leaderboard.data && leaderboard.loading ? (
-            <p className="study-records-rank-state" role="status">
-              주간 순위를 확인하는 중입니다.
-            </p>
-          ) : leaderboard.error && !leaderboard.data ? (
-            <div className="study-records-rank-state is-error" role="alert">
-              <p>{leaderboard.error}</p>
-              <button
-                disabled={leaderboard.loading}
-                onClick={() => void refreshLeaderboard()}
-                type="button"
-              >
-                다시 불러오기
-              </button>
-            </div>
-          ) : !weeklyWindowsMatch ? (
-            <div className="study-records-rank-state">
-              <p>주간 공부시간과 순위의 집계 기준을 맞추는 중입니다.</p>
-              <button onClick={refreshAll} type="button">
-                새로고침
-              </button>
-            </div>
-          ) : !myWeeklyRank ||
-            !Number.isFinite(myWeeklyRank.studySeconds) ||
-            myWeeklyRank.studySeconds <= 0 ? (
-            <div className="study-records-rank-result is-empty">
-              <div>
-                <strong>집계 전</strong>
-                <p>공부시간이 기록되면 주간 순위가 표시됩니다.</p>
-              </div>
-              <div className="study-records-rank-time">
-                <span>이번 주 공부시간</span>
-                <strong>
-                  {formatStudyTime(statistics.data?.currentWeek.studySeconds)}
-                </strong>
-              </div>
-            </div>
-          ) : (
-            <div className="study-records-rank-result">
-              <div>
-                <strong>{myWeeklyRank.rank}위</strong>
-                <p>같은 지점에서 기록된 {positiveMemberCount}명 중</p>
-              </div>
-              <div className="study-records-rank-time">
-                <span>이번 주 공부시간</span>
-                <strong>{formatStudyTime(myWeeklyRank.studySeconds)}</strong>
-              </div>
-            </div>
-          )}
-
-          {leaderboard.error && leaderboard.data && (
-            <p className="study-records-rank-stale" role="status">
-              최신 순위를 확인하지 못해 이전 순위를 표시합니다.
-            </p>
-          )}
-        </section>
-
-        <aside className="study-records-guide">
-          <h2>집계 기준</h2>
-          <ul>
-            <li>휴식 상태는 공부시간에서 제외됩니다.</li>
-            <li>하루·주·월은 대한민국 표준시를 기준으로 계산됩니다.</li>
-            <li>이번 주는 월요일부터 일요일까지입니다.</li>
-          </ul>
-          <p>공부 중에는 약 1분마다 최신 기록을 다시 확인합니다.</p>
-        </aside>
-
-        <Link
-          className="study-records-fame-link"
-          to="/waiting-room"
-        >
-          이번 주 명예의 전당 보기
-        </Link>
       </div>
     </AppShell>
   );
