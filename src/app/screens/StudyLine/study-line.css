@@ -815,3 +815,84 @@
     font-size: 10px;
   }
 }
+
+/* Compact progress summary across phone, tablet, and desktop layouts. */
+.sl-bottom {
+  gap: 8px;
+}
+
+.sl-metric {
+  min-height: 80px;
+  align-content: center;
+  gap: 4px;
+  border-radius: 14px;
+  padding: 9px 12px;
+  box-shadow: 0 8px 20px rgba(20, 63, 86, 0.05);
+}
+
+.sl-countdown-card {
+  gap: 6px;
+}
+
+.sl-bottom span {
+  font-size: 11px;
+}
+
+.sl-bottom strong {
+  margin: 0;
+  font-size: clamp(22px, 4.6vw, 27px);
+}
+
+.sl-bottom em {
+  font-size: 9.5px;
+}
+
+.sl-progress-track {
+  height: 6px;
+}
+
+@media (max-width: 420px) {
+  .sl-bottom {
+    gap: 6px;
+  }
+
+  .sl-metric {
+    min-height: 74px;
+    padding: 8px 10px;
+  }
+
+  .sl-bottom span {
+    font-size: 10.5px;
+  }
+
+  .sl-bottom strong {
+    font-size: 21px;
+  }
+
+  .sl-bottom em {
+    font-size: 9px;
+  }
+
+  .sl-progress-track {
+    height: 5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sl-bottom {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .sl-metric {
+    min-height: 72px;
+    padding-inline: 9px;
+  }
+
+  .sl-bottom span {
+    font-size: 10px;
+  }
+
+  .sl-bottom strong {
+    font-size: 20px;
+  }
+}

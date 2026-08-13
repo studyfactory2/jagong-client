@@ -322,11 +322,12 @@
 
 .workroom-camera-setup__actions {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
   gap: 8px;
 }
 
 .workroom-camera-setup__preview,
+.workroom-camera-setup__sound,
 .workroom-camera-setup__confirm {
   width: 100%;
   min-width: 0;
@@ -338,7 +339,87 @@
   font-weight: 900;
 }
 
+.workroom-camera-setup__sound {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  padding-inline: 12px;
+  cursor: pointer;
+}
+
+.workroom-camera-setup__sound-label {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.workroom-camera-setup__sound-label svg {
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.workroom-camera-setup__sound-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--line);
+  box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.05);
+  transition: background-color 160ms ease;
+}
+
+.workroom-camera-setup__sound-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(20, 63, 86, 0.18);
+  transition: transform 160ms ease;
+}
+
+.workroom-camera-setup__sound.is-on {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.workroom-camera-setup__sound.is-on
+  .workroom-camera-setup__sound-switch {
+  background: var(--mint-deep);
+}
+
+.workroom-camera-setup__sound.is-on
+  .workroom-camera-setup__sound-switch::after {
+  transform: translateX(13px);
+}
+
+.workroom-camera-setup__sound:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.workroom-camera-setup__sound:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 .workroom-camera-setup__preview {
+  grid-column: 1 / -1;
   border: 1px solid var(--ink);
   background: var(--card);
   color: var(--ink);
@@ -471,6 +552,7 @@
   }
 
   .workroom-camera-setup__preview,
+  .workroom-camera-setup__sound,
   .workroom-camera-setup__confirm {
     min-height: 46px;
     border-radius: 12px;
@@ -611,13 +693,51 @@
   }
 
   .workroom-camera-setup__actions {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     gap: 6px;
   }
 
   .workroom-camera-setup__preview,
+  .workroom-camera-setup__sound,
   .workroom-camera-setup__confirm {
     min-height: 42px;
     border-radius: 10px;
     font-size: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .workroom-camera-setup__sound {
+    gap: 5px;
+    padding-inline: 8px;
+  }
+
+  .workroom-camera-setup__sound-label {
+    gap: 4px;
+    font-size: 10px;
+  }
+
+  .workroom-camera-setup__sound-label svg {
+    font-size: 16px;
+  }
+
+  .workroom-camera-setup__sound-switch {
+    width: 26px;
+    height: 15px;
+  }
+
+  .workroom-camera-setup__sound-switch::after {
+    width: 11px;
+    height: 11px;
+  }
+
+  .workroom-camera-setup__sound.is-on
+    .workroom-camera-setup__sound-switch::after {
+    transform: translateX(11px);
+  }
+
+  .workroom-camera-setup__confirm {
+    padding-inline: 6px;
+    font-size: 11px;
   }
 }

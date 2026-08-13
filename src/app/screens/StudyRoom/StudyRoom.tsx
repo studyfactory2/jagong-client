@@ -2,19 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
-import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
-import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
-import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import KeyboardArrowLeftRoundedIcon from "@mui/icons-material/KeyboardArrowLeftRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardDoubleArrowLeftRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowLeftRounded";
 import KeyboardDoubleArrowRightRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowRightRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
+import {
+  formatTodayStudyTime,
+  useTodayStudyTimer,
+} from "../../hooks/useTodayStudyTimer";
 import { getTimetable } from "../../services/timetable.service";
 import type { TimetableSlot } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
@@ -29,7 +27,6 @@ import {
   getScheduleSoundEnabled,
   playScheduleTone,
   scheduleBellMessage,
-  setScheduleSoundEnabled,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import {
@@ -68,19 +65,6 @@ function timeLeftText(minutes: number): string {
   return `${hours}시간 ${mins}분`;
 }
 
-function formatTodayStudyTime(seconds?: number): string {
-  if (seconds === undefined || !Number.isFinite(seconds)) return "--:--:--";
-
-  const safeSeconds = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const remainder = safeSeconds % 60;
-
-  return [hours, minutes, remainder]
-    .map((value) => String(value).padStart(2, "0"))
-    .join(":");
-}
-
 function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -117,15 +101,12 @@ export default function StudyRoom() {
     cameraPausedForBreak,
     error,
     localVideoTrack,
-    devices,
-    selectedDeviceId,
     roomMembers,
     remoteVideos,
     studyStatus,
     studyStatusLoading,
     studyStatusError,
     studyActionPending,
-    selectCamera,
     leaveSession,
     syncAttendanceSlot,
     refreshStudyStatus,
@@ -133,8 +114,6 @@ export default function StudyRoom() {
     resumeStudy,
     setVisibleRemoteUserIds,
   } = useWorkroomSession();
-  const [compactWall, setCompactWall] = useState(true);
-  const [cameraOnly, setCameraOnly] = useState(false);
   const [cameraPage, setCameraPage] = useState(0);
   const [cameraPageSize, setCameraPageSize] = useState(getCameraPageSize);
   const [timetable, setTimetable] = useState<TimetableSlot[]>(
@@ -142,14 +121,7 @@ export default function StudyRoom() {
   );
   const [timetableLoaded, setTimetableLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [bellMsg, setBellMsg] = useState("");
-  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
-    getScheduleSoundEnabled,
-  );
-  const [breakConfirmOpen, setBreakConfirmOpen] = useState(false);
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
-  const bellTimerRef = useRef<number | null>(null);
-  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
   const myId = session?.user.userId ?? session?.user.id ?? "";
   const myName = session?.user.name ?? "나";
 
@@ -167,33 +139,19 @@ export default function StudyRoom() {
   }, []);
 
   useEffect(() => {
-    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
-  }, [scheduleSoundEnabled]);
-
-  useEffect(() => {
     if (!socket) return;
 
     const onBell = (data: ScheduleBellEvent) => {
       if (getWorkdayAnnouncement(data)) return;
       const message = scheduleBellMessage(data);
       if (!message) return;
-      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
-      if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
-      setBellMsg(message);
-      bellTimerRef.current = window.setTimeout(() => {
-        setBellMsg("");
-        bellTimerRef.current = null;
-      }, 8000);
+      if (getScheduleSoundEnabled()) playScheduleTone(data.type);
     };
 
     socket.on("bell", onBell);
 
     return () => {
       socket.off("bell", onBell);
-      if (bellTimerRef.current) {
-        window.clearTimeout(bellTimerRef.current);
-        bellTimerRef.current = null;
-      }
     };
   }, [socket]);
 
@@ -269,21 +227,6 @@ export default function StudyRoom() {
   const nextWindow = nextSlot
     ? `${nextSlot.startTime} - ${nextSlot.endTime}`
     : "오늘 일정 완료";
-  const noticeBody =
-    bellMsg ||
-    (recordingWindow.kind === "OVERNIGHT"
-      ? studyStatus?.active === true &&
-        studyStatus.state === "STUDY" &&
-        studyStatus.source !== "SYSTEM"
-        ? "야간 자율학습 공부시간이 기록되고 있습니다. 화면을 켜고 자리를 유지해 주세요."
-        : "지금은 야간 자율학습 시간입니다. 공부 시작을 누르면 공부시간 기록을 시작합니다."
-      : current?.isBreak
-        ? `지금은 ${current.label} 시간입니다. ${current.endTime}까지 편하게 쉬세요.`
-        : current
-          ? `${current.label} 집중 체크 중입니다. 화면을 켜고 자리를 유지해 주세요.`
-          : nextSlot
-            ? `${nextSlot.label} 시작 전입니다. 입장 상태와 카메라를 확인해 주세요.`
-            : "오늘 작업장 일정이 종료되었습니다.");
   const isStudyStatusPending = !(
     studyStatus?.active &&
     studyStatus.state &&
@@ -301,13 +244,37 @@ export default function StudyRoom() {
     Boolean(studyStatusError) ||
     studyActionPending !== null;
 
-  const toggleScheduleSound = () => {
-    const next = !scheduleSoundEnabled;
-    setScheduleSoundPreference(next);
-    void setScheduleSoundEnabled(next).then((enabled) => {
-      if (next && enabled) playScheduleTone("preview");
-    });
-  };
+  const compactStudyTone =
+    studyStatusLoading ||
+    Boolean(studyStatusError) ||
+    !studyStatus?.active ||
+    studyStatus.source === "SYSTEM"
+      ? "syncing"
+      : cameraPausedForBreak || studyStatus.state === "BREAK"
+        ? "break"
+        : studyStatus.state === "STUDY"
+          ? "study"
+          : "syncing";
+  const compactStudyLabel =
+    compactStudyTone === "study"
+      ? "공부중"
+      : compactStudyTone === "break"
+        ? "휴식중"
+        : "확인중";
+  const compactStudyDetail = studyStatusLoading
+    ? "최신 공부 상태를 확인하고 있습니다."
+    : studyStatusError
+      ? "공부 상태를 다시 확인해 주세요."
+      : currentStudyState.detail;
+  const { refreshAfterStudyTransition, todayStudyTime } = useTodayStudyTimer({
+    cameraPausedForBreak,
+    joined,
+    now,
+    refreshStudyStatus,
+    studyStatus,
+    studyStatusError,
+    studyStatusLoading,
+  });
   const membersForGrid = useMemo(() => {
     const withSelfStatus = roomMembers.map((member) =>
       member.id === myId
@@ -378,31 +345,24 @@ export default function StudyRoom() {
 
   useEffect(() => () => setVisibleRemoteUserIds([]), [setVisibleRemoteUserIds]);
 
-  async function handleDeviceChange(deviceId: string) {
-    await selectCamera(deviceId);
-  }
-
-  async function handleLeave() {
-    if (!window.confirm("작업실에서 퇴장하시겠습니까?")) return;
+  async function goPreparationRoom() {
+    if (
+      !window.confirm(
+        "카메라 송출과 공부시간 기록을 종료하고 작업 준비실로 이동할까요?",
+      )
+    ) {
+      return;
+    }
     await leaveSession();
+    navigate("/workroom/prepare?mode=group", { replace: true });
   }
 
   async function handleStudyAction() {
     if (studyAction === "BREAK") {
-      setBreakConfirmOpen(true);
+      if (await startStudyBreak()) refreshAfterStudyTransition();
     } else if (studyAction === "RESUME") {
-      await resumeStudy();
+      if (await resumeStudy()) refreshAfterStudyTransition();
     }
-  }
-
-  async function confirmStudyBreak() {
-    if (studyAction !== "BREAK" || studyActionDisabled) {
-      setBreakConfirmOpen(false);
-      return;
-    }
-
-    await startStudyBreak();
-    setBreakConfirmOpen(false);
   }
 
   async function goWaitingRoom() {
@@ -419,7 +379,7 @@ export default function StudyRoom() {
   }
 
   return (
-    <div className={`sr${cameraOnly ? " is-camera-only" : ""}`}>
+    <div className="sr">
       <header className="sr-head">
         <button
           className="sr-back"
@@ -432,160 +392,110 @@ export default function StudyRoom() {
 
         <h1 className="sr-title">단체작업장</h1>
 
-        <button className="sr-pill" onClick={() => navigate("/study-line")}>
-          <DoorFrontOutlinedIcon />
-          개인작업실
-          <span>→</span>
-        </button>
+        <div className="sr-head-actions">
+          <button
+            className="sr-prepare-link"
+            disabled={joining}
+            onClick={() => void goPreparationRoom()}
+            type="button"
+          >
+            <span className="sr-nav-label-full">
+              {joining ? "이동 중…" : "작업 준비실"}
+            </span>
+            <span className="sr-nav-label-short">
+              {joining ? "이동 중" : "준비실"}
+            </span>
+          </button>
+          <button
+            className="sr-pill"
+            disabled={joining}
+            onClick={() => navigate("/study-line")}
+            type="button"
+          >
+            <DoorFrontOutlinedIcon />
+            <span className="sr-nav-label-full">개인작업실</span>
+            <span className="sr-nav-label-short">개인실</span>
+          </button>
+        </div>
       </header>
 
       <main className="sr-body">
-        <section className="sr-panel sr-cams">
-          <div className="sr-panel-head">
-            <div className="sr-panel-title">
-              <GroupsOutlinedIcon />
-              <span>전국 단체 작업 캠</span>
-            </div>
-
-            <div className="sr-panel-actions">
-              <button
-                className="sr-view-btn"
-                onClick={() => setCompactWall((value) => !value)}
-                type="button"
-                title={compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"}
-                aria-label={
-                  compactWall ? "작업 캠 크게 보기" : "작업 캠 많이 보기"
-                }
-              >
-                <GridViewOutlinedIcon />
-                <span className="sr-view-label">
-                  {compactWall ? "크게 보기" : "많이 보기"}
-                </span>
-                <small>전체 {membersForGrid.length}명</small>
-              </button>
-
-              <button
-                className="sr-wall-btn"
-                onClick={() => setCameraOnly((value) => !value)}
-                type="button"
-                title={cameraOnly ? "전체 보기" : "캠만 보기"}
-                aria-label={cameraOnly ? "전체 보기" : "캠만 보기"}
-              >
-                <span className="sr-wall-label-full">
-                  {cameraOnly ? "전체 보기" : "캠만 보기"}
-                </span>
-                <span className="sr-wall-label-short">
-                  {cameraOnly ? "전체" : "캠"}
-                </span>
-              </button>
-
-              <button
-                className={`sr-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
-                type="button"
-                onClick={toggleScheduleSound}
-                aria-label={
-                  scheduleSoundEnabled
-                    ? "일정 알림 소리 끄기"
-                    : "일정 알림 소리 켜기"
-                }
-                title={
-                  scheduleSoundEnabled
-                    ? "일정 알림 소리 끄기"
-                    : "일정 알림 소리 켜기"
-                }
-              >
-                {scheduleSoundEnabled ? (
-                  <VolumeUpRoundedIcon />
-                ) : (
-                  <VolumeOffRoundedIcon />
-                )}
-              </button>
-
-              {joined && (
-                <button
-                  className="sr-quick-leave"
-                  onClick={() => void handleLeave()}
-                  type="button"
-                  disabled={joining}
-                >
-                  {joining ? "처리 중" : "퇴장"}
-                </button>
-              )}
-            </div>
+        <section
+          aria-busy={studyStatusLoading || studyActionPending !== null}
+          className={`sr-session-bar is-${compactStudyTone}`}
+        >
+          <div
+            aria-label={`${compactStudyLabel}. ${compactStudyDetail}`}
+            aria-live="polite"
+            className="sr-session-state"
+            role="status"
+          >
+            <i aria-hidden="true" />
+            <strong>{compactStudyLabel}</strong>
           </div>
-
-          {joined && (
-            <div
-              aria-busy={studyStatusLoading || studyActionPending !== null}
-              className={`sr-study-control is-${currentStudyState.tone}`}
-            >
-              <div
-                aria-atomic="true"
-                aria-live="polite"
-                className="sr-study-copy"
-                role="status"
-              >
-                <i aria-hidden="true" />
-                <span>
-                  <strong>{currentStudyState.label}</strong>
-                  <small>{currentStudyState.detail}</small>
-                </span>
-              </div>
-              <div className="sr-study-actions">
-                {studyAction ? (
-                  <button
-                    className={`sr-study-action is-${studyAction.toLowerCase()}`}
-                    disabled={studyActionDisabled}
-                    onClick={() => void handleStudyAction()}
-                    type="button"
-                  >
-                    {studyAction === "BREAK" ? (
-                      <PauseCircleOutlineRoundedIcon />
-                    ) : (
-                      <PlayArrowRoundedIcon />
-                    )}
-                    {studyActionPending
-                      ? "변경 중…"
-                      : studyStatusLoading
-                        ? "확인 중…"
-                        : currentStudyState.actionLabel}
-                  </button>
-                ) : isStudyStatusPending && !studyStatusError ? (
-                  <button
-                    className="sr-study-action is-refresh"
-                    disabled={studyStatusLoading || studyActionPending !== null}
-                    onClick={() => void refreshStudyStatus()}
-                    type="button"
-                  >
-                    {studyStatusLoading ? "확인 중…" : "다시 확인"}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          )}
-
-          {joined && studyStatusError && (
-            <div
-              aria-live="assertive"
-              className="sr-study-error"
-              role={studyStatusLoading ? "status" : "alert"}
-            >
-              <span>
-                {studyStatusLoading
-                  ? "최신 공부 상태를 다시 확인하고 있습니다."
-                  : studyStatusError}
-              </span>
+          <div
+            aria-label={`오늘 누적 공부시간 ${todayStudyTime}`}
+            className="sr-session-timer"
+            role="timer"
+          >
+            <small>오늘 공부시간</small>
+            <strong aria-hidden="true">{todayStudyTime}</strong>
+          </div>
+          <div className="sr-session-action-slot">
+            {joined && studyAction ? (
               <button
+                className={`sr-study-action is-${studyAction.toLowerCase()}`}
+                disabled={studyActionDisabled}
+                onClick={() => void handleStudyAction()}
+                type="button"
+              >
+                {studyAction === "BREAK" ? (
+                  <PauseCircleOutlineRoundedIcon />
+                ) : (
+                  <PlayArrowRoundedIcon />
+                )}
+                {studyActionPending
+                  ? "변경 중…"
+                  : studyStatusLoading
+                    ? "확인 중…"
+                    : currentStudyState.actionLabel}
+              </button>
+            ) : joined && isStudyStatusPending && !studyStatusError ? (
+              <button
+                className="sr-study-action is-refresh"
                 disabled={studyStatusLoading || studyActionPending !== null}
                 onClick={() => void refreshStudyStatus()}
                 type="button"
               >
                 {studyStatusLoading ? "확인 중…" : "다시 확인"}
               </button>
-            </div>
-          )}
+            ) : null}
+          </div>
+        </section>
 
-          <div className={`sr-grid${compactWall ? " is-compact" : ""}`}>
+        {joined && studyStatusError && (
+          <div
+            aria-live="assertive"
+            className="sr-study-error"
+            role={studyStatusLoading ? "status" : "alert"}
+          >
+            <span>
+              {studyStatusLoading
+                ? "최신 공부 상태를 다시 확인하고 있습니다."
+                : studyStatusError}
+            </span>
+            <button
+              disabled={studyStatusLoading || studyActionPending !== null}
+              onClick={() => void refreshStudyStatus()}
+              type="button"
+            >
+              {studyStatusLoading ? "확인 중…" : "다시 확인"}
+            </button>
+          </div>
+        )}
+
+        <section className="sr-panel sr-cams">
+          <div className="sr-grid">
             {visibleMembers.map((member) => {
               const isMe = member.id === myId;
               const remoteVideo = isMe
@@ -600,7 +510,7 @@ export default function StudyRoom() {
               const isWorking =
                 !isResting &&
                 (member.isWorking || (isMe && joined) || hasActiveVideo);
-              const todayStudyTime = formatTodayStudyTime(
+              const memberTodayStudyTime = formatTodayStudyTime(
                 member.todayStudy?.studySeconds,
               );
               const memberIndex = Math.max(0, membersForGrid.indexOf(member));
@@ -638,12 +548,12 @@ export default function StudyRoom() {
                     <StudyRoomRemoteVideo track={remoteVideo.track} />
                   )}
                   <span
-                    aria-label={`오늘 공부시간 ${todayStudyTime}`}
+                    aria-label={`오늘 공부시간 ${memberTodayStudyTime}`}
                     className="sr-cam-today-study"
-                    title={`오늘 공부시간 ${todayStudyTime}`}
+                    title={`오늘 공부시간 ${memberTodayStudyTime}`}
                   >
                     <small>오늘</small>
-                    <strong>{todayStudyTime}</strong>
+                    <strong>{memberTodayStudyTime}</strong>
                   </span>
                   <span className="sr-cam-name">
                     {isMe ? "나" : member.name}
@@ -667,7 +577,7 @@ export default function StudyRoom() {
             <nav className="sr-pagination" aria-label="작업 캠 페이지">
               <button
                 type="button"
-                className="sr-page-icon"
+                className="sr-page-icon is-edge"
                 onClick={() => setCameraPage(0)}
                 disabled={activeCameraPage === 0}
                 aria-label="첫 페이지"
@@ -701,7 +611,7 @@ export default function StudyRoom() {
               </button>
               <button
                 type="button"
-                className="sr-page-icon"
+                className="sr-page-icon is-edge"
                 onClick={() => setCameraPage(cameraPageCount - 1)}
                 disabled={activeCameraPage >= cameraPageCount - 1}
                 aria-label="마지막 페이지"
@@ -712,93 +622,37 @@ export default function StudyRoom() {
           )}
 
           {joined && error && <p className="sr-error">{error}</p>}
-          {joined && (
-            <div className="sr-live-footer">
-              <label className="sr-live-device">
-                <span>카메라</span>
-                <select
-                  value={selectedDeviceId}
-                  onChange={(event) =>
-                    void handleDeviceChange(event.target.value)
-                  }
-                  disabled={joining || devices.length === 0}
-                >
-                  {devices.length === 0 && (
-                    <option value="">카메라 선택</option>
-                  )}
-                  {devices.map((device, index) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                      {device.label || `카메라 ${index + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div
-                className={`sr-live-badge${cameraPausedForBreak ? " is-paused" : ""}`}
-              >
-                <span className="sr-live-dot" />
-                {cameraPausedForBreak ? "카메라 휴식 중" : "캠 송출 중"}
-              </div>
-              <p>
-                카메라 영상은 녹화·저장하지 않으며, 작업장 내 자리 확인을
-                위해서만 사용됩니다.
-              </p>
-            </div>
-          )}
-          {!cameraOnly && (
-            <p className="sr-hint">
-              정규 쉬는시간과 22:00–09:00에는 공부시간 기록만 자동으로 멈추고
-              카메라는 계속 켜져 있습니다. 계속 공부하려면 공부 시작을
-              눌러주세요.
-            </p>
-          )}
         </section>
 
-        {!cameraOnly && (
-          <section className="sr-bottom-status">
-            <div className="sr-status-notice">
-              <CampaignOutlinedIcon />
-              <span>{bellMsg || current?.isBreak ? "일정" : "공지"}</span>
-              <p>{noticeBody}</p>
-              <em>실시간</em>
-            </div>
+        <section className="sr-bottom-status">
+          <div className="sr-status-item">
+            <span>
+              {current?.isBreak
+                ? "현재 휴식"
+                : current
+                  ? "현재 교시"
+                  : "다음 교시"}
+            </span>
+            <strong>{current?.label ?? nextSlot?.label ?? "종료"}</strong>
+            <p>
+              <NotificationsOutlinedIcon /> {periodWindow}
+            </p>
+          </div>
 
-            <div className="sr-status-item">
-              <span>
-                {current?.isBreak
-                  ? "현재 휴식"
-                  : current
-                    ? "현재 교시"
-                    : "다음 교시"}
-              </span>
-              <strong>{current?.label ?? nextSlot?.label ?? "종료"}</strong>
-              <p>
-                <NotificationsOutlinedIcon /> {periodWindow}
-              </p>
-            </div>
+          <div className="sr-status-item is-time">
+            <span>{remainingLabel}</span>
+            <strong>{remainingText}</strong>
+          </div>
 
-            <div className="sr-status-item is-time">
-              <span>{remainingLabel}</span>
-              <strong>{remainingText}</strong>
-            </div>
-
-            <div className="sr-status-item is-next">
-              <span>다음 교시</span>
-              <strong>{nextSlot?.label ?? "종료"}</strong>
-              <p>
-                <NotificationsOutlinedIcon /> {nextWindow}
-              </p>
-            </div>
-          </section>
-        )}
+          <div className="sr-status-item is-next">
+            <span>다음 교시</span>
+            <strong>{nextSlot?.label ?? "종료"}</strong>
+            <p>
+              <NotificationsOutlinedIcon /> {nextWindow}
+            </p>
+          </div>
+        </section>
       </main>
-
-      <StudyBreakConfirmDialog
-        onCancel={() => setBreakConfirmOpen(false)}
-        onConfirm={confirmStudyBreak}
-        open={breakConfirmOpen}
-        pending={studyActionPending === "BREAK"}
-      />
 
       <footer className="sr-footer">
         <span>자격증공장 재택근무반</span>

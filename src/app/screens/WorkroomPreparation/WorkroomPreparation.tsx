@@ -10,6 +10,13 @@ import { useWorkroomSession } from "../../context/WorkroomSessionContext";
 import { getMyStudyRoomEntryAccess } from "../../services/study-room-entry.service";
 import { getTimetable } from "../../services/timetable.service";
 import {
+  getScheduleSoundEnabled,
+  getWorkdayAnnouncement,
+  playScheduleTone,
+  scheduleBellMessage,
+  type ScheduleBellEvent,
+} from "../../utils/schedule-bell";
+import {
   resolveStudyRecordingWindow,
   WORKROOM_FALLBACK_TIMETABLE,
 } from "../../utils/study-recording-policy";
@@ -207,6 +214,19 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
       socket.off("connect", refreshAfterReconnect);
     };
   }, [refreshAccess, socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const playBell = (event: ScheduleBellEvent) => {
+      if (getWorkdayAnnouncement(event)) return;
+      if (!scheduleBellMessage(event)) return;
+      if (getScheduleSoundEnabled()) playScheduleTone(event.type);
+    };
+    socket.on("bell", playBell);
+    return () => {
+      socket.off("bell", playBell);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (joined) navigate(destination.path, { replace: true });

@@ -2,10 +2,17 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import BlurOnRoundedIcon from "@mui/icons-material/BlurOnRounded";
 import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
 import FilterNoneRoundedIcon from "@mui/icons-material/FilterNoneRounded";
+import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import {
   useWorkroomSession,
   type CameraEffect,
 } from "../context/WorkroomSessionContext";
+import {
+  getScheduleSoundEnabled,
+  playScheduleTone,
+  setScheduleSoundEnabled,
+} from "../utils/schedule-bell";
 import "./workroom-camera-setup.css";
 
 type WorkroomCameraSetupProps = {
@@ -36,6 +43,10 @@ export default function WorkroomCameraSetup({
   } = useWorkroomSession();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [deviceChanging, setDeviceChanging] = useState(false);
+  const [soundChanging, setSoundChanging] = useState(false);
+  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
+    getScheduleSoundEnabled,
+  );
 
   useEffect(() => {
     const element = videoRef.current;
@@ -60,6 +71,22 @@ export default function WorkroomCameraSetup({
       await selectCamera(deviceId);
     } finally {
       setDeviceChanging(false);
+    }
+  };
+
+  const toggleScheduleSound = async () => {
+    if (soundChanging) return;
+    const next = !scheduleSoundEnabled;
+    setSoundChanging(true);
+    try {
+      const enabled = await setScheduleSoundEnabled(next);
+      if (next && !enabled) {
+        await setScheduleSoundEnabled(false);
+      }
+      setScheduleSoundPreference(next && enabled);
+      if (next && enabled) playScheduleTone("preview");
+    } finally {
+      setSoundChanging(false);
     }
   };
 
@@ -123,7 +150,7 @@ export default function WorkroomCameraSetup({
     <section
       className="workroom-camera-setup"
       aria-label="카메라 준비"
-      aria-busy={joining || deviceChanging || effectLoading}
+      aria-busy={joining || deviceChanging || effectLoading || soundChanging}
     >
       <div className="workroom-camera-setup__preview-panel">
         <div className="workroom-camera-setup__video">
@@ -146,6 +173,31 @@ export default function WorkroomCameraSetup({
             {cameraReady ? "미리보기 준비됨" : "카메라 미리보기"}
           </button>
           <button
+            aria-label={`교시종소리 ${scheduleSoundEnabled ? "끄기" : "켜기"}`}
+            aria-pressed={scheduleSoundEnabled}
+            className={
+              "workroom-camera-setup__sound" +
+              (scheduleSoundEnabled ? " is-on" : "")
+            }
+            disabled={soundChanging || joining}
+            onClick={() => void toggleScheduleSound()}
+            title={`교시종소리 ${scheduleSoundEnabled ? "켜짐" : "꺼짐"}`}
+            type="button"
+          >
+            <span className="workroom-camera-setup__sound-label">
+              {scheduleSoundEnabled ? (
+                <VolumeUpRoundedIcon />
+              ) : (
+                <VolumeOffRoundedIcon />
+              )}
+              <span>교시종소리</span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="workroom-camera-setup__sound-switch"
+            />
+          </button>
+          <button
             className="workroom-camera-setup__confirm"
             onClick={() => void onConfirm()}
             type="button"
@@ -153,6 +205,7 @@ export default function WorkroomCameraSetup({
               joining ||
               deviceChanging ||
               effectLoading ||
+              soundChanging ||
               !cameraReady ||
               Boolean(effectError)
             }
