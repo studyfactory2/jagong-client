@@ -150,7 +150,9 @@ function weekDateLabel(date: string): string {
   const parsed = parseDateKey(date);
   if (!parsed) return date;
   const weekday = WEEKDAYS[mondayFirstWeekday(date)];
-  return `${parsed.month}월 ${parsed.day}일(${weekday})`;
+  const month = String(parsed.month).padStart(2, "0");
+  const day = String(parsed.day).padStart(2, "0");
+  return `${month}월 ${day}일(${weekday})`;
 }
 
 function weekLabel(week: MonthlyStudyWeek): string {
