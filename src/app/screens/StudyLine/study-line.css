@@ -89,122 +89,125 @@
 }
 
 .sl-camera-session {
-  min-height: 32px;
-  display: flex;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(78px, 1fr) minmax(122px, 1.35fr) minmax(
+      88px,
+      1fr
+    );
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 2px;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 254, 250, 0.92);
+  box-shadow: 0 12px 28px rgba(20, 63, 86, 0.05);
 }
 
-.sl .workroom-camera-setup {
-  margin-bottom: 0;
+.sl-camera-session.is-study {
+  border-color: var(--mint-line);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(239, 249, 244, 0.9),
+      rgba(255, 254, 250, 0.96) 34%
+    ),
+    var(--card);
 }
 
-.sl-camera-status {
-  flex: 0 0 auto;
+.sl-camera-session.is-break {
+  border-color: rgba(244, 134, 120, 0.28);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 247, 244, 0.92),
+      rgba(255, 254, 250, 0.96) 34%
+    ),
+    var(--card);
+}
+
+.sl-study-state {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 0 9px;
-  border: 1px solid var(--accent-line);
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.sl-camera-status.is-paused {
-  border-color: var(--line);
-  background: var(--card-2);
+  gap: 8px;
+  justify-self: start;
   color: var(--muted);
 }
 
-.sl-study-control {
-  min-width: 0;
-  min-height: 40px;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  background: var(--card);
-  padding: 4px 5px 4px 10px;
+.sl-camera-session.is-study .sl-study-state {
+  color: var(--mint-deep);
 }
 
-.sl-study-control.is-study {
-  border-color: var(--mint-line);
-  background: var(--mint-soft);
+.sl-camera-session.is-break .sl-study-state {
+  color: var(--accent-deep);
 }
 
-.sl-study-control.is-break,
-.sl-study-control.is-schedule {
-  border-color: var(--gold);
-  background: var(--gold-soft);
-}
-
-.sl-study-control.is-system {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
-}
-
-.sl-study-copy {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.sl-study-copy > i {
-  width: 8px;
-  height: 8px;
+.sl-study-state > i {
+  width: 9px;
+  height: 9px;
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--muted);
+  box-shadow: 0 0 0 4px rgba(116, 134, 142, 0.1);
 }
 
-.sl-study-control.is-study .sl-study-copy > i {
+.sl-camera-session.is-study .sl-study-state > i {
   background: var(--mint-deep);
+  box-shadow: 0 0 0 4px rgba(117, 185, 152, 0.13);
 }
 
-.sl-study-control.is-break .sl-study-copy > i,
-.sl-study-control.is-schedule .sl-study-copy > i {
-  background: var(--gold);
+.sl-camera-session.is-break .sl-study-state > i {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(244, 134, 120, 0.12);
 }
 
-.sl-study-control.is-system .sl-study-copy > i {
-  background: var(--accent-deep);
-}
-
-.sl-study-copy > span {
-  min-width: 0;
-  display: grid;
-  gap: 1px;
-}
-
-.sl-study-copy strong,
-.sl-study-copy small {
+.sl-study-state strong {
   overflow: hidden;
+  color: currentColor;
+  font-size: 13px;
+  font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sl-study-copy strong {
+.sl-study-timer {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
   color: var(--ink);
-  font-size: 11px;
-  font-weight: 900;
+  line-height: 1;
 }
 
-.sl-study-copy small {
-  color: var(--ink-2);
+.sl-study-timer small {
+  color: var(--muted);
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.sl-study-timer strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(25px, 6.8vw, 34px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  letter-spacing: 0.025em;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.sl-study-action-slot {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .sl-study-action {
-  min-width: 88px;
+  width: min(100%, 116px);
+  min-width: 92px;
   min-height: 44px;
   flex: 0 0 auto;
   display: inline-flex;
@@ -215,8 +218,8 @@
   border-radius: 9px;
   background: var(--card);
   color: var(--ink);
-  padding: 0 9px;
-  font-size: 10px;
+  padding: 0 10px;
+  font-size: 10.5px;
   font-weight: 900;
 }
 
@@ -274,38 +277,6 @@
   font-weight: 900;
 }
 
-.sl-camera-status svg {
-  font-size: 20px;
-}
-
-.sl-camera-status strong {
-  color: currentColor;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.sl-sound-btn {
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 1px solid rgba(117, 185, 152, 0.34);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--muted);
-  cursor: pointer;
-}
-
-.sl-sound-btn svg {
-  font-size: 18px;
-}
-
-.sl-sound-btn.is-on {
-  background: rgba(239, 249, 244, 0.96);
-  color: #49a76d;
-}
-
 .sl-camera-error {
   display: flex;
   align-items: center;
@@ -318,18 +289,6 @@
   color: var(--accent-deep);
   font-size: 11px;
   line-height: 1.35;
-}
-
-.sl-camera-error button {
-  flex: 0 0 auto;
-  min-height: 28px;
-  border: 1px solid rgba(244, 134, 120, 0.48);
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--accent-deep);
-  font-size: 10px;
-  font-weight: 800;
-  padding: 0 9px;
 }
 
 .sl-self-camera {
@@ -378,80 +337,6 @@
   padding-inline: 18px;
   font-size: 12px;
   line-height: 1.4;
-}
-
-.sl-self-camera__today-study {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 10px;
-  min-height: 29px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--line-soft);
-  border-radius: 9px;
-  background: rgba(255, 254, 250, 0.94);
-  box-shadow: 0 6px 18px rgba(20, 63, 86, 0.12);
-  color: var(--ink);
-  padding: 4px 8px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.sl-self-camera__today-study small {
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.sl-self-camera__today-study strong {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.01em;
-}
-
-.sl-self-camera__meta {
-  position: absolute;
-  z-index: 1;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.sl-self-camera__meta span,
-.sl-self-camera__meta em {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  color: var(--card);
-  padding: 0 10px;
-  font-size: 10.5px;
-  font-style: normal;
-  font-weight: 900;
-}
-
-.sl-self-camera__meta span {
-  min-width: 0;
-  max-width: 70%;
-  overflow: hidden;
-  background: var(--ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sl-self-camera__meta em {
-  flex: 0 0 auto;
-  background: var(--mint-deep);
-}
-
-.sl-self-camera.is-paused .sl-self-camera__meta em {
-  background: var(--muted);
 }
 
 .sl-card {
@@ -609,6 +494,8 @@
 }
 
 .sl-countdown-card {
+  align-content: center;
+  gap: 10px;
   background:
     linear-gradient(
       180deg,
@@ -706,6 +593,42 @@
     font-size: 15px;
   }
 
+  .sl-camera-session {
+    min-height: 72px;
+    grid-template-columns: 72px minmax(0, 1fr) 94px;
+    gap: 6px;
+    padding: 9px 10px;
+  }
+
+  .sl-study-state {
+    gap: 6px;
+  }
+
+  .sl-study-state > i {
+    width: 8px;
+    height: 8px;
+  }
+
+  .sl-study-state strong {
+    font-size: 11.5px;
+  }
+
+  .sl-study-timer strong {
+    font-size: 25px;
+    letter-spacing: 0;
+  }
+
+  .sl-study-action {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 7px;
+    font-size: 9.5px;
+  }
+
+  .sl-study-action svg {
+    display: none;
+  }
+
   .sl-row {
     grid-template-columns: 18px 44px minmax(0, 1fr) auto;
     gap: 5px;
@@ -775,16 +698,32 @@
     padding-inline: 12px;
   }
 
-  .sl-camera-session.is-joined {
-    flex-wrap: wrap;
+  .sl-camera-session {
+    grid-template-columns: 66px minmax(0, 1fr) 84px;
+    gap: 4px;
+    padding-inline: 8px;
   }
 
-  .sl-camera-session.is-joined .sl-camera-status {
-    flex-basis: 100%;
+  .sl-study-state {
+    gap: 5px;
   }
 
-  .sl-camera-session.is-joined .sl-study-control {
-    flex: 1;
+  .sl-study-state strong {
+    font-size: 10.5px;
+  }
+
+  .sl-study-timer small {
+    font-size: 8px;
+  }
+
+  .sl-study-timer strong {
+    font-size: 22px;
+  }
+
+  .sl-study-action {
+    min-height: 42px;
+    padding-inline: 5px;
+    font-size: 8.5px;
   }
 
   .sl-line-grid {

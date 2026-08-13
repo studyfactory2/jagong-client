@@ -1,25 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
-import VolumeUpRoundedIcon from "@mui/icons-material/VolumeUpRounded";
 import PauseCircleOutlineRoundedIcon from "@mui/icons-material/PauseCircleOutlineRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import StudyBreakConfirmDialog from "../../components/ui/StudyBreakConfirmDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useWorkroomSession } from "../../context/WorkroomSessionContext";
+import { getMyStudyStatistics } from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
 import {
   getWorkdayAnnouncement,
   getScheduleSoundEnabled,
   playScheduleTone,
   scheduleBellMessage,
-  setScheduleSoundEnabled,
   type ScheduleBellEvent,
 } from "../../utils/schedule-bell";
 import {
@@ -46,6 +43,69 @@ const formatCountdown = (seconds: number) => {
     .join(":");
 };
 
+const formatTodayStudyTime = (seconds?: number) => {
+  if (seconds === undefined || !Number.isFinite(seconds)) return "--:--:--";
+  return formatCountdown(Math.floor(seconds));
+};
+
+const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const seoulDateKey = (date: Date) => {
+  const parts = seoulDateFormatter.formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
+
+type StudyTimerAnchor = {
+  dateKey: string;
+  generatedAtMs: number;
+  seconds: number;
+};
+
+type StudyTimerSource = {
+  dateKey: string;
+  error: boolean;
+  hidden: boolean;
+  loading: boolean;
+  state: "STUDY" | "BREAK" | null;
+  stateStartedAtMs: number | null;
+};
+
+const STUDY_TIMER_REQUEST_TIMEOUT_MS = 10000;
+
+function projectStudyTimerSeconds(
+  anchor: StudyTimerAnchor,
+  source: StudyTimerSource,
+  atMs: number,
+): number {
+  if (anchor.dateKey !== source.dateKey) return 0;
+  if (source.hidden || source.loading || source.error || !source.state) {
+    return anchor.seconds;
+  }
+
+  const transitionAtMs = source.stateStartedAtMs;
+  const countedBoundaryMs =
+    transitionAtMs === null
+      ? anchor.generatedAtMs
+      : Math.max(anchor.generatedAtMs, transitionAtMs);
+  const additionalSeconds =
+    source.state === "STUDY"
+      ? Math.max(0, Math.floor((atMs - countedBoundaryMs) / 1000))
+      : transitionAtMs !== null && transitionAtMs > anchor.generatedAtMs
+        ? Math.max(
+            0,
+            Math.floor((transitionAtMs - anchor.generatedAtMs) / 1000),
+          )
+        : 0;
+  return anchor.seconds + additionalSeconds;
+}
+
 function slotState(
   slot: TimetableSlot,
   current: TimetableSlot | undefined,
@@ -68,7 +128,6 @@ export default function StudyLine() {
     cameraPausedForBreak,
     error,
     localVideoTrack,
-    roomMembers,
     studyStatus,
     studyStatusLoading,
     studyStatusError,
@@ -85,17 +144,25 @@ export default function StudyLine() {
   const [timetableLoaded, setTimetableLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [bellMsg, setBellMsg] = useState("");
-  const [scheduleSoundEnabled, setScheduleSoundPreference] = useState(
-    getScheduleSoundEnabled,
-  );
+  const [todayStudySeconds, setTodayStudySeconds] = useState<number>();
   const [breakConfirmOpen, setBreakConfirmOpen] = useState(false);
   const bellTimerRef = useRef<number | null>(null);
-  const scheduleSoundEnabledRef = useRef(scheduleSoundEnabled);
-  const myId = session?.user.userId ?? session?.user.id ?? "";
-  const myRoomMember = useMemo(
-    () => roomMembers.find((member) => member.id === myId),
-    [myId, roomMembers],
+  const studyTimerAnchorRef = useRef<StudyTimerAnchor | null>(null);
+  const studyTimerNeedsRefreshRef = useRef(true);
+  const studyTimerMountedRef = useRef(true);
+  const studyTimerRefreshPromiseRef = useRef<Promise<boolean> | null>(null);
+  const studyTimerRefreshQueuedRef = useRef(false);
+  const refreshTodayStudyRef = useRef<() => Promise<boolean>>(
+    async () => false,
   );
+  const studyTimerSourceRef = useRef<StudyTimerSource>({
+    dateKey: "",
+    error: false,
+    hidden: false,
+    loading: true,
+    state: null,
+    stateStartedAtMs: null,
+  });
 
   useEffect(() => {
     getTimetable()
@@ -114,10 +181,6 @@ export default function StudyLine() {
   }, []);
 
   useEffect(() => {
-    scheduleSoundEnabledRef.current = scheduleSoundEnabled;
-  }, [scheduleSoundEnabled]);
-
-  useEffect(() => {
     if (!socket) return;
 
     const onBell = (data: ScheduleBellEvent) => {
@@ -125,7 +188,7 @@ export default function StudyLine() {
       const message = scheduleBellMessage(data);
 
       if (!message) return;
-      if (scheduleSoundEnabledRef.current) playScheduleTone(data.type);
+      if (getScheduleSoundEnabled()) playScheduleTone(data.type);
       if (bellTimerRef.current) window.clearTimeout(bellTimerRef.current);
       setBellMsg(message);
       bellTimerRef.current = window.setTimeout(() => {
@@ -167,12 +230,6 @@ export default function StudyLine() {
     : nextSlot
       ? toSec(nextSlot.startTime) - nowSec
       : null;
-  const countdownLabel = current
-    ? `${current.label} 종료 알림 예정`
-    : nextSlot
-      ? `${nextSlot.label} 시작 알림 예정`
-      : "오늘 일정이 종료되었습니다";
-
   const activeAttendanceSlot =
     current && !current.isBreak && current.slot !== 0
       ? current.slot
@@ -183,7 +240,6 @@ export default function StudyLine() {
     syncAttendanceSlot(activeAttendanceSlot);
   }, [activeAttendanceSlot, joined, syncAttendanceSlot]);
 
-  const cameraStatus = cameraPausedForBreak ? "휴식 중" : "연결됨";
   const currentStudyState = createStudyRecordingView({
     cameraPausedForBreak,
     loading: studyStatusLoading,
@@ -200,11 +256,232 @@ export default function StudyLine() {
     Boolean(studyStatusError) ||
     studyActionPending !== null;
 
+  const compactStudyTone =
+    studyStatusLoading ||
+    Boolean(studyStatusError) ||
+    !studyStatus?.active ||
+    studyStatus.source === "SYSTEM"
+      ? "syncing"
+      : cameraPausedForBreak || studyStatus.state === "BREAK"
+        ? "break"
+        : studyStatus.state === "STUDY"
+          ? "study"
+          : "syncing";
+  const compactStudyLabel =
+    compactStudyTone === "study"
+      ? "공부중"
+      : compactStudyTone === "break"
+        ? "휴식중"
+        : "확인중";
+  const compactStudyDetail = studyStatusLoading
+    ? "최신 공부 상태를 확인하고 있습니다."
+    : studyStatusError
+      ? "공부 상태를 다시 확인해 주세요."
+      : currentStudyState.detail;
+  const todayDateKey = seoulDateKey(now);
+
+  useEffect(() => {
+    const previousSource = studyTimerSourceRef.current;
+    const state =
+      !joined || !studyStatus?.active || studyStatus.source === "SYSTEM"
+        ? null
+        : cameraPausedForBreak
+          ? "BREAK"
+          : studyStatus.state === "STUDY" || studyStatus.state === "BREAK"
+            ? studyStatus.state
+            : null;
+    const stateStartedAt = studyStatus?.stateStartedAt
+      ? new Date(studyStatus.stateStartedAt).getTime()
+      : Number.NaN;
+    const nextStateStartedAtMs = Number.isFinite(stateStartedAt)
+      ? stateStartedAt
+      : null;
+    const nextSource: StudyTimerSource = {
+      dateKey: todayDateKey,
+      error: Boolean(studyStatusError),
+      hidden: document.visibilityState !== "visible",
+      loading: studyStatusLoading,
+      state,
+      stateStartedAtMs: nextStateStartedAtMs,
+    };
+    if (
+      previousSource.dateKey !== todayDateKey ||
+      previousSource.state !== state ||
+      previousSource.stateStartedAtMs !== nextStateStartedAtMs
+    ) {
+      studyTimerNeedsRefreshRef.current = true;
+      if (joined && document.visibilityState === "visible") {
+        window.setTimeout(() => void refreshTodayStudyRef.current(), 0);
+      }
+    }
+    studyTimerSourceRef.current = nextSource;
+  }, [
+    cameraPausedForBreak,
+    joined,
+    studyStatus,
+    studyStatusError,
+    studyStatusLoading,
+    todayDateKey,
+  ]);
+
+  useEffect(() => {
+    studyTimerMountedRef.current = true;
+    return () => {
+      studyTimerMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshTodayStudy = useCallback((): Promise<boolean> => {
+    if (studyTimerRefreshPromiseRef.current) {
+      studyTimerRefreshQueuedRef.current = true;
+      return studyTimerRefreshPromiseRef.current;
+    }
+
+    const refreshPromise = (async () => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        STUDY_TIMER_REQUEST_TIMEOUT_MS,
+      );
+      try {
+        const statistics = await getMyStudyStatistics({
+          signal: controller.signal,
+        });
+        if (!studyTimerMountedRef.current) return false;
+
+        const generatedAtMs = new Date(statistics.generatedAt).getTime();
+        if (!Number.isFinite(generatedAtMs)) return false;
+        const previous = studyTimerAnchorRef.current;
+        if (previous && generatedAtMs < previous.generatedAtMs) return true;
+
+        const startsAt = new Date(statistics.today.startsAt);
+        const nextAnchor = {
+          dateKey: Number.isNaN(startsAt.getTime())
+            ? seoulDateKey(new Date(generatedAtMs))
+            : seoulDateKey(startsAt),
+          generatedAtMs,
+          seconds: Math.max(0, Math.floor(statistics.today.studySeconds)),
+        };
+        studyTimerAnchorRef.current = nextAnchor;
+        const currentSource = studyTimerSourceRef.current;
+        const coversCurrentTransition =
+          currentSource.stateStartedAtMs === null ||
+          generatedAtMs >= currentSource.stateStartedAtMs;
+        if (
+          document.visibilityState === "visible" &&
+          coversCurrentTransition
+        ) {
+          studyTimerNeedsRefreshRef.current = false;
+        }
+        if (coversCurrentTransition) {
+          setTodayStudySeconds(
+            projectStudyTimerSeconds(nextAnchor, currentSource, Date.now()),
+          );
+        }
+        return true;
+      } catch {
+        return false;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    })();
+    studyTimerRefreshPromiseRef.current = refreshPromise;
+    void refreshPromise.finally(() => {
+      if (studyTimerRefreshPromiseRef.current === refreshPromise) {
+        studyTimerRefreshPromiseRef.current = null;
+        if (
+          studyTimerRefreshQueuedRef.current &&
+          studyTimerMountedRef.current
+        ) {
+          studyTimerRefreshQueuedRef.current = false;
+          window.setTimeout(() => void refreshTodayStudyRef.current(), 0);
+        }
+      }
+    });
+    return refreshPromise;
+  }, []);
+
+  useEffect(() => {
+    refreshTodayStudyRef.current = refreshTodayStudy;
+  }, [refreshTodayStudy]);
+
+  useEffect(() => {
+    if (!joined) return undefined;
+
+    const initialRefreshTimer = window.setTimeout(
+      () => void refreshTodayStudy(),
+      0,
+    );
+    const refreshTimer = window.setInterval(
+      () => void refreshTodayStudy(),
+      15000,
+    );
+    const refreshAfterInactivity = () => {
+      if (document.visibilityState !== "visible") {
+        studyTimerNeedsRefreshRef.current = true;
+        studyTimerSourceRef.current.hidden = true;
+        return;
+      }
+      studyTimerSourceRef.current.hidden = false;
+      studyTimerNeedsRefreshRef.current = true;
+      void refreshStudyStatus().finally(() => void refreshTodayStudy());
+    };
+
+    document.addEventListener("visibilitychange", refreshAfterInactivity);
+    window.addEventListener("focus", refreshAfterInactivity);
+    return () => {
+      window.clearTimeout(initialRefreshTimer);
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshAfterInactivity);
+      window.removeEventListener("focus", refreshAfterInactivity);
+    };
+  }, [joined, refreshStudyStatus, refreshTodayStudy]);
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const tickAtMs = Date.now();
+      const source = studyTimerSourceRef.current;
+      const anchor = studyTimerAnchorRef.current;
+      if (!anchor) return;
+
+      if (anchor.dateKey !== source.dateKey) {
+        setTodayStudySeconds(0);
+        return;
+      }
+      if (
+        source.hidden ||
+        source.loading ||
+        source.error ||
+        studyTimerNeedsRefreshRef.current ||
+        !source.state
+      ) {
+        return;
+      }
+
+      const nextSeconds = projectStudyTimerSeconds(anchor, source, tickAtMs);
+      setTodayStudySeconds((previous) =>
+        previous === nextSeconds ? previous : nextSeconds,
+      );
+    };
+
+    const initialTimer = window.setTimeout(updateTimer, 0);
+    const intervalTimer = window.setInterval(updateTimer, 1000);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(intervalTimer);
+    };
+  }, []);
+
+  const todayStudyTime = formatTodayStudyTime(todayStudySeconds);
+
   const handleStudyAction = async () => {
     if (currentStudyState.action === "BREAK") {
       setBreakConfirmOpen(true);
     } else if (currentStudyState.action === "RESUME") {
-      await resumeStudy();
+      if (await resumeStudy()) {
+        studyTimerNeedsRefreshRef.current = true;
+        void refreshTodayStudy();
+      }
     }
   };
 
@@ -214,17 +491,11 @@ export default function StudyLine() {
       return;
     }
 
-    await startStudyBreak();
+    if (await startStudyBreak()) {
+      studyTimerNeedsRefreshRef.current = true;
+      void refreshTodayStudy();
+    }
     setBreakConfirmOpen(false);
-  };
-
-  const toggleScheduleSound = () => {
-    const next = !scheduleSoundEnabled;
-    setScheduleSoundPreference(next);
-    void setScheduleSoundEnabled(next).then((enabled) => {
-      if (next && enabled) playScheduleTone("preview");
-      if (!enabled) setScheduleSoundPreference(false);
-    });
   };
 
   const goWaitingRoom = async () => {
@@ -260,79 +531,55 @@ export default function StudyLine() {
       <main className="sl-body">
         <section
           aria-busy={studyStatusLoading || studyActionPending !== null}
-          className={`sl-camera-session${joined ? " is-joined" : ""}`}
+          className={`sl-camera-session is-${compactStudyTone}`}
         >
           <div
-            className={`sl-camera-status${cameraPausedForBreak ? " is-paused" : ""}`}
+            aria-label={`${compactStudyLabel}. ${compactStudyDetail}`}
+            aria-live="polite"
+            className="sl-study-state"
+            role="status"
           >
-            <VideocamOutlinedIcon />
-            <strong>{cameraStatus}</strong>
+            <i aria-hidden="true" />
+            <strong>{compactStudyLabel}</strong>
           </div>
-          {joined && (
-            <div className={`sl-study-control is-${currentStudyState.tone}`}>
-              <div
-                aria-atomic="true"
-                aria-live="polite"
-                className="sl-study-copy"
-                role="status"
-              >
-                <i aria-hidden="true" />
-                <span>
-                  <strong>{currentStudyState.label}</strong>
-                  <small>{currentStudyState.detail}</small>
-                </span>
-              </div>
-              {currentStudyState.action ? (
-                <button
-                  className={`sl-study-action is-${currentStudyState.action.toLowerCase()}`}
-                  disabled={studyActionDisabled}
-                  onClick={() => void handleStudyAction()}
-                  type="button"
-                >
-                  {currentStudyState.action === "BREAK" ? (
-                    <PauseCircleOutlineRoundedIcon />
-                  ) : (
-                    <PlayArrowRoundedIcon />
-                  )}
-                  {studyActionPending
-                    ? "변경 중…"
-                    : studyStatusLoading
-                      ? "확인 중…"
-                      : currentStudyState.actionLabel}
-                </button>
-              ) : isStudyStatusPending && !studyStatusError ? (
-                <button
-                  className="sl-study-action is-refresh"
-                  disabled={studyStatusLoading || studyActionPending !== null}
-                  onClick={() => void refreshStudyStatus()}
-                  type="button"
-                >
-                  {studyStatusLoading ? "확인 중…" : "다시 확인"}
-                </button>
-              ) : null}
-            </div>
-          )}
-          <button
-            className={`sl-sound-btn${scheduleSoundEnabled ? " is-on" : ""}`}
-            type="button"
-            onClick={toggleScheduleSound}
-            aria-label={
-              scheduleSoundEnabled
-                ? "일정 알림 소리 끄기"
-                : "일정 알림 소리 켜기"
-            }
-            title={
-              scheduleSoundEnabled
-                ? "일정 알림 소리 끄기"
-                : "일정 알림 소리 켜기"
-            }
+          <div
+            aria-label={`오늘 누적 공부시간 ${todayStudyTime}`}
+            className="sl-study-timer"
+            role="timer"
           >
-            {scheduleSoundEnabled ? (
-              <VolumeUpRoundedIcon />
-            ) : (
-              <VolumeOffRoundedIcon />
-            )}
-          </button>
+            <small>오늘 공부시간</small>
+            <strong aria-hidden="true">{todayStudyTime}</strong>
+          </div>
+          <div className="sl-study-action-slot">
+            {joined && currentStudyState.action ? (
+              <button
+                className={`sl-study-action is-${currentStudyState.action.toLowerCase()}`}
+                disabled={studyActionDisabled}
+                onClick={() => void handleStudyAction()}
+                type="button"
+              >
+                {currentStudyState.action === "BREAK" ? (
+                  <PauseCircleOutlineRoundedIcon />
+                ) : (
+                  <PlayArrowRoundedIcon />
+                )}
+                {studyActionPending
+                  ? "변경 중…"
+                  : studyStatusLoading
+                    ? "확인 중…"
+                    : currentStudyState.actionLabel}
+              </button>
+            ) : joined && isStudyStatusPending && !studyStatusError ? (
+              <button
+                className="sl-study-action is-refresh"
+                disabled={studyStatusLoading || studyActionPending !== null}
+                onClick={() => void refreshStudyStatus()}
+                type="button"
+              >
+                {studyStatusLoading ? "확인 중…" : "다시 확인"}
+              </button>
+            ) : null}
+          </div>
         </section>
 
         {joined && studyStatusError && (
@@ -366,8 +613,6 @@ export default function StudyLine() {
           <StudyLineSelfCameraCard
             cameraPausedForBreak={cameraPausedForBreak}
             memberName={session?.user.name ?? "나"}
-            stateLabel={currentStudyState.label}
-            todayStudySeconds={myRoomMember?.todayStudy?.studySeconds}
             track={localVideoTrack}
           />
         )}
@@ -391,7 +636,6 @@ export default function StudyLine() {
                 ? "--:--:--"
                 : formatCountdown(countdownTarget)}
             </strong>
-            <em>{countdownLabel}</em>
           </div>
         </section>
 

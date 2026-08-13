@@ -8,8 +8,12 @@ import type {
 
 /** STUDY STATISTICS API **/
 
-export async function getMyStudyStatistics(): Promise<MyStudyStatistics> {
-  const { data } = await http.get<MyStudyStatistics>("/study-statistics/me");
+export async function getMyStudyStatistics(
+  options: { signal?: AbortSignal } = {},
+): Promise<MyStudyStatistics> {
+  const { data } = await http.get<MyStudyStatistics>("/study-statistics/me", {
+    signal: options.signal,
+  });
   return data;
 }
 
