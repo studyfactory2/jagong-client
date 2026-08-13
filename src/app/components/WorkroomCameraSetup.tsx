@@ -9,16 +9,12 @@ import {
 import "./workroom-camera-setup.css";
 
 type WorkroomCameraSetupProps = {
-  title: string;
-  description: string;
   confirmLabel: string;
   busyLabel?: string;
   onConfirm: () => void | Promise<void>;
 };
 
 export default function WorkroomCameraSetup({
-  title,
-  description,
   confirmLabel,
   busyLabel = "카메라 확인 중...",
   onConfirm,
@@ -109,7 +105,7 @@ export default function WorkroomCameraSetup({
   };
 
   const enteringMessages: Record<CameraEffect, string> = {
-    original: "현재 원본 화면으로 입장합니다.",
+    original: "효과 없이 원본 화면으로 입장합니다.",
     "background-blur": "현재 배경 흐림 화면으로 입장합니다.",
     cat: "고양이 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
     dog: "강아지 효과로 코와 입을 가립니다. 눈과 자세는 그대로 보입니다.",
@@ -126,23 +122,57 @@ export default function WorkroomCameraSetup({
   return (
     <section
       className="workroom-camera-setup"
-      aria-labelledby="camera-setup-title"
+      aria-label="카메라 준비"
       aria-busy={joining || deviceChanging || effectLoading}
     >
-      <div className="workroom-camera-setup__video">
-        <video ref={videoRef} muted playsInline />
-        {!cameraReady && (
-          <span>
-            <DoorFrontOutlinedIcon />
-            카메라 각도와 기기를 먼저 확인해 주세요.
-          </span>
-        )}
+      <div className="workroom-camera-setup__preview-panel">
+        <div className="workroom-camera-setup__video">
+          <video ref={videoRef} muted playsInline />
+          {!cameraReady && (
+            <span>
+              <DoorFrontOutlinedIcon />
+              카메라 각도와 기기를 먼저 확인해 주세요.
+            </span>
+          )}
+        </div>
+
+        <div className="workroom-camera-setup__actions">
+          <button
+            className="workroom-camera-setup__preview"
+            type="button"
+            onClick={() => void previewCamera(selectedDeviceId || undefined)}
+            disabled={joining || deviceChanging || effectLoading || cameraReady}
+          >
+            {cameraReady ? "미리보기 준비됨" : "카메라 미리보기"}
+          </button>
+          <button
+            className="workroom-camera-setup__confirm"
+            onClick={() => void onConfirm()}
+            type="button"
+            disabled={
+              joining ||
+              deviceChanging ||
+              effectLoading ||
+              !cameraReady ||
+              Boolean(effectError)
+            }
+          >
+            {deviceChanging
+              ? "카메라 변경 중..."
+              : joining
+                ? busyLabel
+                : cameraReady
+                  ? confirmLabel
+                  : "미리보기 후 입장"}
+          </button>
+        </div>
+
+        <p className="workroom-camera-setup__privacy">
+          미리보기 화면은 입장 전까지 다른 사람에게 송출되지 않습니다.
+        </p>
       </div>
 
       <div className="workroom-camera-setup__info">
-        <strong id="camera-setup-title">{title}</strong>
-        <em>{description}</em>
-
         <label>
           <span>카메라 선택</span>
           <select
@@ -181,7 +211,7 @@ export default function WorkroomCameraSetup({
               >
                 {renderEffect(
                   "original",
-                  "원본",
+                  "효과 없음",
                   "가공하지 않은 화면",
                   <FilterNoneRoundedIcon />,
                   "is-original",
@@ -198,32 +228,44 @@ export default function WorkroomCameraSetup({
 
             <div className="workroom-camera-setup__effect-group">
               <span className="workroom-camera-setup__effect-group-label">
-                캐릭터 · 눈은 항상 보임
+                작업아이템
               </span>
               <div
-                className="workroom-camera-setup__effect-options is-characters"
+                className="workroom-camera-setup__effect-options is-work-items"
                 role="group"
-                aria-label="캐릭터 화면"
+                aria-label="작업아이템"
               >
                 {renderEffect(
                   "cat",
                   "고양이",
                   "리얼 하관 커버와 뷰티 톤",
-                  <img src="/effects/cat/muzzle.webp" alt="" aria-hidden="true" />,
+                  <img
+                    src="/effects/cat/muzzle.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-character is-cat",
                 )}
                 {renderEffect(
                   "dog",
                   "강아지",
                   "리얼 하관 커버와 뷰티 톤",
-                  <img src="/effects/dog/muzzle.webp" alt="" aria-hidden="true" />,
+                  <img
+                    src="/effects/dog/muzzle.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-character is-dog",
                 )}
                 {renderEffect(
                   "bear",
                   "곰",
                   "리얼 하관 커버와 뷰티 톤",
-                  <img src="/effects/bear/muzzle.webp" alt="" aria-hidden="true" />,
+                  <img
+                    src="/effects/bear/muzzle.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-character is-bear",
                 )}
                 {renderEffect(
@@ -241,21 +283,13 @@ export default function WorkroomCameraSetup({
                   "fox",
                   "여우",
                   "리얼 하관 커버와 뷰티 톤",
-                  <img src="/effects/fox/muzzle.webp" alt="" aria-hidden="true" />,
+                  <img
+                    src="/effects/fox/muzzle.webp"
+                    alt=""
+                    aria-hidden="true"
+                  />,
                   "is-character is-fox",
                 )}
-              </div>
-            </div>
-
-            <div className="workroom-camera-setup__effect-group">
-              <span className="workroom-camera-setup__effect-group-label">
-                소품 · 눈은 항상 보임
-              </span>
-              <div
-                className="workroom-camera-setup__effect-options is-accessories"
-                role="group"
-                aria-label="소품 화면"
-              >
                 {renderEffect(
                   "medical-mask",
                   "마스크",
@@ -314,39 +348,6 @@ export default function WorkroomCameraSetup({
             {error}
           </p>
         )}
-
-        <div className="workroom-camera-setup__actions">
-          <button
-            className="workroom-camera-setup__preview"
-            type="button"
-            onClick={() => void previewCamera(selectedDeviceId || undefined)}
-            disabled={
-              joining || deviceChanging || effectLoading || cameraReady
-            }
-          >
-            {cameraReady ? "미리보기 준비됨" : "카메라 미리보기"}
-          </button>
-          <button
-            className="workroom-camera-setup__confirm"
-            onClick={() => void onConfirm()}
-            type="button"
-            disabled={
-              joining ||
-              deviceChanging ||
-              effectLoading ||
-              !cameraReady ||
-              Boolean(effectError)
-            }
-          >
-            {deviceChanging
-              ? "카메라 변경 중..."
-              : joining
-              ? busyLabel
-              : cameraReady
-                ? confirmLabel
-                : "미리보기 후 입장"}
-          </button>
-        </div>
       </div>
     </section>
   );

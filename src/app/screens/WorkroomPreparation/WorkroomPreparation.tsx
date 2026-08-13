@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import WorkroomCameraSetup from "../../components/WorkroomCameraSetup";
 import AppLoading from "../../components/ui/AppLoading";
@@ -26,20 +27,31 @@ const WORKROOM_DESTINATIONS: Record<
   {
     path: string;
     label: string;
-    description: string;
   }
 > = {
   line: {
     path: "/study-line",
     label: "개인 작업실",
-    description: "개인 작업실에 입장하기 전 카메라 화면을 확인해 주세요.",
   },
   group: {
     path: "/study-room",
     label: "단체 작업장",
-    description: "단체 작업장에 입장하기 전 카메라 화면을 확인해 주세요.",
   },
 };
+
+function toMinutes(time: string): number {
+  const [hour, minute] = time.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function formatRemainingTime(minutes: number): string {
+  const safeMinutes = Math.max(0, minutes);
+  const hours = Math.floor(safeMinutes / 60);
+  const remainder = safeMinutes % 60;
+  if (hours <= 0) return `${remainder}분`;
+  if (remainder === 0) return `${hours}시간`;
+  return `${hours}시간 ${remainder}분`;
+}
 
 function parseMode(value: string | null): WorkroomMode | null {
   return value === "line" || value === "group" ? value : null;
@@ -204,11 +216,33 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
     () => resolveStudyRecordingWindow(timetable, timetableLoaded, now),
     [now, timetable, timetableLoaded],
   );
+  const currentSlot = recordingWindow.current;
+  const nowMinutes = Math.floor(recordingWindow.seoulSeconds / 60);
+  const nextSlot = useMemo(
+    () => timetable.find((slot) => toMinutes(slot.startTime) > nowMinutes),
+    [nowMinutes, timetable],
+  );
+  const remainingMinutes = currentSlot
+    ? toMinutes(currentSlot.endTime) - nowMinutes
+    : nextSlot
+      ? toMinutes(nextSlot.startTime) - nowMinutes
+      : 0;
+  const remainingLabel = currentSlot
+    ? "종료까지"
+    : nextSlot
+      ? "시작까지"
+      : "오늘 종료";
+  const currentWindow = currentSlot
+    ? `${currentSlot.startTime} - ${currentSlot.endTime}`
+    : nextSlot
+      ? `${nextSlot.startTime} 시작`
+      : "오늘 일정 완료";
+  const nextWindow = nextSlot
+    ? `${nextSlot.startTime} - ${nextSlot.endTime}`
+    : "오늘 일정 완료";
   const activeAttendanceSlot =
-    recordingWindow.current &&
-    !recordingWindow.current.isBreak &&
-    recordingWindow.current.slot > 0
-      ? recordingWindow.current.slot
+    currentSlot && !currentSlot.isBreak && currentSlot.slot > 0
+      ? currentSlot.slot
       : undefined;
 
   const confirmEntry = async () => {
@@ -255,6 +289,38 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
       </header>
 
       <main className="workroom-preparation__body">
+        <section
+          aria-label="작업장 일정"
+          className="workroom-preparation__schedule"
+        >
+          <div className="workroom-preparation__schedule-card">
+            <span>
+              {currentSlot?.isBreak
+                ? "현재 휴식"
+                : currentSlot
+                  ? "현재 교시"
+                  : "다음 교시"}
+            </span>
+            <strong>{currentSlot?.label ?? nextSlot?.label ?? "종료"}</strong>
+            <p>
+              <NotificationsOutlinedIcon /> {currentWindow}
+            </p>
+          </div>
+
+          <div className="workroom-preparation__schedule-card is-time">
+            <span>{remainingLabel}</span>
+            <strong>{formatRemainingTime(remainingMinutes)}</strong>
+          </div>
+
+          <div className="workroom-preparation__schedule-card is-next">
+            <span>다음 교시</span>
+            <strong>{nextSlot?.label ?? "종료"}</strong>
+            <p>
+              <NotificationsOutlinedIcon /> {nextWindow}
+            </p>
+          </div>
+        </section>
+
         {accessLoading && !access ? (
           <section
             aria-busy="true"
@@ -301,22 +367,11 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
             </button>
           </section>
         ) : (
-          <>
-            <div className="workroom-preparation__ready" role="status">
-              <span aria-hidden="true" />
-              <strong>{accessMessage(access)}</strong>
-              <em>
-                미리보기 화면은 입장 전까지 다른 사람에게 송출되지 않습니다.
-              </em>
-            </div>
-            <WorkroomCameraSetup
-              busyLabel="작업장 연결 중..."
-              confirmLabel="오늘도 화이팅! 작업장 입장"
-              description={destination.description}
-              onConfirm={confirmEntry}
-              title="카메라 미리보기"
-            />
-          </>
+          <WorkroomCameraSetup
+            busyLabel="작업장 연결 중..."
+            confirmLabel="오늘도 화이팅! 작업장 입장"
+            onConfirm={confirmEntry}
+          />
         )}
       </main>
     </div>

@@ -71,35 +71,72 @@
   padding: 4px 24px 36px;
 }
 
-.workroom-preparation__ready {
+.workroom-preparation__schedule {
   margin-bottom: 10px;
-  border: 1px solid rgba(96, 166, 132, 0.2);
-  border-radius: 13px;
-  background: rgba(237, 248, 243, 0.82);
-  padding: 10px 13px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.workroom-preparation__ready > span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mint-deep);
-  box-shadow: 0 0 0 4px rgba(96, 166, 132, 0.12);
+.workroom-preparation__schedule-card {
+  min-width: 0;
+  min-height: 74px;
+  border: 1px solid rgba(20, 63, 86, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 8px 22px rgba(20, 63, 86, 0.04);
 }
 
-.workroom-preparation__ready strong {
+.workroom-preparation__schedule-card > span {
+  color: var(--ink);
   font-size: 12px;
+  font-weight: 900;
 }
 
-.workroom-preparation__ready em {
+.workroom-preparation__schedule-card > strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workroom-preparation__schedule-card > p {
+  overflow: hidden;
+  margin: 0;
   color: var(--muted);
-  font-size: 10px;
-  font-style: normal;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workroom-preparation__schedule-card > p svg {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.workroom-preparation__schedule-card.is-time {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.workroom-preparation__schedule-card.is-time > strong {
+  color: var(--accent);
+}
+
+.workroom-preparation__schedule-card.is-next {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
 }
 
 .workroom-preparation .workroom-camera-setup {
@@ -212,15 +249,32 @@
     padding: 2px 10px 22px;
   }
 
-  .workroom-preparation__ready {
-    grid-template-columns: auto minmax(0, 1fr);
+  .workroom-preparation__schedule {
     margin-bottom: 8px;
-    padding: 9px 11px;
+    gap: 6px;
   }
 
-  .workroom-preparation__ready em {
-    grid-column: 2;
-    text-align: left;
+  .workroom-preparation__schedule-card {
+    min-height: 62px;
+    border-radius: 11px;
+    padding: 8px;
+    gap: 3px;
+  }
+
+  .workroom-preparation__schedule-card > span {
+    font-size: 10px;
+  }
+
+  .workroom-preparation__schedule-card > strong {
+    font-size: 16px;
+  }
+
+  .workroom-preparation__schedule-card > p {
+    font-size: 10px;
+  }
+
+  .workroom-preparation__schedule-card > p svg {
+    font-size: 14px;
   }
 
   .workroom-preparation .workroom-camera-setup {
@@ -239,6 +293,79 @@
   .workroom-preparation__access > button {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .workroom-preparation__schedule {
+    gap: 5px;
+  }
+
+  .workroom-preparation__schedule-card {
+    min-height: 54px;
+    padding: 7px;
+  }
+
+  .workroom-preparation__schedule-card > strong {
+    font-size: 14px;
+  }
+
+  .workroom-preparation__schedule-card > p {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .workroom-preparation {
+    width: min(100%, 1140px);
+  }
+
+  .workroom-preparation__header {
+    min-height: 96px;
+    padding: 20px 28px;
+  }
+
+  .workroom-preparation__header h1 {
+    font-size: 28px;
+  }
+
+  .workroom-preparation__header p {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .workroom-preparation__body {
+    padding: 6px 28px 42px;
+  }
+
+  .workroom-preparation__schedule {
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+
+  .workroom-preparation__schedule-card {
+    min-height: 76px;
+    border-radius: 15px;
+    padding: 11px 14px;
+    gap: 5px;
+  }
+
+  .workroom-preparation__schedule-card > span {
+    font-size: 12px;
+  }
+
+  .workroom-preparation__schedule-card > strong {
+    font-size: 21px;
+  }
+
+  .workroom-preparation__schedule-card > p {
+    font-size: 12px;
+  }
+
+  .workroom-preparation .workroom-camera-setup {
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 18px 46px rgba(20, 63, 86, 0.08);
   }
 }
 

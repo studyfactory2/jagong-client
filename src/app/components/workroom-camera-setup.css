@@ -1,24 +1,24 @@
 .workroom-camera-setup {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 12px;
   border: 1px solid var(--mint-line);
   border-radius: 14px;
-  background:
-    linear-gradient(
-      135deg,
-      rgba(237, 248, 243, 0.95),
-      rgba(255, 254, 250, 0.92)
-    );
+  background: linear-gradient(
+    135deg,
+    rgba(237, 248, 243, 0.95),
+    rgba(255, 254, 250, 0.92)
+  );
   padding: 12px;
 }
 
 .workroom-camera-setup__video {
   position: relative;
+  width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  align-self: center;
+  align-self: stretch;
   border-radius: 12px;
   background:
     radial-gradient(
@@ -28,6 +28,13 @@
     ),
     linear-gradient(135deg, #173f50, #256d5b);
   box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.12);
+}
+
+.workroom-camera-setup__preview-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
 }
 
 .workroom-camera-setup__video video {
@@ -64,16 +71,13 @@
   gap: 9px;
 }
 
-.workroom-camera-setup__info > strong {
-  font-size: 16px;
-  font-weight: 900;
-}
-
-.workroom-camera-setup__info > em {
+.workroom-camera-setup__privacy {
+  margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1.4;
+  text-align: center;
 }
 
 .workroom-camera-setup__info > label {
@@ -141,11 +145,11 @@
 
 .workroom-camera-setup__effect-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
-.workroom-camera-setup__effect-options.is-accessories {
+.workroom-camera-setup__effect-options.is-work-items {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -202,23 +206,18 @@
 }
 
 .workroom-camera-setup__effect-icon.is-original {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(231, 240, 242, 0.92)
-    );
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(231, 240, 242, 0.92)
+  );
   box-shadow: inset 0 0 0 1px rgba(20, 63, 86, 0.09);
 }
 
 .workroom-camera-setup__effect-icon.is-blur {
   background:
     radial-gradient(circle at 30% 25%, #fff 0 8%, transparent 24%),
-    linear-gradient(
-      135deg,
-      rgba(190, 229, 215, 0.96),
-      rgba(111, 171, 157, 0.8)
-    );
+    linear-gradient(135deg, rgba(190, 229, 215, 0.96), rgba(111, 171, 157, 0.8));
 }
 
 .workroom-camera-setup__effect-icon.is-character {
@@ -323,15 +322,19 @@
 
 .workroom-camera-setup__actions {
   display: grid;
-  grid-template-columns: minmax(120px, 0.72fr) minmax(150px, 1fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 8px;
 }
 
 .workroom-camera-setup__preview,
 .workroom-camera-setup__confirm {
   width: 100%;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 46px;
   border-radius: 12px;
+  padding: 7px 10px;
+  line-height: 1.25;
+  white-space: normal;
   font-weight: 900;
 }
 
@@ -353,14 +356,125 @@
   opacity: 0.62;
 }
 
-@media (min-width: 700px) and (max-width: 1199px) {
+@media (min-width: 900px) {
   .workroom-camera-setup {
-    grid-template-columns: minmax(220px, 0.92fr) minmax(280px, 1fr);
-    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) minmax(380px, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .workroom-camera-setup__preview-panel,
+  .workroom-camera-setup__info {
+    min-width: 0;
+  }
+
+  .workroom-camera-setup__preview-panel {
+    gap: 10px;
+  }
+
+  .workroom-camera-setup__info {
+    gap: 11px;
   }
 
   .workroom-camera-setup__video {
-    aspect-ratio: 16 / 8.4;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+  }
+
+  .workroom-camera-setup__video > span {
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .workroom-camera-setup__video > span svg {
+    font-size: 32px;
+  }
+
+  .workroom-camera-setup__privacy {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+
+  .workroom-camera-setup__info > label {
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .workroom-camera-setup__info select {
+    min-height: 40px;
+    border-radius: 10px;
+    padding-inline: 12px;
+  }
+
+  .workroom-camera-setup__effects {
+    gap: 8px;
+  }
+
+  .workroom-camera-setup__effects-head > span {
+    font-size: 13px;
+  }
+
+  .workroom-camera-setup__effects-head small {
+    font-size: 10px;
+  }
+
+  .workroom-camera-setup__effect-groups {
+    gap: 12px;
+  }
+
+  .workroom-camera-setup__effect-group {
+    gap: 6px;
+  }
+
+  .workroom-camera-setup__effect-group-label {
+    font-size: 10px;
+  }
+
+  .workroom-camera-setup__effect-options {
+    gap: 8px;
+  }
+
+  .workroom-camera-setup__effect-option {
+    min-height: 58px;
+    border-radius: 12px;
+    grid-template-columns: 35px minmax(0, 1fr);
+    gap: 9px;
+    padding: 8px 10px;
+  }
+
+  .workroom-camera-setup__effect-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+  }
+
+  .workroom-camera-setup__effect-icon > img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .workroom-camera-setup__effect-copy strong {
+    font-size: 12px;
+  }
+
+  .workroom-camera-setup__effect-copy small {
+    font-size: 10px;
+  }
+
+  .workroom-camera-setup__effect-status,
+  .workroom-camera-setup__error {
+    font-size: 10px;
+  }
+
+  .workroom-camera-setup__actions {
+    gap: 8px;
+  }
+
+  .workroom-camera-setup__preview,
+  .workroom-camera-setup__confirm {
+    min-height: 46px;
+    border-radius: 12px;
+    font-size: 12px;
   }
 }
 
@@ -391,11 +505,7 @@
     gap: 7px;
   }
 
-  .workroom-camera-setup__info > strong {
-    font-size: 15px;
-  }
-
-  .workroom-camera-setup__info > em {
+  .workroom-camera-setup__privacy {
     font-size: 11px;
     line-height: 1.35;
   }
@@ -413,8 +523,7 @@
     gap: 6px;
   }
 
-  .workroom-camera-setup__effect-options.is-characters,
-  .workroom-camera-setup__effect-options.is-accessories {
+  .workroom-camera-setup__effect-options.is-work-items {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -426,9 +535,7 @@
     padding: 6px 7px;
   }
 
-  .workroom-camera-setup__effect-options.is-characters
-    .workroom-camera-setup__effect-option,
-  .workroom-camera-setup__effect-options.is-accessories
+  .workroom-camera-setup__effect-options.is-work-items
     .workroom-camera-setup__effect-option {
     position: relative;
     min-height: 56px;
@@ -439,9 +546,7 @@
     text-align: center;
   }
 
-  .workroom-camera-setup__effect-options.is-characters
-    .workroom-camera-setup__effect-option.is-selected::after,
-  .workroom-camera-setup__effect-options.is-accessories
+  .workroom-camera-setup__effect-options.is-work-items
     .workroom-camera-setup__effect-option.is-selected::after {
     content: "✓";
     position: absolute;
@@ -477,25 +582,21 @@
     font-size: 9.5px;
   }
 
-  .workroom-camera-setup__effect-options.is-characters
-    .workroom-camera-setup__effect-copy,
-  .workroom-camera-setup__effect-options.is-accessories
+  .workroom-camera-setup__effect-options.is-work-items
     .workroom-camera-setup__effect-copy {
     display: block;
     width: 100%;
   }
 
-  .workroom-camera-setup__effect-options.is-characters
-    .workroom-camera-setup__effect-copy small,
-  .workroom-camera-setup__effect-options.is-accessories
-    .workroom-camera-setup__effect-copy small {
+  .workroom-camera-setup__effect-options.is-work-items
+    .workroom-camera-setup__effect-copy
+    small {
     display: none;
   }
 
-  .workroom-camera-setup__effect-options.is-characters
-    .workroom-camera-setup__effect-copy strong,
-  .workroom-camera-setup__effect-options.is-accessories
-    .workroom-camera-setup__effect-copy strong {
+  .workroom-camera-setup__effect-options.is-work-items
+    .workroom-camera-setup__effect-copy
+    strong {
     display: block;
     font-size: 10px;
   }
@@ -515,14 +616,8 @@
 
   .workroom-camera-setup__preview,
   .workroom-camera-setup__confirm {
-    min-height: 38px;
+    min-height: 42px;
     border-radius: 10px;
     font-size: 12px;
-  }
-}
-
-@media (max-width: 520px) {
-  .workroom-camera-setup__actions {
-    grid-template-columns: 1fr;
   }
 }
