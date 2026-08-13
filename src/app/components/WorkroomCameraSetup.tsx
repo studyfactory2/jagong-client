@@ -13,6 +13,7 @@ import {
   playScheduleTone,
   setScheduleSoundEnabled,
 } from "../utils/schedule-bell";
+import { observeAdaptiveCameraFit } from "../utils/adaptive-camera-fit";
 import "./workroom-camera-setup.css";
 
 type WorkroomCameraSetupProps = {
@@ -53,9 +54,11 @@ export default function WorkroomCameraSetup({
     if (!element || !localVideoTrack) return;
 
     localVideoTrack.attach(element);
+    const stopObservingCameraFit = observeAdaptiveCameraFit(element);
     void element.play().catch(() => undefined);
 
     return () => {
+      stopObservingCameraFit();
       localVideoTrack.detach(element);
     };
   }, [localVideoTrack]);

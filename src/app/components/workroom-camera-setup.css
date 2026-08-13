@@ -47,6 +47,10 @@
   transform: scaleX(-1);
 }
 
+.workroom-camera-setup__video video[data-camera-fit="contain"] {
+  object-fit: contain;
+}
+
 .workroom-camera-setup__video > span {
   position: absolute;
   inset: 0;

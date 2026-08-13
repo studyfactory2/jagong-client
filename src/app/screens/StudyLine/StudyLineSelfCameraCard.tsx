@@ -1,6 +1,7 @@
 import VideocamOffRoundedIcon from "@mui/icons-material/VideocamOffRounded";
 import { useEffect, useRef } from "react";
 import type { LocalVideoTrack } from "livekit-client";
+import { observeAdaptiveCameraFit } from "../../utils/adaptive-camera-fit";
 
 type StudyLineSelfCameraCardProps = {
   cameraPausedForBreak: boolean;
@@ -23,9 +24,11 @@ export default function StudyLineSelfCameraCard({
     if (!element || !track || !cameraVisible) return undefined;
 
     track.attach(element);
+    const stopObservingCameraFit = observeAdaptiveCameraFit(element);
     void element.play().catch(() => undefined);
 
     return () => {
+      stopObservingCameraFit();
       track.detach(element);
     };
   }, [cameraVisible, track]);

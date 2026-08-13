@@ -34,6 +34,7 @@ import {
   resolveStudyRecordingWindow,
   WORKROOM_FALLBACK_TIMETABLE,
 } from "../../utils/study-recording-policy";
+import { observeAdaptiveCameraFit } from "../../utils/adaptive-camera-fit";
 import "./study-room.css";
 
 const getCameraPageSize = () => {
@@ -73,9 +74,11 @@ function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
     if (!element) return undefined;
 
     track.attach(element);
+    const stopObservingCameraFit = observeAdaptiveCameraFit(element);
     void element.play().catch(() => undefined);
 
     return () => {
+      stopObservingCameraFit();
       track.detach(element);
     };
   }, [track]);
@@ -122,6 +125,7 @@ export default function StudyRoom() {
   const [timetableLoaded, setTimetableLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const selfTileVideoRef = useRef<HTMLVideoElement | null>(null);
+  const selfTileFitCleanupRef = useRef<(() => void) | null>(null);
   const myId = session?.user.userId ?? session?.user.id ?? "";
   const myName = session?.user.name ?? "나";
 
@@ -192,6 +196,8 @@ export default function StudyRoom() {
       if (previousElement && localVideoTrack) {
         localVideoTrack.detach(previousElement);
       }
+      selfTileFitCleanupRef.current?.();
+      selfTileFitCleanupRef.current = null;
 
       selfTileVideoRef.current = element;
       if (!element || !joined || cameraPausedForBreak || !localVideoTrack) {
@@ -199,6 +205,7 @@ export default function StudyRoom() {
       }
 
       localVideoTrack.attach(element);
+      selfTileFitCleanupRef.current = observeAdaptiveCameraFit(element);
       void element.play().catch(() => undefined);
     },
     [cameraPausedForBreak, joined, localVideoTrack],

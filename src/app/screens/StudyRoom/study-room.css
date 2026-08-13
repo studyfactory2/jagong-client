@@ -444,6 +444,12 @@
   object-fit: cover;
 }
 
+.sr-cam-self-video[data-camera-fit="contain"],
+.sr-cam-remote-video[data-camera-fit="contain"] {
+  object-fit: contain;
+  background: rgba(20, 63, 86, 0.72);
+}
+
 .sr-cam-self-video {
   transform: scaleX(-1);
 }

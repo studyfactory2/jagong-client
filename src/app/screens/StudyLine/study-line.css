@@ -317,6 +317,10 @@
   transform: scaleX(-1);
 }
 
+.sl-self-camera__frame video[data-camera-fit="contain"] {
+  object-fit: contain;
+}
+
 .sl-self-camera__placeholder {
   position: absolute;
   inset: 0;
