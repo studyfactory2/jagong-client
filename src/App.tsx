@@ -1,5 +1,12 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import ProtectedRoute from "./app/components/ProtectedRoute";
 import MembershipRoute from "./app/components/MembershipRoute";
 import Login from "./app/screens/Login";
@@ -18,6 +25,7 @@ import {
 } from "./app/context/WorkroomSessionContext";
 import { memberHomePath } from "./app/utils/access";
 import AppLoading from "./app/components/ui/AppLoading";
+import type { WorkroomMode } from "./lib/types";
 
 const WaitingRoom = lazy(() => import("./app/screens/WaitingRoom"));
 const WorkroomPreparation = lazy(
@@ -62,12 +70,46 @@ function JoinedWorkroomRoute({
   mode,
   children,
 }: {
-  mode: "line" | "group";
+  mode: WorkroomMode;
   children: ReactNode;
 }) {
-  const { joined, joining } = useWorkroomSession();
+  const navigate = useNavigate();
+  const {
+    joined,
+    joining,
+    currentWorkroomMode,
+    switchWorkroomMode,
+  } = useWorkroomSession();
 
-  if (joined) return <>{children}</>;
+  useEffect(() => {
+    if (!joined || currentWorkroomMode === mode) return undefined;
+
+    let active = true;
+    const reconcileTimer = window.setTimeout(() => {
+      void switchWorkroomMode(mode).then((switched) => {
+        if (!active || switched) return;
+
+        if (currentWorkroomMode) {
+          navigate(
+            currentWorkroomMode === "line" ? "/study-line" : "/study-room",
+            { replace: true },
+          );
+          return;
+        }
+        navigate(`/workroom/prepare?mode=${mode}`, { replace: true });
+      });
+    }, 0);
+
+    return () => {
+      active = false;
+      window.clearTimeout(reconcileTimer);
+    };
+  }, [currentWorkroomMode, joined, mode, navigate, switchWorkroomMode]);
+
+  if (joined && currentWorkroomMode === mode) return <>{children}</>;
+  if (joined) {
+    return <AppLoading message="작업장 화면을 전환하고 있습니다." />;
+  }
   if (joining) {
     return <AppLoading message="작업장 연결을 확인하고 있습니다." />;
   }

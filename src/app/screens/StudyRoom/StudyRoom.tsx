@@ -14,7 +14,7 @@ import {
   useTodayStudyTimer,
 } from "../../hooks/useTodayStudyTimer";
 import { getTimetable } from "../../services/timetable.service";
-import type { TimetableSlot } from "../../../lib/types";
+import type { TimetableSlot, WorkroomMode } from "../../../lib/types";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import {
@@ -66,7 +66,13 @@ function timeLeftText(minutes: number): string {
   return `${hours}시간 ${mins}분`;
 }
 
-function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
+function StudyRoomRemoteVideo({
+  track,
+  workroomMode,
+}: {
+  track: RemoteVideoTrack;
+  workroomMode: WorkroomMode;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -89,7 +95,9 @@ function StudyRoomRemoteVideo({ track }: { track: RemoteVideoTrack }) {
       autoPlay
       muted
       playsInline
-      className="sr-cam-remote-video"
+      className={`sr-cam-remote-video${
+        workroomMode === "line" ? " is-line-blurred" : ""
+      }`}
     />
   );
 }
@@ -101,6 +109,8 @@ export default function StudyRoom() {
   const {
     joined,
     joining,
+    workroomModeSwitching,
+    workroomModeError,
     cameraPausedForBreak,
     error,
     localVideoTrack,
@@ -116,6 +126,7 @@ export default function StudyRoom() {
     startStudyBreak,
     resumeStudy,
     setVisibleRemoteUserIds,
+    switchWorkroomMode,
   } = useWorkroomSession();
   const [cameraPage, setCameraPage] = useState(0);
   const [cameraPageSize, setCameraPageSize] = useState(getCameraPageSize);
@@ -385,6 +396,11 @@ export default function StudyRoom() {
     navigate("/waiting-room");
   }
 
+  async function goPrivateWorkroom() {
+    if (joining || workroomModeSwitching) return;
+    if (await switchWorkroomMode("line")) navigate("/study-line");
+  }
+
   return (
     <div className="sr">
       <header className="sr-head">
@@ -415,13 +431,17 @@ export default function StudyRoom() {
           </button>
           <button
             className="sr-pill"
-            disabled={joining}
-            onClick={() => navigate("/study-line")}
+            disabled={joining || workroomModeSwitching}
+            onClick={() => void goPrivateWorkroom()}
             type="button"
           >
             <DoorFrontOutlinedIcon />
-            <span className="sr-nav-label-full">개인작업실</span>
-            <span className="sr-nav-label-short">개인실</span>
+            <span className="sr-nav-label-full">
+              {workroomModeSwitching ? "전환 중…" : "개인작업실"}
+            </span>
+            <span className="sr-nav-label-short">
+              {workroomModeSwitching ? "전환 중" : "개인실"}
+            </span>
           </button>
         </div>
       </header>
@@ -517,6 +537,18 @@ export default function StudyRoom() {
               const isWorking =
                 !isResting &&
                 (member.isWorking || (isMe && joined) || hasActiveVideo);
+              const isPrivateRemoteVideo = Boolean(
+                !isMe &&
+                  hasActiveVideo &&
+                  remoteVideo?.workroomMode === "line",
+              );
+              const cameraStateLabel = isResting
+                ? "휴식"
+                : !isWorking
+                  ? "대기"
+                  : isPrivateRemoteVideo
+                    ? "개인"
+                    : "입장";
               const memberTodayStudyTime = formatTodayStudyTime(
                 member.todayStudy?.studySeconds,
               );
@@ -552,7 +584,10 @@ export default function StudyRoom() {
                     />
                   )}
                   {remoteVideo && !remoteVideo.muted && (
-                    <StudyRoomRemoteVideo track={remoteVideo.track} />
+                    <StudyRoomRemoteVideo
+                      track={remoteVideo.track}
+                      workroomMode={remoteVideo.workroomMode}
+                    />
                   )}
                   <span
                     aria-label={`오늘 공부시간 ${memberTodayStudyTime}`}
@@ -566,9 +601,7 @@ export default function StudyRoom() {
                     {isMe ? "나" : member.name}
                   </span>
                   <span className={`sr-cam-state${isWorking ? "" : " is-off"}`}>
-                    <small>
-                      {isResting ? "휴식" : isWorking ? "입장" : "대기"}
-                    </small>
+                    <small>{cameraStateLabel}</small>
                   </span>
                 </div>
               );
@@ -628,7 +661,9 @@ export default function StudyRoom() {
             </nav>
           )}
 
-          {joined && error && <p className="sr-error">{error}</p>}
+          {joined && (workroomModeError || error) && (
+            <p className="sr-error">{workroomModeError || error}</p>
+          )}
         </section>
 
         <section className="sr-bottom-status">

@@ -454,6 +454,11 @@
   transform: scaleX(-1);
 }
 
+.sr-cam-remote-video.is-line-blurred {
+  filter: blur(5px);
+  transform: scale(1.04);
+}
+
 .sr-cam-today-study {
   position: absolute;
   z-index: 2;

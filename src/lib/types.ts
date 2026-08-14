@@ -577,6 +577,8 @@ export interface CamTokenDto {
   canPublish: boolean;
 }
 
+export type WorkroomMode = "line" | "group";
+
 export interface CamRoomMember {
   id: string;
   name: string;

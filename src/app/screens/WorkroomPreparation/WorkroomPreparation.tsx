@@ -24,10 +24,9 @@ import type {
   StudyRoomEntryAccess,
   StudyRoomEntryAccessChangedPayload,
   TimetableSlot,
+  WorkroomMode,
 } from "../../../lib/types";
 import "./workroom-preparation.css";
-
-type WorkroomMode = "line" | "group";
 
 const WORKROOM_DESTINATIONS: Record<
   WorkroomMode,
@@ -267,7 +266,7 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
 
   const confirmEntry = async () => {
     if (joining || cancelling || access?.canEnter !== true) return;
-    const entered = await startSession(activeAttendanceSlot);
+    const entered = await startSession(mode, activeAttendanceSlot);
     if (entered) {
       navigate(destination.path, { replace: true });
       return;

@@ -1,4 +1,5 @@
 .sl {
+  container-type: inline-size;
   font-family: var(--sans);
   color: var(--ink);
   max-width: 560px;
@@ -29,26 +30,29 @@
 }
 
 .sl-head {
-  min-height: 70px;
-  position: relative;
-  display: flex;
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
+  gap: 8px;
+  padding: 13px 28px 11px;
   border-bottom: 1px solid rgba(20, 63, 86, 0.08);
   background: rgba(255, 254, 250, 0.86);
 }
 
-.sl-back,
-.sl-pill {
+.sl-back {
+  appearance: none;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  border: 0;
+  background: transparent;
   color: var(--ink);
+  font: inherit;
   font-size: 12px;
   font-weight: 800;
-  position: relative;
-  z-index: 1;
+  cursor: pointer;
 }
 
 .sl-back svg {
@@ -56,29 +60,94 @@
 }
 
 .sl-head h1 {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  justify-self: center;
   margin: 0;
   font-size: 21px;
   font-weight: 900;
   white-space: nowrap;
 }
 
-.sl-pill {
-  min-height: 38px;
-  border: 0;
+.sl-head-actions {
+  width: 136px;
+  min-width: 0;
+  justify-self: end;
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(20, 63, 86, 0.18);
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--ink), #174e63);
-  color: #ffffff;
-  padding: 0 13px;
-  box-shadow: 0 10px 22px rgba(20, 63, 86, 0.16);
-  white-space: nowrap;
+  background: rgba(255, 254, 250, 0.9);
+  box-shadow: 0 8px 22px rgba(20, 63, 86, 0.06);
 }
 
-.sl-pill svg {
+.sl-prepare-link,
+.sl-head-actions .sl-pill {
+  appearance: none;
+  min-width: 0;
+  min-height: 40px;
+  flex: 1 1 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 7px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sl-prepare-link {
+  color: var(--accent-deep);
+}
+
+.sl-head-actions .sl-pill {
+  border-left: 1px solid rgba(20, 63, 86, 0.12);
+}
+
+.sl-head-actions .sl-pill svg {
   color: currentColor;
   font-size: 17px;
+}
+
+.sl-back:hover,
+.sl-back:focus-visible,
+.sl-prepare-link:hover,
+.sl-prepare-link:focus-visible,
+.sl-head-actions .sl-pill:hover,
+.sl-head-actions .sl-pill:focus-visible {
+  background: var(--mint-soft);
+}
+
+.sl-back:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sl-prepare-link:focus-visible,
+.sl-head-actions .sl-pill:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.sl-back:disabled,
+.sl-prepare-link:disabled,
+.sl-head-actions .sl-pill:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.sl-nav-label-full {
+  display: none;
+}
+
+.sl-nav-label-short {
+  display: inline;
 }
 
 .sl-body {
@@ -317,8 +386,59 @@
   transform: scaleX(-1);
 }
 
+.sl-self-camera__frame video.is-peer-view-preview {
+  filter: blur(5px);
+  transform: scaleX(-1) scale(1.04);
+}
+
 .sl-self-camera__frame video[data-camera-fit="contain"] {
   object-fit: contain;
+}
+
+.sl-self-camera__peer-badge,
+.sl-self-camera__peer-toggle {
+  position: absolute;
+  z-index: 2;
+  max-width: calc(100% - 20px);
+  border: 1px solid var(--line-soft);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sl-self-camera__peer-badge {
+  top: 10px;
+  left: 10px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 9px;
+}
+
+.sl-self-camera__peer-toggle {
+  right: 10px;
+  bottom: 10px;
+  min-height: 34px;
+  border-radius: 9px;
+  padding: 0 10px;
+  box-shadow: 0 6px 16px rgba(20, 63, 86, 0.16);
+  font-size: 10px;
+}
+
+.sl-self-camera__peer-toggle[aria-pressed="true"] {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--mint-deep);
+}
+
+.sl-self-camera__peer-toggle:focus-visible {
+  outline: 2px solid var(--card);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ink);
 }
 
 .sl-self-camera__placeholder {
@@ -570,9 +690,12 @@
   display: none;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 899px) {
   .sl-head {
-    padding-inline: 12px;
+    grid-template-columns: 64px minmax(86px, 1fr) 136px;
+    gap: 5px;
+    min-height: 66px;
+    padding: 10px 12px 8px;
   }
 
   .sl-head h1 {
@@ -580,21 +703,39 @@
   }
 
   .sl-back {
+    gap: 2px;
     font-size: 11px;
   }
 
   .sl-back svg {
-    font-size: 22px;
+    font-size: 23px;
   }
 
-  .sl-pill {
-    min-height: 34px;
-    padding-inline: 9px;
-    font-size: 10.5px;
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    min-height: 38px;
+    gap: 3px;
   }
 
-  .sl-pill svg {
+  .sl-head-actions .sl-pill svg {
     font-size: 15px;
+  }
+}
+
+@media (max-width: 420px) {
+  .sl-head {
+    grid-template-columns: 58px minmax(82px, 1fr) 136px;
+    padding-inline: 9px;
+  }
+
+  .sl-head h1 {
+    font-size: 17px;
+  }
+
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    padding-inline: 5px;
+    font-size: 9.5px;
   }
 
   .sl-camera-session {
@@ -670,32 +811,28 @@
 
 @media (max-width: 360px) {
   .sl-head {
-    min-height: 68px;
-    padding-inline: 10px;
+    grid-template-columns: 52px minmax(74px, 1fr) 136px;
+    gap: 3px;
+    padding-inline: 7px;
   }
 
   .sl-head h1 {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .sl-back {
-    gap: 3px;
     font-size: 10px;
   }
 
-  .sl-back svg {
-    font-size: 20px;
+  .sl-back svg,
+  .sl-head-actions .sl-pill svg {
+    display: none;
   }
 
-  .sl-pill {
-    min-height: 32px;
-    gap: 4px;
-    padding-inline: 8px;
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    padding-inline: 4px;
     font-size: 9px;
-  }
-
-  .sl-pill svg {
-    font-size: 13px;
   }
 
   .sl-body {
@@ -898,5 +1035,81 @@
 
   .sl-bottom strong {
     font-size: 20px;
+  }
+}
+
+@container (max-width: 559px) {
+  .sl-head {
+    grid-template-columns: 64px minmax(86px, 1fr) 136px;
+    gap: 5px;
+    min-height: 66px;
+    padding: 10px 12px 8px;
+  }
+
+  .sl-head h1 {
+    font-size: 19px;
+  }
+
+  .sl-back {
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  .sl-back svg {
+    font-size: 23px;
+  }
+
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    min-height: 38px;
+    gap: 3px;
+  }
+
+  .sl-head-actions .sl-pill svg {
+    font-size: 15px;
+  }
+}
+
+@container (max-width: 420px) {
+  .sl-head {
+    grid-template-columns: 58px minmax(82px, 1fr) 136px;
+    padding-inline: 9px;
+  }
+
+  .sl-head h1 {
+    font-size: 17px;
+  }
+
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    padding-inline: 5px;
+    font-size: 9.5px;
+  }
+}
+
+@container (max-width: 360px) {
+  .sl-head {
+    grid-template-columns: 52px minmax(74px, 1fr) 136px;
+    gap: 3px;
+    padding-inline: 7px;
+  }
+
+  .sl-head h1 {
+    font-size: 16px;
+  }
+
+  .sl-back {
+    font-size: 10px;
+  }
+
+  .sl-back svg,
+  .sl-head-actions .sl-pill svg {
+    display: none;
+  }
+
+  .sl-prepare-link,
+  .sl-head-actions .sl-pill {
+    padding-inline: 4px;
+    font-size: 9px;
   }
 }

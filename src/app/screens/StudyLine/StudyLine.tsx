@@ -61,6 +61,8 @@ export default function StudyLine() {
   const {
     joined,
     joining,
+    workroomModeSwitching,
+    workroomModeError,
     cameraPausedForBreak,
     error,
     localVideoTrack,
@@ -73,6 +75,7 @@ export default function StudyLine() {
     refreshStudyStatus,
     startStudyBreak,
     resumeStudy,
+    switchWorkroomMode,
   } = useWorkroomSession();
   const [slots, setSlots] = useState<TimetableSlot[]>(
     WORKROOM_FALLBACK_TIMETABLE,
@@ -230,22 +233,65 @@ export default function StudyLine() {
     navigate("/waiting-room");
   };
 
+  const goGroupWorkroom = async () => {
+    if (joining || workroomModeSwitching) return;
+    if (await switchWorkroomMode("group")) navigate("/study-room");
+  };
+
+  const goPreparationRoom = async () => {
+    if (joining || workroomModeSwitching) return;
+    if (
+      !window.confirm(
+        "카메라 송출과 공부시간 기록을 종료하고 작업 준비실로 이동할까요?",
+      )
+    ) {
+      return;
+    }
+    await leaveSession();
+    navigate("/workroom/prepare?mode=line", { replace: true });
+  };
+
   return (
     <div className="sl">
       <header className="sl-head">
         <button
           className="sl-back"
-          disabled={joining}
+          disabled={joining || workroomModeSwitching}
           onClick={() => void goWaitingRoom()}
           type="button"
         >
           <ArrowBackIcon /> 대기장
         </button>
         <h1>개인작업실</h1>
-        <button className="sl-pill" onClick={() => navigate("/study-room")}>
-          <GroupsOutlinedIcon />
-          단체작업장 입장
-        </button>
+        <div className="sl-head-actions">
+          <button
+            className="sl-prepare-link"
+            disabled={joining || workroomModeSwitching}
+            onClick={() => void goPreparationRoom()}
+            type="button"
+          >
+            <span className="sl-nav-label-full">
+              {joining ? "이동 중…" : "작업 준비실"}
+            </span>
+            <span className="sl-nav-label-short">
+              {joining ? "이동 중" : "준비실"}
+            </span>
+          </button>
+          <button
+            className="sl-pill"
+            disabled={joining || workroomModeSwitching}
+            onClick={() => void goGroupWorkroom()}
+            type="button"
+          >
+            <GroupsOutlinedIcon />
+            <span className="sl-nav-label-full">
+              {workroomModeSwitching ? "전환 중…" : "단체작업장 입장"}
+            </span>
+            <span className="sl-nav-label-short">
+              {workroomModeSwitching ? "전환 중" : "단체실"}
+            </span>
+          </button>
+        </div>
       </header>
 
       <main className="sl-body">
@@ -323,9 +369,9 @@ export default function StudyLine() {
           </div>
         )}
 
-        {joined && error && (
+        {joined && (workroomModeError || error) && (
           <div className="sl-camera-error" role="alert">
-            <span>{error}</span>
+            <span>{workroomModeError || error}</span>
           </div>
         )}
 

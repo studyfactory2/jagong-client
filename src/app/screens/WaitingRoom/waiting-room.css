@@ -446,51 +446,6 @@
   font-size: 25px;
 }
 
-.wr-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.wr-badge {
-  min-height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 11px;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.wr-badge i {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-}
-
-.wr-badge.is-on {
-  border-color: var(--mint-line);
-}
-
-.wr-badge.is-on i {
-  background: var(--mint-deep);
-}
-
-.wr-badge.is-record {
-  border-color: var(--gold);
-}
-
-.wr-badge.is-record i {
-  background: var(--gold);
-}
-
 .wr-worker-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -554,6 +509,11 @@
   background: #0f2f3e;
 }
 
+.wr-worker-video.is-line-blurred {
+  filter: blur(5px);
+  transform: scale(1.04);
+}
+
 .wr-worker.has-video::after {
   content: "";
   position: absolute;
@@ -608,19 +568,13 @@
 .wr-worker-study-time {
   right: 5px;
   max-width: calc(100% - 48px);
-  min-height: 22px;
-  border-radius: 8px;
-  padding: 3px 6px;
-  display: grid;
-  justify-items: end;
-  gap: 1px;
+  min-height: 18px;
+  border-radius: 6px;
+  padding: 2px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   line-height: 1;
-}
-
-.wr-worker-study-time small {
-  color: var(--muted);
-  font-size: 7px;
-  font-weight: 800;
 }
 
 .wr-worker-study-time strong {
@@ -629,7 +583,7 @@
   color: var(--ink);
   font-size: 9px;
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1563,16 +1517,6 @@
     font-size: 15px;
   }
 
-  .wr-badges {
-    gap: 4px;
-  }
-
-  .wr-badge {
-    min-height: 26px;
-    padding: 0 8px;
-    font-size: 11px;
-  }
-
   .wr-workers .wr-panel-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -1582,30 +1526,6 @@
   .wr-workers .wr-panel-title {
     min-width: 0;
     white-space: nowrap;
-  }
-
-  .wr-workers .wr-badges {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
-    margin-top: 0;
-  }
-
-  .wr-workers .wr-badge {
-    min-width: 0;
-    justify-content: center;
-    gap: 5px;
-    padding-inline: 6px;
-    font-size: 10px;
-  }
-
-  .wr-workers .wr-badge i {
-    width: 8px;
-    height: 8px;
-    flex: 0 0 auto;
   }
 
   .wr-worker-grid {
@@ -1639,15 +1559,12 @@
   .wr-worker-study-time {
     max-width: calc(100% - 38px);
     min-height: 18px;
-    padding: 3px 4px;
-  }
-
-  .wr-worker-study-time small {
-    display: none;
+    border-radius: 6px;
+    padding: 2px 5px;
   }
 
   .wr-worker-study-time strong {
-    font-size: 8px;
+    font-size: 8.5px;
   }
 
   .wr-date {
@@ -1778,26 +1695,6 @@
     font-size: 22px;
   }
 
-  .wr-workers .wr-badges {
-    width: auto;
-    min-width: 0;
-    flex-wrap: nowrap;
-    justify-content: flex-end;
-    gap: 4px;
-  }
-
-  .wr-workers .wr-badge {
-    flex: 0 0 auto;
-    min-height: 24px;
-    gap: 4px;
-    padding-inline: 5px;
-    font-size: 10px;
-  }
-
-  .wr-workers .wr-badge i {
-    width: 7px;
-    height: 7px;
-  }
 }
 
 @media (max-width: 380px) {
@@ -1824,7 +1721,7 @@
   }
 
   .wr-worker-study-time strong {
-    font-size: 7.5px;
+    font-size: 8.5px;
   }
 
   .wr-body {
@@ -1848,22 +1745,10 @@
     display: block;
   }
 
-  .wr-badges {
-    justify-content: flex-start;
-    margin-top: 8px;
-  }
-
   .wr-workers .wr-panel-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
-  }
-
-  .wr-workers .wr-badges {
-    width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    margin-top: 0;
   }
 
   .wr-progress {
@@ -2051,16 +1936,13 @@
   .wr-worker-study-time {
     right: 8px;
     max-width: calc(100% - 58px);
-    min-height: 26px;
-    padding: 4px 7px;
-  }
-
-  .wr-worker-study-time small {
-    font-size: 8px;
+    min-height: 18px;
+    border-radius: 6px;
+    padding: 2px 5px;
   }
 
   .wr-worker-study-time strong {
-    font-size: 11px;
+    font-size: 9px;
   }
 
   .wr-time-grid {

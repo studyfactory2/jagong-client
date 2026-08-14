@@ -1,5 +1,5 @@
 import VideocamOffRoundedIcon from "@mui/icons-material/VideocamOffRounded";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { LocalVideoTrack } from "livekit-client";
 import { observeAdaptiveCameraFit } from "../../utils/adaptive-camera-fit";
 
@@ -15,6 +15,7 @@ export default function StudyLineSelfCameraCard({
   track,
 }: StudyLineSelfCameraCardProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [peerViewPreview, setPeerViewPreview] = useState(false);
   const cameraVisible = Boolean(
     track && !cameraPausedForBreak && !track.isMuted,
   );
@@ -37,7 +38,25 @@ export default function StudyLineSelfCameraCard({
     <section aria-label={`${memberName}님의 카메라`} className="sl-self-camera">
       <div className="sl-self-camera__frame">
         {cameraVisible ? (
-          <video ref={videoRef} autoPlay muted playsInline />
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className={peerViewPreview ? "is-peer-view-preview" : undefined}
+            />
+
+            <button
+              aria-label="다른 학습자 화면 미리보기"
+              aria-pressed={peerViewPreview}
+              className="sl-self-camera__peer-toggle"
+              onClick={() => setPeerViewPreview((current) => !current)}
+              type="button"
+            >
+              {peerViewPreview ? "단체작업장 화면 " : "개인작업실 화면"}
+            </button>
+          </>
         ) : (
           <div className="sl-self-camera__placeholder">
             <VideocamOffRoundedIcon />

@@ -14,6 +14,7 @@ import {
   getCamRoomMembers,
   issueCamToken,
   leaveCam,
+  updateCamWorkroomMode,
 } from "../services/cam.service";
 import {
   getMyStudyTimeStatus,
@@ -25,12 +26,14 @@ import type {
   CamRoomMember,
   CamTokenDto,
   StudyTimeStatus,
+  WorkroomMode,
 } from "../../lib/types";
 import { useSocket } from "./SocketContext";
 import type {
   FaceEffectOptions,
   FaceEffectVariant,
 } from "../utils/landmarker-effect-processor";
+import { resolveParticipantWorkroomMode } from "../utils/workroom-mode";
 
 export type RemoteVideoTrack = {
   attach: (element?: HTMLMediaElement) => HTMLMediaElement;
@@ -42,6 +45,7 @@ export type RemoteVideo = {
   userId: string;
   track: RemoteVideoTrack;
   muted: boolean;
+  workroomMode: WorkroomMode;
 };
 
 export type CameraEffect = "original" | "background-blur" | FaceEffectVariant;
@@ -189,6 +193,9 @@ const createInitialEffectSupport = (): CameraEffectSupport => ({
 type WorkroomSessionValue = {
   joined: boolean;
   joining: boolean;
+  currentWorkroomMode: WorkroomMode | null;
+  workroomModeSwitching: boolean;
+  workroomModeError: string;
   cameraReady: boolean;
   cameraPausedForBreak: boolean;
   error: string;
@@ -208,7 +215,11 @@ type WorkroomSessionValue = {
   previewCamera: (deviceId?: string) => Promise<void>;
   selectCamera: (deviceId: string) => Promise<void>;
   selectCameraEffect: (effect: CameraEffect) => Promise<void>;
-  startSession: (slot?: number) => Promise<boolean>;
+  startSession: (workroomMode: WorkroomMode, slot?: number) => Promise<boolean>;
+  switchWorkroomMode: (
+    workroomMode: WorkroomMode,
+    force?: boolean,
+  ) => Promise<boolean>;
   leaveSession: () => Promise<void>;
   syncAttendanceSlot: (slot?: number, force?: boolean) => void;
   refreshStudyStatus: () => Promise<void>;
@@ -223,6 +234,10 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   const { socket } = useSocket();
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [currentWorkroomMode, setCurrentWorkroomMode] =
+    useState<WorkroomMode | null>(null);
+  const [workroomModeSwitching, setWorkroomModeSwitching] = useState(false);
+  const [workroomModeError, setWorkroomModeError] = useState("");
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraPausedForBreak, setCameraPausedForBreak] = useState(false);
   const [error, setError] = useState("");
@@ -251,6 +266,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     useRef<ProcessorWrapper<FaceEffectOptions> | null>(null);
   const roomRef = useRef<Room | null>(null);
   const participantSidRef = useRef<string | null>(null);
+  const currentWorkroomModeRef = useRef<WorkroomMode | null>(null);
+  const workroomModeQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const workroomModeRequestRef = useRef(0);
   const connectionGenerationRef = useRef(0);
   const joinedRef = useRef(false);
   const joiningRef = useRef(false);
@@ -1409,6 +1427,78 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const commitWorkroomMode = useCallback(
+    (workroomMode: WorkroomMode | null) => {
+      currentWorkroomModeRef.current = workroomMode;
+      if (mountedRef.current) setCurrentWorkroomMode(workroomMode);
+    },
+    [],
+  );
+
+  const switchWorkroomMode = useCallback(
+    (workroomMode: WorkroomMode, force = false): Promise<boolean> => {
+      if (!force && currentWorkroomModeRef.current === workroomMode) {
+        setWorkroomModeError("");
+        return Promise.resolve(true);
+      }
+
+      const requestId = workroomModeRequestRef.current + 1;
+      workroomModeRequestRef.current = requestId;
+      setWorkroomModeSwitching(true);
+      setWorkroomModeError("");
+
+      const operation = workroomModeQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          const participantSid = participantSidRef.current;
+          if (!joinedRef.current || !participantSid) {
+            throw new Error(
+              "작업장 연결을 확인한 뒤 화면을 전환해 주세요.",
+            );
+          }
+
+          const response = await updateCamWorkroomMode({ workroomMode });
+          if (
+            !joinedRef.current ||
+            participantSidRef.current !== participantSid
+          ) {
+            throw new WorkroomConnectionCancelledError();
+          }
+          if (response.workroomMode !== workroomMode) {
+            throw new Error("작업장 화면 상태를 확인하지 못했습니다.");
+          }
+
+          commitWorkroomMode(workroomMode);
+          return true;
+        })
+        .catch((switchError: unknown) => {
+          if (
+            mountedRef.current &&
+            workroomModeRequestRef.current === requestId
+          ) {
+            setWorkroomModeError(
+              switchError instanceof Error
+                ? switchError.message
+                : "작업장 화면을 전환하지 못했습니다.",
+            );
+          }
+          return false;
+        })
+        .finally(() => {
+          if (
+            mountedRef.current &&
+            workroomModeRequestRef.current === requestId
+          ) {
+            setWorkroomModeSwitching(false);
+          }
+        });
+
+      workroomModeQueueRef.current = operation.then(() => undefined);
+      return operation;
+    },
+    [commitWorkroomMode],
+  );
+
   const connectLiveKit = useCallback(
     async (token: CamTokenDto, connectionGeneration: number) => {
       if (!token.url || token.token.startsWith("stub.")) {
@@ -1458,6 +1548,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
                 userId: participant.identity,
                 track: track as RemoteVideoTrack,
                 muted: publication.isMuted || track.isMuted,
+                workroomMode: resolveParticipantWorkroomMode(
+                  participant.attributes,
+                ),
               },
             ]);
           },
@@ -1512,10 +1605,36 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
                 userId: participant.identity,
                 track: track as RemoteVideoTrack,
                 muted: false,
+                workroomMode: resolveParticipantWorkroomMode(
+                  participant.attributes,
+                ),
               },
             ];
           });
         });
+
+        room.on(
+          RoomEvent.ParticipantAttributesChanged,
+          (_changedAttributes, participant) => {
+            if (
+              !isCurrentRoom() ||
+              participant.identity === room.localParticipant.identity
+            ) {
+              return;
+            }
+
+            const workroomMode = resolveParticipantWorkroomMode(
+              participant.attributes,
+            );
+            setRemoteVideos((current) =>
+              current.map((video) =>
+                video.userId === participant.identity
+                  ? { ...video, workroomMode }
+                  : video,
+              ),
+            );
+          },
+        );
 
         room.on(RoomEvent.TrackUnsubscribed, (_track, publication) => {
           if (!isCurrentRoom()) return;
@@ -1536,17 +1655,26 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
           syncRemoteCameraSubscriptions(room);
         });
 
+        room.on(RoomEvent.Reconnected, () => {
+          if (!isCurrentRoom()) return;
+          const workroomMode = currentWorkroomModeRef.current;
+          if (workroomMode) void switchWorkroomMode(workroomMode, true);
+        });
+
         room.on(RoomEvent.Disconnected, () => {
           if (roomRef.current !== room) return;
 
           const participantSid = participantSidRef.current;
           connectionGenerationRef.current += 1;
+          workroomModeRequestRef.current += 1;
           roomRef.current = null;
           participantSidRef.current = null;
           joinedRef.current = false;
           joiningRef.current = false;
           leavingRef.current = false;
           resetCameraPausedForBreak();
+          commitWorkroomMode(null);
+          setWorkroomModeSwitching(false);
           setJoined(false);
           setJoining(false);
           setRemoteVideos([]);
@@ -1597,11 +1725,13 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     },
     [
       commitCameraPausedForBreak,
+      commitWorkroomMode,
       refreshRoomMembers,
       resetAttendanceSync,
       resetCameraPausedForBreak,
       resetStudyStatus,
       stopLocalCamera,
+      switchWorkroomMode,
       syncRemoteCameraSubscriptions,
     ],
   );
@@ -1615,12 +1745,16 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       const participantSid = participantSidRef.current;
       const leaveGeneration = connectionGenerationRef.current + 1;
       connectionGenerationRef.current = leaveGeneration;
+      workroomModeRequestRef.current += 1;
       leavingRef.current = true;
       joiningRef.current = true;
       joinedRef.current = false;
       participantSidRef.current = null;
       setJoining(true);
       setJoined(false);
+      commitWorkroomMode(null);
+      setWorkroomModeSwitching(false);
+      setWorkroomModeError("");
       setError("");
       resetStudyStatus();
       resetAttendanceSync();
@@ -1652,6 +1786,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     });
     return leavePromise;
   }, [
+    commitWorkroomMode,
     disconnectLiveKit,
     refreshRoomMembers,
     resetAttendanceSync,
@@ -1707,13 +1842,15 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
   );
 
   const startSession = useCallback(
-    async (slot?: number) => {
+    async (workroomMode: WorkroomMode, slot?: number) => {
       if (joinedRef.current) return true;
       if (joiningRef.current || leavingRef.current) return false;
 
       const connectionGeneration = connectionGenerationRef.current + 1;
       connectionGenerationRef.current = connectionGeneration;
       resetCameraPausedForBreak();
+      commitWorkroomMode(workroomMode);
+      setWorkroomModeError("");
       setError("");
       joiningRef.current = true;
       setJoining(true);
@@ -1721,7 +1858,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       resetAttendanceSync();
       syncAttendanceSlot(slot);
       try {
-        const token = await issueCamToken();
+        const token = await issueCamToken({ workroomMode });
         if (connectionGenerationRef.current !== connectionGeneration) {
           throw new WorkroomConnectionCancelledError();
         }
@@ -1761,6 +1898,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         await stopLocalCamera();
         joinedRef.current = false;
         participantSidRef.current = null;
+        commitWorkroomMode(null);
         setJoined(false);
         resetStudyStatus();
         resetAttendanceSync();
@@ -1780,6 +1918,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       }
     },
     [
+      commitWorkroomMode,
       connectLiveKit,
       disconnectLiveKit,
       flushAttendanceSync,
@@ -1798,6 +1937,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      workroomModeRequestRef.current += 1;
       if (visibleRemoteClearTimerRef.current !== null) {
         window.clearTimeout(visibleRemoteClearTimerRef.current);
         visibleRemoteClearTimerRef.current = null;
@@ -1995,6 +2135,9 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
       value={{
         joined,
         joining,
+        currentWorkroomMode,
+        workroomModeSwitching,
+        workroomModeError,
         cameraReady,
         cameraPausedForBreak,
         error,
@@ -2015,6 +2158,7 @@ export function WorkroomSessionProvider({ children }: { children: ReactNode }) {
         selectCamera,
         selectCameraEffect,
         startSession,
+        switchWorkroomMode,
         leaveSession,
         syncAttendanceSlot,
         refreshStudyStatus,

@@ -4,6 +4,7 @@ import type {
   CamSessionRecord,
   CamTokenDto,
   CamWarningRecord,
+  WorkroomMode,
 } from "../../lib/types";
 
 /** CAM API **/
@@ -22,8 +23,19 @@ export async function getCamSessions(input?: {
 export async function issueCamToken(input?: {
   branchId?: string;
   preview?: boolean;
+  workroomMode?: WorkroomMode;
 }): Promise<CamTokenDto> {
   const { data } = await http.post<CamTokenDto>("/cam/token", input ?? {});
+  return data;
+}
+
+export async function updateCamWorkroomMode(input: {
+  workroomMode: WorkroomMode;
+}): Promise<{ workroomMode: WorkroomMode }> {
+  const { data } = await http.post<{ workroomMode: WorkroomMode }>(
+    "/cam/workroom-mode",
+    input,
+  );
   return data;
 }
 
