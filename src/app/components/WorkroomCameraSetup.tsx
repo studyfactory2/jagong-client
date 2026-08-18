@@ -19,12 +19,14 @@ import "./workroom-camera-setup.css";
 type WorkroomCameraSetupProps = {
   confirmLabel: string;
   busyLabel?: string;
+  confirmDisabled?: boolean;
   onConfirm: () => void | Promise<void>;
 };
 
 export default function WorkroomCameraSetup({
   confirmLabel,
   busyLabel = "카메라 확인 중...",
+  confirmDisabled = false,
   onConfirm,
 }: WorkroomCameraSetupProps) {
   const {
@@ -205,6 +207,7 @@ export default function WorkroomCameraSetup({
             onClick={() => void onConfirm()}
             type="button"
             disabled={
+              confirmDisabled ||
               joining ||
               deviceChanging ||
               effectLoading ||

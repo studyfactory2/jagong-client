@@ -1,5 +1,16 @@
 const SEOUL_TIME_ZONE = "Asia/Seoul";
 
+type AttendanceArrivalRecord = {
+  status: string;
+  firstStudyAt?: string | null;
+  lateSeconds?: number | null;
+};
+
+export type AttendanceArrivalDetail = {
+  lateDuration: string | null;
+  firstStudyClock: string | null;
+};
+
 export function formatLateDuration(
   seconds: number | null | undefined,
 ): string | null {
@@ -40,4 +51,19 @@ export function formatFirstStudyClock(
   const second = part("second");
 
   return hour && minute && second ? `${hour}:${minute}:${second}` : null;
+}
+
+export function getAttendanceArrivalDetail(
+  record: AttendanceArrivalRecord | null | undefined,
+): AttendanceArrivalDetail | null {
+  if (!record) return null;
+  const hasVerifiedArrival =
+    record.status === "LATE" ||
+    (record.status === "ABSENT" && Boolean(record.firstStudyAt));
+  if (!hasVerifiedArrival) return null;
+
+  return {
+    lateDuration: formatLateDuration(record.lateSeconds),
+    firstStudyClock: formatFirstStudyClock(record.firstStudyAt),
+  };
 }

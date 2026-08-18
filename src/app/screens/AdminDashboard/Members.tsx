@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
-import DoorFrontOutlinedIcon from "@mui/icons-material/DoorFrontOutlined";
 import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
@@ -9,7 +8,6 @@ import type {
   Branch,
   MemberStatus,
   PageMeta,
-  StudyRoomEntryGrant,
 } from "../../../lib/types";
 import AdminPager from "./AdminPager";
 import MemberOvernightStudyReport from "./MemberOvernightStudyReport";
@@ -39,12 +37,6 @@ type MemberNotificationFeedback = {
   message: string;
 };
 
-type MemberEntryGrantFeedback = {
-  userId: string;
-  status: "success" | "error";
-  message: string;
-};
-
 type MembersProps = {
   users: AdminUser[];
   branches: Branch[];
@@ -52,7 +44,6 @@ type MembersProps = {
   memberStatusFilter: MemberStatusFilter;
   memberStatusBusy: boolean;
   notificationSendingId: string;
-  entryGrantingId: string;
   onSearchChange: (value: string) => void;
   onMemberStatusFilterChange: (value: MemberStatusFilter) => void;
   onMemberStatusChange: (
@@ -64,7 +55,6 @@ type MembersProps = {
     title: string,
     body: string,
   ) => Promise<boolean>;
-  onEntryGrant: (userId: string) => Promise<StudyRoomEntryGrant | null>;
   onUserUpdate: (userId: string, input: Partial<AdminUser>) => Promise<void>;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
@@ -140,12 +130,10 @@ export default function Members({
   memberStatusFilter,
   memberStatusBusy,
   notificationSendingId,
-  entryGrantingId,
   onSearchChange,
   onMemberStatusFilterChange,
   onMemberStatusChange,
   onNotificationSend,
-  onEntryGrant,
   onUserUpdate,
   pageMeta,
   onPageChange,
@@ -164,13 +152,9 @@ export default function Members({
     useState<MemberNotificationDraft>(emptyNotificationDraft);
   const [notificationFeedback, setNotificationFeedback] =
     useState<MemberNotificationFeedback | null>(null);
-  const [entryGrantFeedback, setEntryGrantFeedback] =
-    useState<MemberEntryGrantFeedback | null>(null);
   const statusChanging = Boolean(statusChange) || memberStatusBusy;
   const directoryBusy =
-    statusChanging ||
-    Boolean(notificationSendingId) ||
-    Boolean(entryGrantingId);
+    statusChanging || Boolean(notificationSendingId);
   const members = users.filter((user) => user.role === "MEMBER");
   const selectedUser = members.find((user) => user.id === selectedId) ?? null;
   const detailVisible = detailOpen && Boolean(selectedUser);
@@ -179,7 +163,7 @@ export default function Members({
     if (!detailVisible) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || notificationSendingId || entryGrantingId) {
+      if (event.key !== "Escape" || notificationSendingId) {
         return;
       }
       setDetailOpen(false);
@@ -188,26 +172,24 @@ export default function Members({
       setEditForm(null);
       setNotificationDraft(emptyNotificationDraft());
       setNotificationFeedback(null);
-      setEntryGrantFeedback(null);
     }
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [detailVisible, entryGrantingId, notificationSendingId]);
+  }, [detailVisible, notificationSendingId]);
 
   function resetSelection() {
-    if (notificationSendingId || entryGrantingId) return;
+    if (notificationSendingId) return;
     setDetailOpen(false);
     setSelectedId("");
     setEditingId("");
     setEditForm(null);
     setNotificationDraft(emptyNotificationDraft());
     setNotificationFeedback(null);
-    setEntryGrantFeedback(null);
   }
 
   function selectMember(user: AdminUser) {
-    if (notificationSendingId || entryGrantingId) return;
+    if (notificationSendingId) return;
     setSelectedId(user.id);
     setDetailOpen(true);
     setEditingId("");
@@ -216,7 +198,6 @@ export default function Members({
       current.userId === user.id ? current : emptyNotificationDraft(user.id),
     );
     setNotificationFeedback(null);
-    setEntryGrantFeedback(null);
   }
 
   function startEdit(user: AdminUser) {
@@ -270,7 +251,6 @@ export default function Members({
       !title ||
       !body ||
       notificationSendingId ||
-      entryGrantingId ||
       statusChanging
     ) {
       return;
@@ -298,41 +278,6 @@ export default function Members({
       status: "error",
       message: "개인 알림을 보내지 못했습니다. 다시 시도해 주세요.",
     });
-  }
-
-  async function grantEntryAccess(user: AdminUser) {
-    if (
-      directoryBusy ||
-      memberAccessStatus(user) === "BLOCKED" ||
-      user.isActive === false
-    ) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `${user.name} 회원의 작업장 입장을 허가할까요?\n\n현재 진행 중인 학습 교시에만 적용되며 교시 종료 시 자동으로 만료됩니다.`,
-    );
-    if (!confirmed) return;
-
-    setEntryGrantFeedback(null);
-    try {
-      const grant = await onEntryGrant(user.id);
-      if (!grant) return;
-      setEntryGrantFeedback({
-        userId: user.id,
-        status: "success",
-        message: `${user.name} 회원의 현재 교시 작업장 입장을 허가했습니다.`,
-      });
-    } catch (error) {
-      setEntryGrantFeedback({
-        userId: user.id,
-        status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "작업장 입장 허가를 처리하지 못했습니다.",
-      });
-    }
   }
 
   function changeSearch(value: string) {
@@ -426,9 +371,7 @@ export default function Members({
         className="admin-member-directory-status-announcement"
         role="status"
       >
-        {entryGrantingId
-          ? `${selectedUser?.name ?? "회원"} 회원의 작업장 입장 허가를 처리하고 있습니다.`
-          : notificationSendingId
+        {notificationSendingId
             ? `${selectedUser?.name ?? "회원"} 회원에게 개인 알림을 전송하고 있습니다.`
             : statusChange
               ? `${statusChange.memberName} 회원의 ${
@@ -665,57 +608,6 @@ export default function Members({
                         key={selectedUser.id}
                         memberId={selectedUser.id}
                       />
-
-                      <section className="admin-member-directory-entry-grant">
-                        <header>
-                          <span aria-hidden="true">
-                            <DoorFrontOutlinedIcon />
-                          </span>
-                          <div>
-                            <strong>작업장 입장 허가</strong>
-                            <small>
-                              현재 진행 중인 학습 교시에만 적용됩니다.
-                            </small>
-                          </div>
-                        </header>
-
-                        <p className="admin-member-directory-entry-grant-copy">
-                          {memberAccessStatus(selectedUser) === "BLOCKED"
-                            ? "이용 제한 회원은 먼저 접근 상태를 다시 허용해야 합니다."
-                            : selectedUser.isActive === false
-                              ? "등록 비활성 회원에게는 작업장 입장을 허가할 수 없습니다."
-                              : "교시가 시작된 뒤 입장하지 못한 이 회원 한 명에게 현재 교시 입장 권한을 부여합니다."}
-                        </p>
-
-                        <button
-                          aria-busy={entryGrantingId === selectedUser.id}
-                          disabled={
-                            directoryBusy ||
-                            memberAccessStatus(selectedUser) === "BLOCKED" ||
-                            selectedUser.isActive === false
-                          }
-                          onClick={() => void grantEntryAccess(selectedUser)}
-                          type="button"
-                        >
-                          <DoorFrontOutlinedIcon />
-                          {entryGrantingId === selectedUser.id
-                            ? "입장 허가 처리 중..."
-                            : "작업장 입장 허가"}
-                        </button>
-
-                        {entryGrantFeedback?.userId === selectedUser.id && (
-                          <p
-                            className={`admin-member-directory-entry-grant-feedback is-${entryGrantFeedback.status}`}
-                            role={
-                              entryGrantFeedback.status === "error"
-                                ? "alert"
-                                : "status"
-                            }
-                          >
-                            {entryGrantFeedback.message}
-                          </p>
-                        )}
-                      </section>
 
                       <form
                         className="admin-member-directory-notification"

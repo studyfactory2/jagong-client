@@ -71,6 +71,8 @@ function accessMessage(access: StudyRoomEntryAccess | null): string {
       return "관리자 입장 허가가 확인되었습니다.";
     case "ALREADY_IN_ROOM":
       return "현재 교시 작업장에 다시 입장할 수 있습니다.";
+    case "ABSENT_ENTRY_ALLOWED":
+      return "결석 처리 기준 시간이 지났지만 입장은 가능합니다.";
     case "STUDY_WINDOW_LOCKED":
       return "교시가 시작되어 관리자 입장 허가가 필요합니다.";
     case "TIMETABLE_UNAVAILABLE":
@@ -175,19 +177,10 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
     if (!Number.isFinite(windowEnd) || delay <= 0) return;
 
     const timer = window.setTimeout(() => {
-      if (cameraReady && !joined && !joining) void leaveSession();
-      setAccess(null);
       void refreshAccess();
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [
-    access?.windowEndsAt,
-    cameraReady,
-    joined,
-    joining,
-    leaveSession,
-    refreshAccess,
-  ]);
+  }, [access?.windowEndsAt, refreshAccess]);
 
   useEffect(() => {
     if (access?.canEnter !== false || !cameraReady || joined || joining) return;
@@ -265,7 +258,15 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
       : undefined;
 
   const confirmEntry = async () => {
-    if (joining || cancelling || access?.canEnter !== true) return;
+    if (
+      joining ||
+      cancelling ||
+      accessLoading ||
+      accessError ||
+      access?.canEnter !== true
+    ) {
+      return;
+    }
     const entered = await startSession(mode, activeAttendanceSlot);
     if (entered) {
       navigate(destination.path, { replace: true });
@@ -386,11 +387,54 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
             </button>
           </section>
         ) : (
-          <WorkroomCameraSetup
-            busyLabel="작업장 연결 중..."
-            confirmLabel="오늘도 화이팅! 작업장 입장"
-            onConfirm={confirmEntry}
-          />
+          <>
+            {accessLoading && (
+              <section
+                aria-live="polite"
+                className="workroom-preparation__late-entry-warning is-checking"
+                role="status"
+              >
+                <strong>입장 상태를 다시 확인하고 있습니다.</strong>
+                <p>카메라 미리보기는 그대로 유지됩니다.</p>
+              </section>
+            )}
+            {accessError && (
+              <section
+                className="workroom-preparation__late-entry-warning is-error"
+                role="alert"
+              >
+                <strong>입장 상태를 다시 확인해 주세요.</strong>
+                <p>{accessError}</p>
+                <button
+                  disabled={accessLoading}
+                  onClick={() => void refreshAccess()}
+                  type="button"
+                >
+                  <RefreshRoundedIcon /> 다시 확인
+                </button>
+              </section>
+            )}
+            {!accessLoading &&
+              !accessError &&
+              access.reason === "ABSENT_ENTRY_ALLOWED" && (
+              <section
+                className="workroom-preparation__late-entry-warning"
+                role="status"
+              >
+                <strong>결석 처리 기준 시간이 지났습니다.</strong>
+                <p>
+                  승인된 휴가나 관리자 수정이 없으면 결석 처리되며,
+                  공부시간은 입장 시점부터 정상 기록됩니다.
+                </p>
+              </section>
+            )}
+            <WorkroomCameraSetup
+              busyLabel="작업장 연결 중..."
+              confirmDisabled={accessLoading || Boolean(accessError)}
+              confirmLabel="오늘도 화이팅! 작업장 입장"
+              onConfirm={confirmEntry}
+            />
+          </>
         )}
       </main>
     </div>

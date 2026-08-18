@@ -64,6 +64,7 @@ export type StudyRoomEntryAccessReason =
   | "OPEN_WINDOW"
   | "ADMIN_GRANTED"
   | "ALREADY_IN_ROOM"
+  | "ABSENT_ENTRY_ALLOWED"
   | "STUDY_WINDOW_LOCKED"
   | "TIMETABLE_UNAVAILABLE";
 
@@ -83,17 +84,6 @@ export interface StudyRoomEntryAccessChangedPayload {
   windowStartedAt: string;
   windowEndsAt: string;
   grantId: string;
-}
-
-export interface StudyRoomEntryGrant {
-  id: string;
-  userId: string;
-  branchId: string;
-  slot: number;
-  windowStartedAt: string;
-  expiresAt: string;
-  grantedById: string;
-  createdAt: string;
 }
 
 export interface AuthUser {

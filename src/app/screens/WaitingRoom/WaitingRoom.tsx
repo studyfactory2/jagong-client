@@ -28,8 +28,7 @@ import {
 } from "../../services/study-statistics.service";
 import { getTimetable } from "../../services/timetable.service";
 import {
-  formatFirstStudyClock,
-  formatLateDuration,
+  getAttendanceArrivalDetail,
 } from "../../utils/attendance-display";
 import type {
   AttendanceRecord,
@@ -233,11 +232,12 @@ function attendancePeriodView(
       ATTENDANCE_TEXT[record.status],
     ];
 
-    if (record.status === "LATE") {
-      const lateDuration = formatLateDuration(record.lateSeconds);
-      const firstStudyClock = formatFirstStudyClock(record.firstStudyAt);
-      if (lateDuration) detail.push(lateDuration);
-      if (firstStudyClock) detail.push(`공부 시작 ${firstStudyClock}`);
+    const arrival = getAttendanceArrivalDetail(record);
+    if (arrival?.lateDuration) {
+      detail.push(`${arrival.lateDuration} 늦게 입실`);
+    }
+    if (arrival?.firstStudyClock) {
+      detail.push(`공부 시작 ${arrival.firstStudyClock}`);
     }
 
     if (record.status === "EXCUSED") {
@@ -291,6 +291,8 @@ function studyRoomEntryStatusText(
       return "관리자 입장 허가됨";
     case "ALREADY_IN_ROOM":
       return "작업장 재입장 가능";
+    case "ABSENT_ENTRY_ALLOWED":
+      return "입장 가능 · 결석 처리 기준 시간 경과";
     case "STUDY_WINDOW_LOCKED":
       return "교시중 관리자 허가 필요";
     case "TIMETABLE_UNAVAILABLE":

@@ -22,8 +22,7 @@ import {
   getMemberLeaveCalendar,
 } from "../../services/leave.service";
 import {
-  formatFirstStudyClock,
-  formatLateDuration,
+  getAttendanceArrivalDetail,
 } from "../../utils/attendance-display";
 import type {
   AdminUser,
@@ -791,8 +790,9 @@ export default function Attendance({
                       const covered = userCoverage && coverageAppliesToSlot(userCoverage, slot.slot, workSlots) ? userCoverage : null;
                       const cellStatus = covered ? "is-leave" : statusClass(record?.status);
                       const excusedLabel = record?.status === "EXCUSED" ? record.reason?.trim() || record.reasonType?.trim() || "기타" : "";
-                      const lateDuration = !covered && record?.status === "LATE" ? formatLateDuration(record.lateSeconds) : null;
-                      const firstStudyClock = !covered && record?.status === "LATE" ? formatFirstStudyClock(record.firstStudyAt) : null;
+                      const arrival = !covered ? getAttendanceArrivalDetail(record) : null;
+                      const lateDuration = arrival?.lateDuration ?? null;
+                      const firstStudyClock = arrival?.firstStudyClock ?? null;
                       const cellLabel = covered
                         ? coverageReason(covered)
                         : record?.status === "EXCUSED"
@@ -803,7 +803,7 @@ export default function Attendance({
                       const baseCellTitle = covered
                         ? `${member.name} · ${coverageReason(covered)} · 취소`
                         : `${member.name} · ${slot.label} · ${record?.status === "EXCUSED" ? excusedLabel : record ? STATUS_TITLE[record.status as AttendanceStatusName] ?? "기타" : "미기록"}`;
-                      const cellTitle = `${baseCellTitle}${lateDuration ? ` · ${lateDuration} 지각` : ""}${firstStudyClock ? ` · 공부 시작 ${firstStudyClock}` : ""}`;
+                      const cellTitle = `${baseCellTitle}${lateDuration ? ` · ${lateDuration} 늦게 입실` : ""}${firstStudyClock ? ` · 공부 시작 ${firstStudyClock}` : ""}`;
                       const key = recordKey(member.id, slot.slot);
                       return (
                         <td key={slot.slot}>

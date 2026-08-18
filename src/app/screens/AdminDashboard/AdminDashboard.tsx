@@ -44,7 +44,6 @@ import {
   getNotices,
   sendPersonalNotification,
 } from "../../services/notice.service";
-import { grantMemberStudyRoomEntry } from "../../services/study-room-entry.service";
 import { getBranches } from "../../services/branch.service";
 import { getTimetable } from "../../services/timetable.service";
 import Camera from "./Camera";
@@ -64,7 +63,6 @@ import type {
   MemberStatus,
   MembershipPlan,
   ReplaceConsultationCheckoutRequest,
-  StudyRoomEntryGrant,
   TimetableSlot,
 } from "../../../lib/types";
 import {
@@ -155,8 +153,6 @@ export default function AdminDashboard() {
   const [memberNotificationSendingId, setMemberNotificationSendingId] =
     useState("");
   const memberNotificationSendingRef = useRef("");
-  const [memberEntryGrantingId, setMemberEntryGrantingId] = useState("");
-  const memberEntryGrantingRef = useRef("");
   const memberDirectoryRequestRef = useRef(0);
   const [paymentMemberFilter, setPaymentMemberFilter] = useState<{
     id: string;
@@ -905,28 +901,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function grantMemberEntryAccess(
-    memberId: string,
-  ): Promise<StudyRoomEntryGrant | null> {
-    if (!isAdmin || memberEntryGrantingRef.current) return null;
-
-    memberEntryGrantingRef.current = memberId;
-    setMemberEntryGrantingId(memberId);
-    setError("");
-    try {
-      return await grantMemberStudyRoomEntry(memberId);
-    } catch (err) {
-      const requestError =
-        err instanceof Error
-          ? err
-          : new Error("작업장 입장 허가를 처리하지 못했습니다.");
-      throw requestError;
-    } finally {
-      memberEntryGrantingRef.current = "";
-      setMemberEntryGrantingId("");
-    }
-  }
-
   async function saveMyProfile(input: {
     name?: string;
     phone?: string;
@@ -961,7 +935,7 @@ export default function AdminDashboard() {
   }
 
   function navigateToTab(nextTab: AdminTabKey) {
-    if (memberNotificationSendingId || memberEntryGrantingId) return;
+    if (memberNotificationSendingId) return;
     setPaymentMemberFilter(null);
     setAttendanceMemberTarget("");
     setTab(nextTab);
@@ -1018,13 +992,13 @@ export default function AdminDashboard() {
 
   /** RENDER **/
   function refreshDashboard() {
-    if (memberNotificationSendingId || memberEntryGrantingId) return;
+    if (memberNotificationSendingId) return;
     void load();
     void loadMembershipPlans();
   }
 
   function handleLogout() {
-    if (memberNotificationSendingId || memberEntryGrantingId) return;
+    if (memberNotificationSendingId) return;
     logout();
     navigate("/login", { replace: true });
   }
@@ -1034,9 +1008,7 @@ export default function AdminDashboard() {
       <button
         className="admin-refresh"
         disabled={
-          memberStatusBusy ||
-          Boolean(memberNotificationSendingId) ||
-          Boolean(memberEntryGrantingId)
+          memberStatusBusy || Boolean(memberNotificationSendingId)
         }
         onClick={refreshDashboard}
         type="button"
@@ -1045,9 +1017,7 @@ export default function AdminDashboard() {
       </button>
       <button
         className="admin-logout"
-        disabled={
-          Boolean(memberNotificationSendingId) || Boolean(memberEntryGrantingId)
-        }
+        disabled={Boolean(memberNotificationSendingId)}
         onClick={handleLogout}
         type="button"
       >
@@ -1112,10 +1082,7 @@ export default function AdminDashboard() {
               {primaryTabs.map((item) => (
                 <button
                   className={activeTab === item.key ? "is-active" : ""}
-                  disabled={
-                    Boolean(memberNotificationSendingId) ||
-                    Boolean(memberEntryGrantingId)
-                  }
+                  disabled={Boolean(memberNotificationSendingId)}
                   key={item.key}
                   onClick={() => navigateToTab(item.key)}
                   type="button"
@@ -1146,10 +1113,7 @@ export default function AdminDashboard() {
                 {showDashboardReturn && (
                   <button
                     className="admin-dashboard-return"
-                    disabled={
-                      Boolean(memberNotificationSendingId) ||
-                      Boolean(memberEntryGrantingId)
-                    }
+                    disabled={Boolean(memberNotificationSendingId)}
                     onClick={() => navigateToTab("overview")}
                     type="button"
                   >
@@ -1249,12 +1213,10 @@ export default function AdminDashboard() {
                 memberStatusFilter={memberStatusFilter}
                 memberStatusBusy={memberStatusBusy}
                 notificationSendingId={memberNotificationSendingId}
-                entryGrantingId={memberEntryGrantingId}
                 onSearchChange={(value) => changeSearch("users", value)}
                 onMemberStatusFilterChange={changeMemberStatusFilter}
                 onMemberStatusChange={saveMemberStatus}
                 onNotificationSend={sendMemberNotification}
-                onEntryGrant={grantMemberEntryAccess}
                 onUserUpdate={saveUserProfile}
                 pageMeta={pageMeta.users}
                 onPageChange={(page) => changePage("users", page)}

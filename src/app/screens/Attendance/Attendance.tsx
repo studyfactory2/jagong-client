@@ -7,8 +7,7 @@ import AppShell from "../../components/ui/AppShell";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
 import {
-  formatFirstStudyClock,
-  formatLateDuration,
+  getAttendanceArrivalDetail,
 } from "../../utils/attendance-display";
 import type {
   AttendanceRecord,
@@ -267,11 +266,10 @@ function recordDescription(
     ? STATUS_META[record.status].label
     : "확인 필요";
   const details = [`${periodNumber}교시`, status];
-  if (record.status === "LATE") {
-    const duration = formatLateDuration(record.lateSeconds);
-    const clock = formatFirstStudyClock(record.firstStudyAt);
-    if (duration) details.push(duration);
-    if (clock) details.push(`공부 시작 ${clock}`);
+  const arrival = getAttendanceArrivalDetail(record);
+  if (arrival?.lateDuration) details.push(`${arrival.lateDuration} 늦게 입실`);
+  if (arrival?.firstStudyClock) {
+    details.push(`공부 시작 ${arrival.firstStudyClock}`);
   }
   if (record.status === "EXCUSED") {
     const reason = record.reason?.trim() || record.reasonType?.trim();
