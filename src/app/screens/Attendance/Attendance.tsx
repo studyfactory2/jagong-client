@@ -6,9 +6,7 @@ import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import AppShell from "../../components/ui/AppShell";
 import { getMyAttendance } from "../../services/attendance.service";
 import { getTimetable } from "../../services/timetable.service";
-import {
-  getAttendanceArrivalDetail,
-} from "../../utils/attendance-display";
+import { getAttendanceArrivalDetail } from "../../utils/attendance-display";
 import type {
   AttendanceRecord,
   AttendanceStatusName,
@@ -33,6 +31,16 @@ type StatusMeta = {
   className: string;
   glyph: string;
   label: string;
+};
+
+type AttendancePeriodDetail = {
+  slot: number;
+  periodNumber: number;
+  className: string;
+  glyph: string;
+  statusLabel: string;
+  detail: string;
+  supporting: string | null;
 };
 
 const SEOUL_TIME_ZONE = "Asia/Seoul";
@@ -201,7 +209,9 @@ function fullDateLabel(date: string): string {
 function weekRangeLabel(dates: string[]): string {
   const first = dates[0];
   const last = dates[dates.length - 1];
-  return first && last ? `${shortDateLabel(first)} – ${shortDateLabel(last)}` : "";
+  return first && last
+    ? `${shortDateLabel(first)} – ${shortDateLabel(last)}`
+    : "";
 }
 
 function apiDateKey(value: string): string {
@@ -226,7 +236,10 @@ function highestPriorityStatus(
   let selected: AttendanceStatusName | null = null;
   records.forEach((record) => {
     if (!isAttendanceStatus(record.status)) return;
-    if (!selected || STATUS_PRIORITY[record.status] > STATUS_PRIORITY[selected]) {
+    if (
+      !selected ||
+      STATUS_PRIORITY[record.status] > STATUS_PRIORITY[selected]
+    ) {
       selected = record.status;
     }
   });
@@ -269,13 +282,112 @@ function recordDescription(
   const arrival = getAttendanceArrivalDetail(record);
   if (arrival?.lateDuration) details.push(`${arrival.lateDuration} 늦게 입실`);
   if (arrival?.firstStudyClock) {
-    details.push(`공부 시작 ${arrival.firstStudyClock}`);
+    details.push(`입실 시간 ${arrival.firstStudyClock}`);
   }
   if (record.status === "EXCUSED") {
     const reason = record.reason?.trim() || record.reasonType?.trim();
     if (reason) details.push(reason);
   }
   return details.join(" · ");
+}
+
+function recognizedReason(record: AttendanceRecord): string {
+  const reasons = [record.reasonType?.trim(), record.reason?.trim()].filter(
+    (value): value is string => Boolean(value),
+  );
+  return [...new Set(reasons)].join(" · ");
+}
+
+function attendancePeriodDetail(
+  slot: TimetableSlot,
+  periodNumber: number,
+  record: AttendanceRecord | undefined,
+  selectedDate: string,
+  today: string,
+  nowSecond: number,
+): AttendancePeriodDetail {
+  if (!record || !isAttendanceStatus(record.status)) {
+    const statusLabel = record
+      ? "확인 필요"
+      : missingStatusLabel(selectedDate, slot, today, nowSecond);
+    const detail =
+      statusLabel === "예정"
+        ? "아직 시작 전"
+        : statusLabel === "확인 중"
+          ? "출석 확인 중"
+          : statusLabel === "미기록"
+            ? "기록 없음"
+            : "출석 상태 확인 필요";
+
+    return {
+      slot: slot.slot,
+      periodNumber,
+      className: "is-neutral",
+      glyph: "·",
+      statusLabel,
+      detail,
+      supporting: null,
+    };
+  }
+
+  const meta = STATUS_META[record.status];
+  const arrival = getAttendanceArrivalDetail(record);
+  const supporting = arrival?.firstStudyClock
+    ? `입실 시간 ${arrival.firstStudyClock}`
+    : null;
+
+  if (record.status === "LATE") {
+    return {
+      slot: slot.slot,
+      periodNumber,
+      className: meta.className,
+      glyph: meta.glyph,
+      statusLabel: meta.label,
+      detail: arrival?.lateDuration
+        ? `${arrival.lateDuration} 늦게 입실`
+        : "지각 기록",
+      supporting,
+    };
+  }
+
+  if (record.status === "ABSENT") {
+    const enteredLate = Boolean(record.firstStudyAt);
+    return {
+      slot: slot.slot,
+      periodNumber,
+      className: meta.className,
+      glyph: meta.glyph,
+      statusLabel: enteredLate ? "결석 처리" : meta.label,
+      detail: enteredLate
+        ? arrival?.lateDuration
+          ? `${arrival.lateDuration} 늦게 입실`
+          : "입실 정보 확인 필요"
+        : "입실 기록 없음",
+      supporting: enteredLate ? supporting : null,
+    };
+  }
+
+  if (record.status === "EXCUSED") {
+    return {
+      slot: slot.slot,
+      periodNumber,
+      className: meta.className,
+      glyph: meta.glyph,
+      statusLabel: meta.label,
+      detail: recognizedReason(record) || "인정 사유 확인 중",
+      supporting: null,
+    };
+  }
+
+  return {
+    slot: slot.slot,
+    periodNumber,
+    className: meta.className,
+    glyph: meta.glyph,
+    statusLabel: meta.label,
+    detail: "정상 출석",
+    supporting: null,
+  };
 }
 
 export default function Attendance() {
@@ -285,9 +397,9 @@ export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState(
     () => seoulDateTimeParts().date,
   );
-  const [attendance, setAttendance] = useState<
-    ResourceState<AttendanceReport>
-  >({ data: null, loading: true, error: "" });
+  const [attendance, setAttendance] = useState<ResourceState<AttendanceReport>>(
+    { data: null, loading: true, error: "" },
+  );
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [timetableLoading, setTimetableLoading] = useState(true);
   const [timetableError, setTimetableError] = useState("");
@@ -422,6 +534,20 @@ export default function Attendance() {
     [selectedDate],
   );
   const currentTime = useMemo(() => seoulDateTimeParts(now), [now]);
+  const selectedDateDetails = useMemo(
+    () =>
+      workPeriodSlots.map((slot, index) =>
+        attendancePeriodDetail(
+          slot,
+          index + 1,
+          recordsByDateAndSlot.get(`${selectedDate}:${slot.slot}`),
+          selectedDate,
+          currentTime.date,
+          currentTime.secondOfDay,
+        ),
+      ),
+    [currentTime, recordsByDateAndSlot, selectedDate, workPeriodSlots],
+  );
   const latestMonth = currentTime.date.slice(0, 7);
   const canMoveNext = selectedMonth < latestMonth;
 
@@ -505,11 +631,14 @@ export default function Attendance() {
           </p>
         )}
 
-        {!isInitialLoading && cannotRender && !attendance.error && !timetableError && (
-          <p className="attendance-status is-error" role="alert">
-            표시할 출석 또는 교시 정보를 확인하지 못했습니다.
-          </p>
-        )}
+        {!isInitialLoading &&
+          cannotRender &&
+          !attendance.error &&
+          !timetableError && (
+            <p className="attendance-status is-error" role="alert">
+              표시할 출석 또는 교시 정보를 확인하지 못했습니다.
+            </p>
+          )}
 
         {!cannotRender && (
           <>
@@ -575,7 +704,7 @@ export default function Attendance() {
                         const isSelected = date === selectedDate;
                         const dateDescription = meta
                           ? `${fullDateLabel(date)} ${meta.label}`
-                          : `${fullDateLabel(date)} 기록 없음`;
+                          : fullDateLabel(date);
 
                         return (
                           <td
@@ -588,7 +717,7 @@ export default function Attendance() {
                             key={date}
                           >
                             <button
-                              aria-label={`${dateDescription}. 해당 주 보기`}
+                              aria-label={`${dateDescription}. 해당 날짜 상세 및 주 보기`}
                               aria-pressed={isSelected}
                               onClick={() => setSelectedDate(date)}
                               type="button"
@@ -629,7 +758,8 @@ export default function Attendance() {
                   ),
                 )}
                 <span>
-                  <i className="is-neutral" />예정·미기록
+                  <i className="is-neutral" />
+                  예정·미기록
                 </span>
               </div>
             </section>
@@ -648,6 +778,48 @@ export default function Attendance() {
                   <small>{fullDateLabel(selectedDate)} 선택</small>
                 </div>
               </header>
+
+              <section
+                aria-labelledby="attendance-selected-date-detail-title"
+                className="attendance-selected-date-detail"
+              >
+                <header className="attendance-selected-date-detail-head">
+                  <div>
+                    <strong id="attendance-selected-date-detail-title">
+                      선택한 날 상세
+                    </strong>
+                    <small>교시별 출석과 확인된 입실 기록</small>
+                  </div>
+                  <time aria-live="polite" dateTime={selectedDate}>
+                    {fullDateLabel(selectedDate)}
+                  </time>
+                </header>
+
+                <ul className="attendance-selected-date-detail-list">
+                  {selectedDateDetails.map((detail) => (
+                    <li key={detail.slot}>
+                      <span
+                        aria-hidden="true"
+                        className={`attendance-status-circle ${detail.className}`}
+                      >
+                        {detail.glyph}
+                      </span>
+                      <div className="attendance-selected-date-detail-copy">
+                        <div>
+                          <strong>{detail.periodNumber}교시</strong>
+                          <b className={detail.className}>
+                            {detail.statusLabel}
+                          </b>
+                        </div>
+                        <p>{detail.detail}</p>
+                        {detail.supporting && (
+                          <small>{detail.supporting}</small>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
 
               <div className="attendance-weekly-scroll" tabIndex={0}>
                 <table className="attendance-weekly-table">

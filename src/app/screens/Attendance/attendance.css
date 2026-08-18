@@ -319,6 +319,146 @@
   white-space: nowrap;
 }
 
+.attendance-selected-date-detail {
+  min-width: 0;
+  margin-top: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--card-2);
+  padding: 11px;
+}
+
+.attendance-selected-date-detail-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.attendance-selected-date-detail-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.attendance-selected-date-detail-head strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.attendance-selected-date-detail-head small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.attendance-selected-date-detail-head time {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-2);
+  padding: 5px 9px;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.attendance-selected-date-detail-list {
+  min-width: 0;
+  margin: 9px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  list-style: none;
+}
+
+.attendance-selected-date-detail-list > li {
+  min-width: 0;
+  min-height: 64px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-selected-date-detail-list .attendance-status-circle {
+  width: 30px;
+  height: 30px;
+}
+
+.attendance-selected-date-detail-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.attendance-selected-date-detail-copy > div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+}
+
+.attendance-selected-date-detail-copy > div > strong {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.attendance-selected-date-detail-copy > div > b {
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.attendance-selected-date-detail-copy > div > b.is-present {
+  color: var(--mint-deep);
+}
+
+.attendance-selected-date-detail-copy > div > b.is-late {
+  color: #8a6518;
+}
+
+.attendance-selected-date-detail-copy > div > b.is-absent {
+  color: var(--accent-deep);
+}
+
+.attendance-selected-date-detail-copy > div > b.is-excused {
+  color: #174f78;
+}
+
+.attendance-selected-date-detail-copy > div > b.is-neutral {
+  color: var(--muted);
+}
+
+.attendance-selected-date-detail-copy p,
+.attendance-selected-date-detail-copy small {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.attendance-selected-date-detail-copy p {
+  color: var(--ink-2);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.attendance-selected-date-detail-copy small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
 .attendance-weekly-scroll {
   max-width: 100%;
   margin-top: 13px;
@@ -601,6 +741,45 @@
     text-overflow: ellipsis;
   }
 
+  .attendance-selected-date-detail {
+    margin-top: 8px;
+    padding: 8px;
+  }
+
+  .attendance-selected-date-detail-head {
+    gap: 6px;
+  }
+
+  .attendance-selected-date-detail-head strong {
+    font-size: 11px;
+  }
+
+  .attendance-selected-date-detail-head small {
+    font-size: 9.5px;
+  }
+
+  .attendance-selected-date-detail-head time {
+    padding-inline: 7px;
+    font-size: 8px;
+  }
+
+  .attendance-selected-date-detail-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .attendance-selected-date-detail-list > li {
+    min-height: 58px;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .attendance-selected-date-detail-list .attendance-status-circle {
+    width: 26px;
+    height: 26px;
+  }
+
   .attendance-weekly-scroll {
     margin-top: 8px;
   }
@@ -719,6 +898,10 @@
   .attendance-period-status {
     width: min(32px, calc(100% - 2px));
   }
+
+  .attendance-selected-date-detail-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 340px) {
@@ -728,6 +911,10 @@
 }
 
 @media (min-width: 621px) and (max-width: 899px) {
+  .attendance-selected-date-detail-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .attendance-weekly-table {
     min-width: 100%;
   }
