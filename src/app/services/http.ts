@@ -6,6 +6,12 @@ export const http = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+let activeAuthToken: string | null = null;
+
+export function setHttpAuthToken(token: string | null): void {
+  activeAuthToken = token;
+}
+
 function koreanErrorMessage(err: unknown) {
   if (!axios.isAxiosError(err)) return "요청 처리 중 오류가 발생했습니다.";
 
@@ -34,18 +40,12 @@ function koreanErrorMessage(err: unknown) {
   return "요청에 실패했습니다. 잠시 후 다시 시도해주세요.";
 }
 
-// Attach the JWT from the saved session on every request.
+// AuthContext owns the effective per-tab identity. Do not independently read
+// browser storage here: a tab-local session may intentionally shadow another
+// account's remembered browser session.
 http.interceptors.request.use((config) => {
-  try {
-    const raw =
-      localStorage.getItem("jagong_session") ??
-      sessionStorage.getItem("jagong_session");
-    if (raw) {
-      const token = JSON.parse(raw)?.token;
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch {
-    // malformed session — ignore; AuthContext will clear it
+  if (activeAuthToken) {
+    config.headers.Authorization = `Bearer ${activeAuthToken}`;
   }
   return config;
 });

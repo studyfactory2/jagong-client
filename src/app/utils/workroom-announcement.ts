@@ -7,6 +7,7 @@ const OVERNIGHT_START_HOUR = 22;
 const CLAIM_STORAGE_PREFIX = "jagong.workday-announcement-claims.v2";
 const LEGACY_CLAIM_STORAGE_PREFIX = "jagong.workday-announcement-claims.v1";
 const CLAIM_STORAGE_VERSION = 2;
+const CLAIM_LEDGER_RETENTION_DAYS = 45;
 const CLAIM_RESERVATION_TTL_MS = 15_000;
 const NO_LOCK_SETTLE_MS = 50;
 const MAX_ANNOUNCEMENT_ID_LENGTH = 64;
@@ -164,10 +165,10 @@ function morningAnnouncement(
     announcement: {
       id: `schedule:${date}:workday-start`,
       kind: "WORKDAY_START",
-      title: "오늘 공부를 시작할까요?",
+      title: "공장 출근 성공을 축하합니다!",
       body: [
-        "매일 같은 노력을 정확하게 반복하는 힘이 합격을 만듭니다.",
-        "오늘도 함께 시작해요 🙋‍♀️",
+        "매일 같은 노력을 정확하게 반복하는 자가 운명을 뚫는 막대한 힘을 가집니다.",
+        "우리 오늘도 화이팅 해요🙋‍♀️",
       ],
       note: beforeRegularStart
         ? "정규 일정은 오전 9시에 시작됩니다. 지금 시작하면 자율 공부시간으로 기록됩니다."
@@ -231,7 +232,9 @@ export function presentLiveWorkdayAnnouncement(
   };
 }
 
-function storageOwnerFingerprint(userId: string): string {
+// This keeps raw user IDs out of browser storage keys. It is a stable
+// pseudonymous identifier, not encryption or an authorization boundary.
+export function workdayAnnouncementOwnerFingerprint(userId: string): string {
   let first = 2166136261;
   let second = 2246822519;
   for (let index = 0; index < userId.length; index += 1) {
@@ -243,21 +246,52 @@ function storageOwnerFingerprint(userId: string): string {
 }
 
 function claimStorageKey(userId: string): string {
-  return `${CLAIM_STORAGE_PREFIX}:${storageOwnerFingerprint(userId)}`;
+  return `${CLAIM_STORAGE_PREFIX}:${workdayAnnouncementOwnerFingerprint(userId)}`;
 }
 
 function legacyClaimStorageKey(userId: string): string {
   return `${LEGACY_CLAIM_STORAGE_PREFIX}:${userId}`;
 }
 
-export function clearLegacyWorkdayAnnouncementClaims(): void {
+export function clearObsoleteWorkdayAnnouncementClaims(): void {
   try {
-    const keys: string[] = [];
+    const staleEntries: Array<{ key: string; observedRaw: string | null }> = [];
+    const oldestRetainedDay = addUtcDays(
+      announcementDay(new Date()).date,
+      -CLAIM_LEDGER_RETENTION_DAYS,
+    );
     for (let index = 0; index < window.localStorage.length; index += 1) {
       const key = window.localStorage.key(index);
-      if (key?.startsWith(`${LEGACY_CLAIM_STORAGE_PREFIX}:`)) keys.push(key);
+      if (!key) continue;
+      if (key.startsWith(`${LEGACY_CLAIM_STORAGE_PREFIX}:`)) {
+        staleEntries.push({
+          key,
+          observedRaw: window.localStorage.getItem(key),
+        });
+        continue;
+      }
+      if (!key.startsWith(`${CLAIM_STORAGE_PREFIX}:`)) continue;
+
+      const observedRaw = window.localStorage.getItem(key);
+      try {
+        const stored = asRecord(JSON.parse(observedRaw ?? ""));
+        if (
+          stored?.v !== CLAIM_STORAGE_VERSION ||
+          typeof stored.day !== "string" ||
+          addUtcDays(stored.day, 0) !== stored.day ||
+          stored.day < oldestRetainedDay
+        ) {
+          staleEntries.push({ key, observedRaw });
+        }
+      } catch {
+        staleEntries.push({ key, observedRaw });
+      }
     }
-    keys.forEach((key) => window.localStorage.removeItem(key));
+    staleEntries.forEach(({ key, observedRaw }) => {
+      if (window.localStorage.getItem(key) === observedRaw) {
+        window.localStorage.removeItem(key);
+      }
+    });
   } catch {
     // Storage can be unavailable in private/restricted browser contexts.
   }
@@ -475,7 +509,7 @@ async function withClaimLock<T>(
 
   try {
     return await navigator.locks.request(
-      `${CLAIM_STORAGE_PREFIX}:lock:${storageOwnerFingerprint(userId)}`,
+      `${CLAIM_STORAGE_PREFIX}:lock:${workdayAnnouncementOwnerFingerprint(userId)}`,
       operation,
     );
   } catch {
@@ -842,12 +876,10 @@ export function hasWorkroomAnnouncementIntentState(state: unknown): boolean {
   );
 }
 
-export function withWorkroomAnnouncementIntent(
-  state: unknown,
+export function createWorkroomAnnouncementIntentState(
   intent: WorkroomAnnouncementIntent,
 ): Record<string, unknown> {
   return {
-    ...(asRecord(state) ?? {}),
     [INTENT_STATE_KEY]: intent,
   };
 }

@@ -8,14 +8,29 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getBranches } from "../../services/branch.service";
-import { getMe, login as loginApi } from "../../services/auth.service";
-import { useAuth } from "../../context/AuthContext";
+import { login as loginApi } from "../../services/auth.service";
+import {
+  isLocalAuthFallbackBlockedForThisTab,
+  useAuth,
+} from "../../context/AuthContext";
 import { memberHomePath } from "../../utils/access";
 import BusinessFooter from "../../components/ui/BusinessFooter";
 import type { Branch } from "../../../lib/types";
 import "./login.css";
 
 const AUTH_REMEMBER_KEY = "jagong_remember_login";
+
+function initialAutoLogin(): boolean {
+  try {
+    return (
+      !isLocalAuthFallbackBlockedForThisTab() &&
+      localStorage.getItem(AUTH_REMEMBER_KEY) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
 const STUDY_TILES = [
   {
     label: "변호사",
@@ -58,9 +73,7 @@ export default function Login() {
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
-  const [autoLogin, setAutoLogin] = useState(
-    () => localStorage.getItem(AUTH_REMEMBER_KEY) === "1",
-  );
+  const [autoLogin, setAutoLogin] = useState(initialAutoLogin);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -98,13 +111,7 @@ export default function Login() {
     try {
       const { token, user } = await loginApi(name, branchId, pin, autoLogin);
       login({ token, user }, autoLogin);
-      try {
-        const freshUser = await getMe();
-        login({ token, user: freshUser }, autoLogin);
-        navigate(memberHomePath(freshUser), { replace: true });
-      } catch {
-        navigate(memberHomePath(user), { replace: true });
-      }
+      navigate(memberHomePath(user), { replace: true });
     } catch (e) {
       setError((e as Error).message);
     } finally {

@@ -23,13 +23,13 @@ import {
   claimWorkdayAnnouncementSound,
   commitWorkdayAnnouncementDisplay,
   createWorkroomAnnouncementIntent,
+  createWorkroomAnnouncementIntentState,
   isWorkdayAnnouncementDisplayReservationCurrent,
   presentLiveWorkdayAnnouncement,
   releaseWorkdayAnnouncementDisplay,
   reserveWorkdayAnnouncementDisplay,
   resolveFreshEntryAnnouncement,
   WORKDAY_ANNOUNCEMENT_RESERVATION_RETRY_MS,
-  withWorkroomAnnouncementIntent,
   type WorkdayAnnouncementDisplayReservation,
   type WorkroomAnnouncementPresentation,
 } from "../../utils/workroom-announcement";
@@ -516,7 +516,7 @@ export default function GlobalScheduleAnnouncement() {
     const intent = createWorkroomAnnouncementIntent(presentation, now);
     queuedPresentationRef.current = null;
     navigate(announcementActionTarget(location.pathname, location.search), {
-      state: withWorkroomAnnouncementIntent(location.state, intent),
+      state: createWorkroomAnnouncementIntentState(intent),
     });
     clearActive(visibleAnnouncement.claimKey);
   };
