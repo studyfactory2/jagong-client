@@ -79,19 +79,34 @@
   text-align: left;
 }
 
-.global-schedule-announcement__dialog > button {
+.global-schedule-announcement__actions {
   width: 100%;
-  min-height: 46px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: 9px;
   margin-top: 2px;
+}
+
+.global-schedule-announcement__actions button {
+  min-width: 0;
+  min-height: 46px;
   border: 1px solid var(--accent);
   border-radius: 12px;
   background: var(--accent);
   color: #ffffff;
   font-size: 14px;
   font-weight: 950;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
-.global-schedule-announcement__dialog > button:focus-visible {
+.global-schedule-announcement__actions button.is-secondary {
+  border-color: var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+}
+
+.global-schedule-announcement__actions button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
@@ -111,6 +126,14 @@
 
   .global-schedule-announcement__body p {
     font-size: 14px;
+  }
+
+  .global-schedule-announcement__actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .global-schedule-announcement__actions button {
+    min-height: 48px;
   }
 }
 

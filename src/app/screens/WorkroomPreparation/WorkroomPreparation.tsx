@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -20,6 +25,7 @@ import {
   resolveStudyRecordingWindow,
   WORKROOM_FALLBACK_TIMETABLE,
 } from "../../utils/study-recording-policy";
+import { workroomAnnouncementIntentState } from "../../utils/workroom-announcement";
 import type {
   StudyRoomEntryAccess,
   StudyRoomEntryAccessChangedPayload,
@@ -87,6 +93,7 @@ function requestError(error: unknown, fallback: string): string {
 }
 
 function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const { socket } = useSocket();
   const { cameraReady, joined, joining, startSession, leaveSession } =
@@ -102,6 +109,10 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
   const [timetableLoaded, setTimetableLoaded] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const accessRequestRef = useRef(0);
+  const announcementState = useMemo(
+    () => workroomAnnouncementIntentState(location.state),
+    [location.state],
+  );
 
   const refreshAccess = useCallback(async () => {
     const requestId = accessRequestRef.current + 1;
@@ -221,8 +232,13 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
   }, [socket]);
 
   useEffect(() => {
-    if (joined) navigate(destination.path, { replace: true });
-  }, [destination.path, joined, navigate]);
+    if (joined) {
+      navigate(destination.path, {
+        replace: true,
+        state: announcementState,
+      });
+    }
+  }, [announcementState, destination.path, joined, navigate]);
 
   const recordingWindow = useMemo(
     () => resolveStudyRecordingWindow(timetable, timetableLoaded, now),
@@ -269,7 +285,10 @@ function WorkroomPreparationContent({ mode }: { mode: WorkroomMode }) {
     }
     const entered = await startSession(mode, activeAttendanceSlot);
     if (entered) {
-      navigate(destination.path, { replace: true });
+      navigate(destination.path, {
+        replace: true,
+        state: announcementState,
+      });
       return;
     }
     await refreshAccess();

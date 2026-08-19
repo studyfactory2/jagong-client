@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, type ReactNode } from "react";
 import {
   Routes,
   Route,
@@ -25,6 +25,8 @@ import {
 } from "./app/context/WorkroomSessionContext";
 import { memberHomePath } from "./app/utils/access";
 import AppLoading from "./app/components/ui/AppLoading";
+import WorkroomAnnouncementIntentController from "./app/components/WorkroomAnnouncementIntentController";
+import { workroomAnnouncementIntentState } from "./app/utils/workroom-announcement";
 import type { WorkroomMode } from "./lib/types";
 
 const WaitingRoom = lazy(() => import("./app/screens/WaitingRoom"));
@@ -61,6 +63,7 @@ function ScrollToTop() {
 function WorkroomSessionLayout() {
   return (
     <WorkroomSessionProvider>
+      <WorkroomAnnouncementIntentController />
       <Outlet />
     </WorkroomSessionProvider>
   );
@@ -73,13 +76,14 @@ function JoinedWorkroomRoute({
   mode: WorkroomMode;
   children: ReactNode;
 }) {
+  const location = useLocation();
   const navigate = useNavigate();
-  const {
-    joined,
-    joining,
-    currentWorkroomMode,
-    switchWorkroomMode,
-  } = useWorkroomSession();
+  const { joined, joining, currentWorkroomMode, switchWorkroomMode } =
+    useWorkroomSession();
+  const announcementState = useMemo(
+    () => workroomAnnouncementIntentState(location.state),
+    [location.state],
+  );
 
   useEffect(() => {
     if (!joined || currentWorkroomMode === mode) return undefined;
@@ -92,11 +96,14 @@ function JoinedWorkroomRoute({
         if (currentWorkroomMode) {
           navigate(
             currentWorkroomMode === "line" ? "/study-line" : "/study-room",
-            { replace: true },
+            { replace: true, state: announcementState },
           );
           return;
         }
-        navigate(`/workroom/prepare?mode=${mode}`, { replace: true });
+        navigate(`/workroom/prepare?mode=${mode}`, {
+          replace: true,
+          state: announcementState,
+        });
       });
     }, 0);
 
@@ -104,7 +111,14 @@ function JoinedWorkroomRoute({
       active = false;
       window.clearTimeout(reconcileTimer);
     };
-  }, [currentWorkroomMode, joined, mode, navigate, switchWorkroomMode]);
+  }, [
+    announcementState,
+    currentWorkroomMode,
+    joined,
+    mode,
+    navigate,
+    switchWorkroomMode,
+  ]);
 
   if (joined && currentWorkroomMode === mode) return <>{children}</>;
   if (joined) {
@@ -114,7 +128,13 @@ function JoinedWorkroomRoute({
     return <AppLoading message="작업장 연결을 확인하고 있습니다." />;
   }
 
-  return <Navigate replace to={`/workroom/prepare?mode=${mode}`} />;
+  return (
+    <Navigate
+      replace
+      state={announcementState}
+      to={`/workroom/prepare?mode=${mode}`}
+    />
+  );
 }
 
 export default function App() {

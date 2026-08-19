@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { theme } from "./app/theme";
 import { AuthProvider } from "./app/context/AuthContext";
 import { SocketProvider } from "./app/context/SocketContext";
+import { WorkroomAnnouncementRuntimeProvider } from "./app/context/WorkroomAnnouncementRuntimeContext";
 import GlobalScheduleAnnouncement from "./app/components/ui/GlobalScheduleAnnouncement";
 import App from "./App";
 import "./app/theme/tokens.css";
@@ -16,10 +17,12 @@ createRoot(document.getElementById("root")!).render(
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
-          <SocketProvider>
-            <App />
-            <GlobalScheduleAnnouncement />
-          </SocketProvider>
+          <WorkroomAnnouncementRuntimeProvider>
+            <SocketProvider>
+              <App />
+              <GlobalScheduleAnnouncement />
+            </SocketProvider>
+          </WorkroomAnnouncementRuntimeProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
