@@ -13,7 +13,7 @@ import type { Session } from "../../lib/types";
 import { setHttpAuthToken } from "../services/http";
 import {
   clearObsoleteWorkdayAnnouncementClaims,
-  clearWorkdayAnnouncementClaims,
+  invalidateWorkdayAnnouncementRuntime,
   workdayAnnouncementOwnerFingerprint,
 } from "../utils/workroom-announcement";
 
@@ -245,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           workdayAnnouncementOwnerFingerprint(userId);
       if (matchingLogoutSignal) {
         blockLocalFallbackForThisTab();
-        clearWorkdayAnnouncementClaims(userId);
+        invalidateWorkdayAnnouncementRuntime(userId);
         removeStoredSessionForUser("session", userId);
         if (removeStoredSessionForUser("local", userId)) {
           removeStorageValue("local", AUTH_REMEMBER_KEY);
@@ -269,7 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         blockLocalFallbackForThisTab();
-        clearWorkdayAnnouncementClaims(userId);
+        invalidateWorkdayAnnouncementRuntime(userId);
         adoptAuthState(EMPTY_AUTH_STATE);
         return;
       }
@@ -277,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextSession = parseStoredSession(event.newValue);
       if (!nextSession) {
         blockLocalFallbackForThisTab();
-        clearWorkdayAnnouncementClaims(userId);
+        invalidateWorkdayAnnouncementRuntime(userId);
         removeStorageValue("local", AUTH_SESSION_KEY);
         removeStorageValue("local", AUTH_REMEMBER_KEY);
         adoptAuthState(EMPTY_AUTH_STATE);
@@ -289,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      clearWorkdayAnnouncementClaims(userId);
+      invalidateWorkdayAnnouncementRuntime(userId);
       adoptAuthState({ session: nextSession, source: "local" });
       window.location.reload();
     };
@@ -308,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       previousUserId &&
       (previousUserId !== nextUserId || previousSession?.token !== s.token)
     ) {
-      clearWorkdayAnnouncementClaims(previousUserId);
+      invalidateWorkdayAnnouncementRuntime(previousUserId);
     }
 
     const serialized = JSON.stringify(s);
@@ -336,7 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const current = authStateRef.current;
     const userId = sessionUserId(current.session);
     blockLocalFallbackForThisTab();
-    clearWorkdayAnnouncementClaims(userId);
+    invalidateWorkdayAnnouncementRuntime(userId);
     removeStoredSessionForUser("session", userId);
     if (removeStoredSessionForUser("local", userId)) {
       removeStorageValue("local", AUTH_REMEMBER_KEY);
@@ -365,7 +365,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!stored || !sameSessionIdentity(stored, current.session)) {
       if (current.source === "local" && stored) {
-        clearWorkdayAnnouncementClaims(sessionUserId(current.session));
+        invalidateWorkdayAnnouncementRuntime(
+          sessionUserId(current.session),
+        );
         adoptAuthState({ session: stored, source: "local" });
         window.location.reload();
         return;

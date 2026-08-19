@@ -760,7 +760,7 @@ export async function claimWorkdayAnnouncementSound(
   return result === true;
 }
 
-export function clearWorkdayAnnouncementClaims(userId: string): void {
+export function invalidateWorkdayAnnouncementRuntime(userId: string): void {
   if (!userId) return;
   claimGenerationEpoch += 1;
   const runtimePrefix = `${userId}:`;
@@ -775,7 +775,9 @@ export function clearWorkdayAnnouncementClaims(userId: string): void {
   });
 
   try {
-    window.localStorage.removeItem(claimStorageKey(userId));
+    // The v2 receipt is intentionally preserved across logout so the same
+    // member does not receive the same daily announcement again on this
+    // browser. Legacy keys used the raw user ID and remain safe to remove.
     window.localStorage.removeItem(legacyClaimStorageKey(userId));
   } catch {
     // Storage can be unavailable in private/restricted browser contexts.
