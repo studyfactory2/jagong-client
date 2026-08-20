@@ -49,7 +49,18 @@ type QueuedAnnouncement = {
   presentation: WorkroomAnnouncementPresentation;
 };
 
-function announcementActionTarget(pathname: string, search: string): string {
+function announcementActionTarget(
+  intentKind: WorkroomAnnouncementPresentation["intentKind"],
+  hasJoinedWorkroomSession: boolean,
+  pathname: string,
+  search: string,
+): string {
+  if (intentKind === "START_STUDY") {
+    return hasJoinedWorkroomSession
+      ? "/study-room"
+      : "/workroom/prepare?mode=group";
+  }
+
   if (pathname === "/study-line" || pathname === "/study-room") {
     return `${pathname}${search}`;
   }
@@ -194,10 +205,7 @@ export default function GlobalScheduleAnnouncement() {
             !reservationIsCurrent
           ) {
             if (claim?.status === "reserved") {
-              void releaseWorkdayAnnouncementDisplay(
-                userId,
-                claim.reservation,
-              );
+              void releaseWorkdayAnnouncementDisplay(userId, claim.reservation);
             }
             if (startSuppressed) {
               settledPresentationKeysRef.current.add(claimKey);
@@ -240,10 +248,7 @@ export default function GlobalScheduleAnnouncement() {
             if (activeRef.current.claimKey !== claimKey) {
               queuedPresentationRef.current = { ownerKey, presentation };
             }
-            void releaseWorkdayAnnouncementDisplay(
-              userId,
-              claim.reservation,
-            );
+            void releaseWorkdayAnnouncementDisplay(userId, claim.reservation);
             return;
           }
 
@@ -356,9 +361,7 @@ export default function GlobalScheduleAnnouncement() {
         );
       }
       window.setTimeout(() => {
-        setActive((value) =>
-          value?.ownerKey === ownerKey ? null : value,
-        );
+        setActive((value) => (value?.ownerKey === ownerKey ? null : value));
       }, 0);
     };
   }, [ownerKey]);
@@ -502,9 +505,7 @@ export default function GlobalScheduleAnnouncement() {
     if (!visibleAnnouncement.committed) return;
     const now = new Date();
     const currentPresentation = resolveFreshEntryAnnouncement(now);
-    if (
-      currentPresentation.announcement.id !== presentation.announcement.id
-    ) {
+    if (currentPresentation.announcement.id !== presentation.announcement.id) {
       queuedPresentationRef.current = {
         ownerKey,
         presentation: currentPresentation,
@@ -515,9 +516,17 @@ export default function GlobalScheduleAnnouncement() {
 
     const intent = createWorkroomAnnouncementIntent(presentation, now);
     queuedPresentationRef.current = null;
-    navigate(announcementActionTarget(location.pathname, location.search), {
-      state: createWorkroomAnnouncementIntentState(intent),
-    });
+    navigate(
+      announcementActionTarget(
+        presentation.intentKind,
+        hasJoinedWorkroomSession,
+        location.pathname,
+        location.search,
+      ),
+      {
+        state: createWorkroomAnnouncementIntentState(intent),
+      },
+    );
     clearActive(visibleAnnouncement.claimKey);
   };
 
