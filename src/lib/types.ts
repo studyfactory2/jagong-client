@@ -705,6 +705,7 @@ export interface StudyChallenge {
 }
 
 export interface MyStudyChallengeStatus {
+  joinContractVersion?: number;
   joinRules: StudyChallengeRules;
   acceptedRules: StudyChallengeRules | null;
   nextChallenge: StudyStatisticsWindow;
@@ -715,10 +716,17 @@ export interface MyStudyChallengeStatus {
   latestResult: StudyChallenge | null;
 }
 
-export interface JoinStudyChallengeInput {
-  acceptedRules: true;
-  rulesVersion: string;
-}
+export type JoinStudyChallengeInput =
+  | {
+      acceptedRules: true;
+      rulesVersion: string;
+    }
+  | {
+      acceptedRules: true;
+      rulesVersion: string;
+      startsAt: string;
+      endsAtExclusive: string;
+    };
 
 export interface JoinStudyChallengeResult {
   acceptedRules: StudyChallengeRules;

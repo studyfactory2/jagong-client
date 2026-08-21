@@ -27,6 +27,7 @@ type StudyChallengePanelProps = {
 };
 
 type ChallengeAgreementSnapshot = {
+  joinContractVersion: MyStudyChallengeStatus["joinContractVersion"];
   rules: StudyChallengeRules;
   nextChallenge: StudyStatisticsWindow;
   rewardLabel: string;
@@ -34,6 +35,8 @@ type ChallengeAgreementSnapshot = {
 };
 
 const REFRESH_INTERVAL_MS = 60000;
+const CHALLENGE_WINDOW_CHANGED_MESSAGE =
+  "도전 기간이 변경되었습니다. 최신 기간을 다시 확인하고 동의해 주세요.";
 const RULES_REWARD_LABELS: Record<string, string> = {
   "2026-07-31-v1": "이용기간 1개월 연장",
 };
@@ -45,17 +48,21 @@ const challengeDateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 
-function validDate(value: string): Date | null {
+function validDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string | null | undefined): string {
   const date = validDate(value);
   return date ? challengeDateFormatter.format(date) : "날짜 확인 중";
 }
 
-function formatPeriod(startsAt: string, endsAtExclusive: string): string {
+function formatPeriod(
+  startsAt: string | null | undefined,
+  endsAtExclusive: string | null | undefined,
+): string {
   const start = validDate(startsAt);
   const exclusiveEnd = validDate(endsAtExclusive);
   if (!start || !exclusiveEnd) return "도전 기간 확인 중";
@@ -108,15 +115,45 @@ function resultLabel(challenge: StudyChallenge): string {
 
 function agreementSignature(
   rules: StudyChallengeRules,
-  nextChallenge: StudyStatisticsWindow,
+  nextChallenge: StudyStatisticsWindow | null | undefined,
+  joinContractVersion: MyStudyChallengeStatus["joinContractVersion"],
 ): string {
   return [
+    typeof joinContractVersion === "number" &&
+    Number.isFinite(joinContractVersion)
+      ? joinContractVersion
+      : 1,
     rules.version,
     rules.requiredWeeks,
     rules.weeklyTargetSeconds,
-    nextChallenge.startsAt,
-    nextChallenge.endsAtExclusive,
+    nextChallenge?.startsAt ?? "",
+    nextChallenge?.endsAtExclusive ?? "",
   ].join(":");
+}
+
+function usesExactWindowJoinContract(
+  joinContractVersion: MyStudyChallengeStatus["joinContractVersion"],
+): boolean {
+  return (
+    typeof joinContractVersion === "number" &&
+    Number.isFinite(joinContractVersion) &&
+    joinContractVersion >= 2
+  );
+}
+
+function isSubmittableChallengeWindow(
+  window: StudyStatisticsWindow | null | undefined,
+  referenceAt: number = Date.now(),
+): boolean {
+  if (!window) return false;
+  const startsAt = validDate(window.startsAt);
+  const endsAtExclusive = validDate(window.endsAtExclusive);
+  return Boolean(
+    startsAt &&
+      endsAtExclusive &&
+      startsAt.getTime() > referenceAt &&
+      startsAt.getTime() < endsAtExclusive.getTime(),
+  );
 }
 
 export default function StudyChallengePanel({
@@ -131,6 +168,7 @@ export default function StudyChallengePanel({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [agreementSnapshot, setAgreementSnapshot] =
     useState<ChallengeAgreementSnapshot | null>(null);
@@ -140,7 +178,11 @@ export default function StudyChallengePanel({
     dialogOpen &&
     agreementSnapshot &&
     data?.canJoin &&
-    agreementSignature(data.joinRules, data.nextChallenge) ===
+    agreementSignature(
+      data.joinRules,
+      data.nextChallenge,
+      data.joinContractVersion,
+    ) ===
       agreementSnapshot.signature
       ? agreementSnapshot
       : null;
@@ -152,16 +194,18 @@ export default function StudyChallengePanel({
 
     try {
       const next = await getMyStudyChallenge();
-      if (requestRef.current !== requestId) return;
+      if (requestRef.current !== requestId) return undefined;
       setData(next);
       setLoadError("");
+      return next;
     } catch (error) {
-      if (requestRef.current !== requestId) return;
+      if (requestRef.current !== requestId) return undefined;
       setLoadError(
         error instanceof Error
           ? error.message
           : "공부 도전 정보를 불러오지 못했습니다.",
       );
+      return null;
     } finally {
       if (requestRef.current === requestId && showLoading) setLoading(false);
     }
@@ -202,18 +246,26 @@ export default function StudyChallengePanel({
   }, [visibleAgreementSnapshot]);
 
   const openDialog = () => {
-    if (!data?.canJoin) return;
+    if (!data?.canJoin || !isSubmittableChallengeWindow(data.nextChallenge)) {
+      return;
+    }
     const rewardLabel = RULES_REWARD_LABELS[data.joinRules.version];
     if (!rewardLabel) return;
 
     setAgreementSnapshot({
+      joinContractVersion: data.joinContractVersion,
       rules: data.joinRules,
       nextChallenge: data.nextChallenge,
       rewardLabel,
-      signature: agreementSignature(data.joinRules, data.nextChallenge),
+      signature: agreementSignature(
+        data.joinRules,
+        data.nextChallenge,
+        data.joinContractVersion,
+      ),
     });
     setAgreed(false);
     setActionError("");
+    setActionNotice("");
     setDialogOpen(true);
   };
 
@@ -271,19 +323,17 @@ export default function StudyChallengePanel({
     const latestSignature = agreementSignature(
       data.joinRules,
       data.nextChallenge,
-    );
-    const challengeStartsAt = validDate(
-      agreementSnapshot.nextChallenge.startsAt,
+      data.joinContractVersion,
     );
     if (
       latestSignature !== agreementSnapshot.signature ||
-      !challengeStartsAt ||
-      challengeStartsAt.getTime() <= Date.now()
+      !isSubmittableChallengeWindow(agreementSnapshot.nextChallenge)
     ) {
+      setDialogOpen(false);
+      setAgreementSnapshot(null);
       setAgreed(false);
-      setActionError(
-        "도전 기간이 변경되었습니다. 최신 기간을 다시 확인해 주세요.",
-      );
+      setActionError("");
+      setActionNotice(CHALLENGE_WINDOW_CHANGED_MESSAGE);
       void loadChallenge(false);
       return;
     }
@@ -291,10 +341,20 @@ export default function StudyChallengePanel({
     setJoining(true);
     setActionError("");
     try {
-      const result = await joinStudyChallenge({
-        acceptedRules: true,
-        rulesVersion: agreementSnapshot.rules.version,
-      });
+      const result = await joinStudyChallenge(
+        usesExactWindowJoinContract(agreementSnapshot.joinContractVersion)
+          ? {
+              acceptedRules: true,
+              rulesVersion: agreementSnapshot.rules.version,
+              startsAt: agreementSnapshot.nextChallenge.startsAt,
+              endsAtExclusive:
+                agreementSnapshot.nextChallenge.endsAtExclusive,
+            }
+          : {
+              acceptedRules: true,
+              rulesVersion: agreementSnapshot.rules.version,
+            },
+      );
       setData((current) =>
         current
           ? {
@@ -310,13 +370,55 @@ export default function StudyChallengePanel({
       setDialogOpen(false);
       setAgreementSnapshot(null);
       setAgreed(false);
+      setActionNotice("");
       void loadChallenge(false);
     } catch (error) {
-      setActionError(
+      const originalError =
         error instanceof Error
           ? error.message
-          : "공부 도전 참여를 확정하지 못했습니다.",
+          : "공부 도전 참여를 확정하지 못했습니다.";
+      setAgreed(false);
+
+      const refreshed = await loadChallenge(false);
+      if (refreshed === undefined) return;
+      if (refreshed === null) {
+        setActionError(originalError);
+        return;
+      }
+
+      if (refreshed.isParticipating && refreshed.currentChallenge?.confirmedAt) {
+        setDialogOpen(false);
+        setAgreementSnapshot(null);
+        setActionError("");
+        setActionNotice("");
+        return;
+      }
+
+      const refreshedSignature = agreementSignature(
+        refreshed.joinRules,
+        refreshed.nextChallenge,
+        refreshed.joinContractVersion,
       );
+      if (
+        refreshedSignature !== agreementSnapshot.signature ||
+        !isSubmittableChallengeWindow(refreshed.nextChallenge)
+      ) {
+        setDialogOpen(false);
+        setAgreementSnapshot(null);
+        setActionError("");
+        setActionNotice(CHALLENGE_WINDOW_CHANGED_MESSAGE);
+        return;
+      }
+
+      if (!refreshed.canJoin) {
+        setDialogOpen(false);
+        setAgreementSnapshot(null);
+        setActionError("");
+        setActionNotice(refreshed.unavailableReason ?? originalError);
+        return;
+      }
+
+      setActionError(originalError);
     } finally {
       setJoining(false);
     }
@@ -425,8 +527,8 @@ export default function StudyChallengePanel({
           </h2>
           <p>
             {formatPeriod(
-              data.nextChallenge.startsAt,
-              data.nextChallenge.endsAtExclusive,
+              data.nextChallenge?.startsAt,
+              data.nextChallenge?.endsAtExclusive,
             )}
           </p>
         </div>
@@ -435,7 +537,7 @@ export default function StudyChallengePanel({
       <div className="study-records-challenge-summary">
         <span>
           <small>시작일</small>
-          <strong>{formatDate(data.nextChallenge.startsAt)}</strong>
+          <strong>{formatDate(data.nextChallenge?.startsAt)}</strong>
         </span>
         <span>
           <small>성공 보상</small>
@@ -443,7 +545,9 @@ export default function StudyChallengePanel({
         </span>
       </div>
 
-      {data.canJoin && rewardLabel ? (
+      {data.canJoin &&
+      rewardLabel &&
+      isSubmittableChallengeWindow(data.nextChallenge) ? (
         <button
           className="study-records-challenge-join"
           onClick={openDialog}
@@ -455,7 +559,9 @@ export default function StudyChallengePanel({
         <p className="study-records-challenge-unavailable">
           {data.unavailableReason ??
             (rewardLabel
-              ? "현재 이 도전에 참여할 수 없습니다. 관리자에게 문의해 주세요."
+              ? isSubmittableChallengeWindow(data.nextChallenge)
+                ? "현재 이 도전에 참여할 수 없습니다. 관리자에게 문의해 주세요."
+                : "도전 기간을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
               : "새로운 도전 규칙을 표시하려면 앱 업데이트가 필요합니다.")}
         </p>
       )}
@@ -490,6 +596,12 @@ export default function StudyChallengePanel({
         {loadError && (
           <p className="study-records-challenge-stale" role="status">
             최신 도전 정보를 확인하지 못해 이전 상태를 표시합니다.
+          </p>
+        )}
+
+        {actionNotice && (
+          <p className="study-records-challenge-stale" role="status">
+            {actionNotice}
           </p>
         )}
       </section>
