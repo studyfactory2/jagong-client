@@ -355,6 +355,7 @@ type RemoteVideo = {
 };
 
 type FameBoardMember = WeeklyStudyLeaderboardMember & {
+  examType: string | null;
   presence: "working" | "waiting" | "unknown";
 };
 
@@ -764,17 +765,20 @@ export default function WaitingRoom() {
 
     return weeklyRankedMembers
       .filter((member) => member.studySeconds >= cutoffSeconds)
-      .map(
-        (member): FameBoardMember => ({
+      .map((member): FameBoardMember => {
+        const roomMember = roomMemberById.get(member.userId);
+
+        return {
           ...member,
+          examType: roomMember?.examType?.trim() || null,
           presence:
-            roomMemberById.get(member.userId)?.isWorking === true
+            roomMember?.isWorking === true
               ? "working"
-              : roomMemberById.get(member.userId)?.isWorking === false
+              : roomMember?.isWorking === false
                 ? "waiting"
                 : "unknown",
-        }),
-      );
+        };
+      });
   }, [roomMembers, weeklyRankedMembers]);
   const livePreviewIds = useMemo(
     () =>
@@ -1229,19 +1233,21 @@ export default function WaitingRoom() {
                   >
                     <strong>{formatStudyTime(worker.studySeconds)}</strong>
                   </span>
-                  <span className="wr-worker-name">
-                    {worker.name}
-                    {worker.isMe && <i>나</i>}
-                  </span>
-                  {!isWorking && (
-                    <span
-                      className={`wr-worker-state${
-                        isWaiting ? " is-off" : " is-unknown"
-                      }`}
-                    >
-                      {isWaiting ? "대기" : "확인중"}
+                  <div className="wr-worker-bottom-meta">
+                    <span className="wr-worker-name">
+                      {worker.name}
+                      {worker.isMe && <i>나</i>}
                     </span>
-                  )}
+                    {worker.examType && (
+                      <span
+                        aria-label={`준비 시험 ${worker.examType}`}
+                        className="wr-worker-exam"
+                        title={`준비 시험: ${worker.examType}`}
+                      >
+                        {worker.examType}
+                      </span>
+                    )}
+                  </div>
                 </article>
               );
             })}

@@ -139,6 +139,7 @@ export default function StudyRoom() {
   const selfTileFitCleanupRef = useRef<(() => void) | null>(null);
   const myId = session?.user.userId ?? session?.user.id ?? "";
   const myName = session?.user.name ?? "나";
+  const myExamType = session?.user.examType?.trim() || null;
 
   useEffect(() => {
     const updatePageSize = () => {
@@ -296,7 +297,12 @@ export default function StudyRoom() {
   const membersForGrid = useMemo(() => {
     const withSelfStatus = roomMembers.map((member) =>
       member.id === myId
-        ? { ...member, isWorking: joined || member.isWorking }
+        ? {
+            ...member,
+            examType:
+              member.examType === undefined ? myExamType : member.examType,
+            isWorking: joined || member.isWorking,
+          }
         : member,
     );
 
@@ -304,6 +310,7 @@ export default function StudyRoom() {
       withSelfStatus.unshift({
         id: myId,
         name: myName,
+        examType: myExamType,
         isWorking: joined,
         joinedAt: joined ? new Date().toISOString() : null,
       });
@@ -315,7 +322,7 @@ export default function StudyRoom() {
       if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
       return a.name.localeCompare(b.name, "ko");
     });
-  }, [joined, myId, myName, roomMembers]);
+  }, [joined, myExamType, myId, myName, roomMembers]);
   const selfMember = useMemo(
     () => membersForGrid.find((member) => member.id === myId),
     [membersForGrid, myId],
@@ -552,6 +559,7 @@ export default function StudyRoom() {
               const memberTodayStudyTime = formatTodayStudyTime(
                 member.todayStudy?.studySeconds,
               );
+              const memberExamType = member.examType?.trim();
               const memberIndex = Math.max(0, membersForGrid.indexOf(member));
               return (
                 <div
@@ -589,20 +597,35 @@ export default function StudyRoom() {
                       workroomMode={remoteVideo.workroomMode}
                     />
                   )}
-                  <span
-                    aria-label={`오늘 공부시간 ${memberTodayStudyTime}`}
-                    className="sr-cam-today-study"
-                    title={`오늘 공부시간 ${memberTodayStudyTime}`}
-                  >
-                    <small>오늘</small>
-                    <strong>{memberTodayStudyTime}</strong>
-                  </span>
-                  <span className="sr-cam-name">
-                    {isMe ? "나" : member.name}
-                  </span>
-                  <span className={`sr-cam-state${isWorking ? "" : " is-off"}`}>
-                    <small>{cameraStateLabel}</small>
-                  </span>
+                  <div className="sr-cam-top-meta">
+                    <span
+                      className={`sr-cam-state${isWorking ? "" : " is-off"}`}
+                    >
+                      <small>{cameraStateLabel}</small>
+                    </span>
+                    <span
+                      aria-label={`오늘 공부시간 ${memberTodayStudyTime}`}
+                      className="sr-cam-today-study"
+                      title={`오늘 공부시간 ${memberTodayStudyTime}`}
+                    >
+                      <small>오늘</small>
+                      <strong>{memberTodayStudyTime}</strong>
+                    </span>
+                  </div>
+                  <div className="sr-cam-bottom-meta">
+                    <span className="sr-cam-name">
+                      {isMe ? "나" : member.name}
+                    </span>
+                    {memberExamType && (
+                      <span
+                        aria-label={`준비 시험 ${memberExamType}`}
+                        className="sr-cam-exam"
+                        title={`준비 시험: ${memberExamType}`}
+                      >
+                        {memberExamType}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

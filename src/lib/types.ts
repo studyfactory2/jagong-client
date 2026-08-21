@@ -572,6 +572,7 @@ export type WorkroomMode = "line" | "group";
 export interface CamRoomMember {
   id: string;
   name: string;
+  examType?: string | null;
   isWorking: boolean;
   joinedAt?: string | null;
   todayStudy?: StudyDurationTotal;
