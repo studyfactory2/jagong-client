@@ -5,6 +5,7 @@ import CardGiftcardOutlinedIcon from "@mui/icons-material/CardGiftcardOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -419,6 +420,21 @@ export default function Overview(props: OverviewProps) {
           </button>
         ))}
       </nav>
+
+      <button
+        className="admin-overview-challenge-shortcut"
+        onClick={() => onNavigate("challenges")}
+        type="button"
+      >
+        <span aria-hidden="true">
+          <EmojiEventsOutlinedIcon />
+        </span>
+        <span>
+          <strong>도전 관리</strong>
+          <small>실제 참여가 확정된 도전 기록과 주차별 현황을 확인합니다.</small>
+        </span>
+        <ChevronRightIcon aria-hidden="true" />
+      </button>
 
       <div className="admin-overview-workspace">
         <section className="admin-card admin-overview-notice">

@@ -7,6 +7,7 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import PaymentsOutlinedIcon from "@mui/icons-material/PaymentsOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
@@ -53,6 +54,7 @@ import Consultations from "./Consultations";
 import Members, { type MemberStatusFilter } from "./Members";
 import Overview from "./Overview";
 import Payments from "./Payments";
+import Challenges from "./Challenges";
 import Profile from "./Profile";
 import type {
   AdminUser,
@@ -91,6 +93,7 @@ function AdminTabIcon({ tab }: { tab: AdminTabKey }) {
   if (tab === "members") return <GroupsOutlinedIcon />;
   if (tab === "consultations") return <SupportAgentOutlinedIcon />;
   if (tab === "payments") return <PaymentsOutlinedIcon />;
+  if (tab === "challenges") return <EmojiEventsOutlinedIcon />;
   if (tab === "attendance") return <FactCheckOutlinedIcon />;
   if (tab === "chat") return <ChatBubbleOutlineOutlinedIcon />;
   return <VideocamOutlinedIcon />;
@@ -102,6 +105,7 @@ const adminPageDescriptions: Record<AdminTabKey, string> = {
   members: "회원 정보와 이용권 상태를 관리합니다.",
   consultations: "상담 예약, 결제 링크, 사전등록 준비를 처리합니다.",
   payments: "온라인 결제와 수동 결제 내역을 확인합니다.",
+  challenges: "참여가 확정된 4주 공부 도전 현황을 확인합니다.",
   attendance: "교시별 출석 상태를 확인하고 조정합니다.",
   chat: "회원과의 1:1 문의를 확인하고 답변합니다.",
   camera: "학생 화면 모니터링 및 실시간 알림을 관리합니다.",
@@ -111,6 +115,7 @@ const dashboardDestinationTabs: AdminTabKey[] = [
   "members",
   "consultations",
   "payments",
+  "challenges",
   "chat",
 ];
 
@@ -1257,6 +1262,8 @@ export default function AdminDashboard() {
                 onReturnToAttendance={returnToAttendanceMember}
               />
             )}
+
+            {isAdmin && activeTab === "challenges" && <Challenges />}
 
             {activeTab === "attendance" && (
               <Attendance

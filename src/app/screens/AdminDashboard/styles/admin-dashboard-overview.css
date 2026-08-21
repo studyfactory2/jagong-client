@@ -180,6 +180,101 @@
   color: var(--ink);
 }
 
+.app-shell.admin-shell .admin-redesign .admin-overview-challenge-shortcut {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 54px;
+  border: 1px solid rgba(20, 63, 86, 0.14);
+  border-radius: 10px;
+  background: var(--admin-panel);
+  box-shadow: 0 7px 18px rgba(20, 63, 86, 0.03);
+  color: var(--ink);
+  padding: 9px 12px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut:hover {
+  border-color: rgba(20, 63, 86, 0.28);
+  background: var(--admin-panel-muted);
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut:focus-visible {
+  outline: 3px solid rgba(247, 132, 120, 0.3);
+  outline-offset: 2px;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  > span:first-child {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: #8a6a1f;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  > span:first-child
+  svg {
+  font-size: 20px;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-overview-challenge-shortcut
+  > svg {
+  color: var(--muted);
+  font-size: 18px;
+}
+
 @media (max-width: 1199px) {
   .app-shell.admin-shell .admin-redesign .admin-overview-quick-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -189,6 +284,20 @@
 @media (max-width: 719px) {
   .app-shell.admin-shell .admin-redesign .admin-overview-quick-actions {
     gap: 8px;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-challenge-shortcut {
+    min-height: 50px;
+    padding: 8px 10px;
+  }
+
+  .app-shell.admin-shell
+    .admin-redesign
+    .admin-overview-challenge-shortcut
+    small {
+    display: none;
   }
 
   .app-shell.admin-shell .admin-redesign .admin-overview-quick-action {

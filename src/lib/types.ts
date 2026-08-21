@@ -733,6 +733,64 @@ export interface JoinStudyChallengeResult {
   challenge: StudyChallenge;
 }
 
+export type StudyChallengeEligibilityKind = "PAYMENT" | "REWARD" | "INVALID";
+
+export interface AdminStudyChallengeMember {
+  id: string;
+  name: string;
+  phone: string | null;
+  examType: string | null;
+  branch: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+export interface AdminStudyChallengeCore {
+  id: string;
+  status: StudyChallengeStatus;
+  rulesVersion: string | null;
+  confirmedAt: string;
+  startsAt: string;
+  endsAtExclusive: string;
+  finalizedAt: string | null;
+  requiredWeeks: number;
+  weeklyTargetSeconds: number;
+  eligibilityKind: StudyChallengeEligibilityKind;
+  member: AdminStudyChallengeMember;
+}
+
+export interface AdminStudyChallengeListItem extends AdminStudyChallengeCore {
+  weekSummary: {
+    total: number;
+    passed: number;
+    failed: number;
+    pending: number;
+    finalizedStudySeconds: number;
+  };
+  currentWeekNumber: number | null;
+}
+
+export interface AdminStudyChallengeListResult
+  extends PaginatedResult<AdminStudyChallengeListItem> {
+  generatedAt: string;
+}
+
+export interface AdminStudyChallengeDetailWeek extends StudyChallengeWeek {
+  id: string;
+}
+
+export interface AdminStudyChallengeDetail
+  extends AdminStudyChallengeListItem {
+  weeks: AdminStudyChallengeDetailWeek[];
+  currentWeekProgress: {
+    weekNumber: number;
+    studySeconds: number;
+    countedThroughAt: string;
+  } | null;
+  generatedAt: string;
+}
+
 export interface CamWarningRecord {
   id: string;
   userId: string;

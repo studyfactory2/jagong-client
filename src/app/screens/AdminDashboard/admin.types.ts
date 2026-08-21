@@ -15,6 +15,7 @@ export type AdminTabKey =
   | "members"
   | "consultations"
   | "payments"
+  | "challenges"
   | "attendance"
   | "chat"
   | "camera";
@@ -97,6 +98,7 @@ export const adminTabs: AdminTabItem[] = [
   { key: "members", label: "회원" },
   { key: "consultations", label: "상담" },
   { key: "payments", label: "결제" },
+  { key: "challenges", label: "도전" },
   { key: "attendance", label: "출석" },
   { key: "chat", label: "문의" },
   { key: "camera", label: "캠" },
