@@ -7,6 +7,17 @@ import type {
 
 /** ADMIN USER API **/
 
+export type UpdateAdminUserInput = {
+  age?: number | null;
+  examType?: string | null;
+  prepDuration?: string | null;
+  phone?: string | null;
+  residenceArea?: string | null;
+  notes?: string | null;
+  isActive?: boolean;
+  branchId?: string;
+};
+
 export async function getAdminUsers(input?: {
   branchId?: string;
   role?: string;
@@ -74,7 +85,7 @@ export async function preRegisterUser(input: {
 
 export async function updateAdminUser(
   userId: string,
-  input: Partial<AdminUser>,
+  input: UpdateAdminUserInput,
 ): Promise<AdminUser> {
   const { data } = await http.post<AdminUser>("/users/update/" + userId, input);
   return data;

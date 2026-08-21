@@ -9,6 +9,7 @@ import type {
   MemberStatus,
   PageMeta,
 } from "../../../lib/types";
+import type { UpdateAdminUserInput } from "../../services/admin.service";
 import AdminPager from "./AdminPager";
 import MemberOvernightStudyReport from "./MemberOvernightStudyReport";
 import { dDayText, userDetail } from "./admin.utils";
@@ -55,7 +56,10 @@ type MembersProps = {
     title: string,
     body: string,
   ) => Promise<boolean>;
-  onUserUpdate: (userId: string, input: Partial<AdminUser>) => Promise<void>;
+  onUserUpdate: (
+    userId: string,
+    input: UpdateAdminUserInput,
+  ) => Promise<AdminUser>;
   pageMeta: PageMeta;
   onPageChange: (page: number) => void;
 };
@@ -142,6 +146,7 @@ export default function Members({
   const [detailOpen, setDetailOpen] = useState(false);
   const [editingId, setEditingId] = useState("");
   const [editForm, setEditForm] = useState<MemberEditForm | null>(null);
+  const [editError, setEditError] = useState("");
   const [savingId, setSavingId] = useState("");
   const [statusChange, setStatusChange] = useState<{
     userId: string;
@@ -154,7 +159,7 @@ export default function Members({
     useState<MemberNotificationFeedback | null>(null);
   const statusChanging = Boolean(statusChange) || memberStatusBusy;
   const directoryBusy =
-    statusChanging || Boolean(notificationSendingId);
+    statusChanging || Boolean(notificationSendingId) || Boolean(savingId);
   const members = users.filter((user) => user.role === "MEMBER");
   const selectedUser = members.find((user) => user.id === selectedId) ?? null;
   const detailVisible = detailOpen && Boolean(selectedUser);
@@ -163,37 +168,40 @@ export default function Members({
     if (!detailVisible) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || notificationSendingId) {
+      if (event.key !== "Escape" || notificationSendingId || savingId) {
         return;
       }
       setDetailOpen(false);
       setSelectedId("");
       setEditingId("");
       setEditForm(null);
+      setEditError("");
       setNotificationDraft(emptyNotificationDraft());
       setNotificationFeedback(null);
     }
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [detailVisible, notificationSendingId]);
+  }, [detailVisible, notificationSendingId, savingId]);
 
   function resetSelection() {
-    if (notificationSendingId) return;
+    if (notificationSendingId || savingId) return;
     setDetailOpen(false);
     setSelectedId("");
     setEditingId("");
     setEditForm(null);
+    setEditError("");
     setNotificationDraft(emptyNotificationDraft());
     setNotificationFeedback(null);
   }
 
   function selectMember(user: AdminUser) {
-    if (notificationSendingId) return;
+    if (notificationSendingId || savingId) return;
     setSelectedId(user.id);
     setDetailOpen(true);
     setEditingId("");
     setEditForm(null);
+    setEditError("");
     setNotificationDraft((current) =>
       current.userId === user.id ? current : emptyNotificationDraft(user.id),
     );
@@ -203,9 +211,12 @@ export default function Members({
   function startEdit(user: AdminUser) {
     setEditingId(user.id);
     setEditForm(memberEditForm(user));
+    setEditError("");
   }
 
   function updateEdit(field: keyof MemberEditForm, value: string | boolean) {
+    if (savingId) return;
+    setEditError("");
     setEditForm((current) =>
       current ? { ...current, [field]: value } : current,
     );
@@ -213,12 +224,20 @@ export default function Members({
 
   async function saveEdit(userId: string) {
     if (!editForm || savingId || statusChanging) return;
+    const ageText = editForm.age.trim();
+    const age = ageText ? Number(ageText) : null;
+    if (ageText && (!Number.isInteger(age) || Number(age) < 1)) {
+      setEditError("나이는 1 이상의 정수로 입력해 주세요.");
+      return;
+    }
+
     setSavingId(userId);
+    setEditError("");
     try {
       await onUserUpdate(userId, {
         phone: editForm.phone.trim() || null,
         residenceArea: editForm.residenceArea.trim() || null,
-        age: editForm.age ? Number(editForm.age) : null,
+        age,
         examType: editForm.examType.trim() || null,
         prepDuration: editForm.prepDuration.trim() || null,
         notes: editForm.notes.trim() || null,
@@ -226,6 +245,12 @@ export default function Members({
       });
       setEditingId("");
       setEditForm(null);
+    } catch (err) {
+      setEditError(
+        err instanceof Error
+          ? err.message
+          : "회원 정보를 저장하지 못했습니다.",
+      );
     } finally {
       setSavingId("");
     }
@@ -515,6 +540,8 @@ export default function Members({
                       <label>
                         연락처
                         <input
+                          disabled={savingId === selectedUser.id}
+                          maxLength={30}
                           value={editForm.phone}
                           onChange={(event) =>
                             updateEdit("phone", event.target.value)
@@ -524,6 +551,8 @@ export default function Members({
                       <label>
                         거주지역
                         <input
+                          disabled={savingId === selectedUser.id}
+                          maxLength={80}
                           value={editForm.residenceArea}
                           onChange={(event) =>
                             updateEdit("residenceArea", event.target.value)
@@ -533,7 +562,11 @@ export default function Members({
                       <label>
                         나이
                         <input
+                          disabled={savingId === selectedUser.id}
                           inputMode="numeric"
+                          min={1}
+                          step={1}
+                          type="number"
                           value={editForm.age}
                           onChange={(event) =>
                             updateEdit("age", event.target.value)
@@ -543,6 +576,8 @@ export default function Members({
                       <label>
                         자격증
                         <input
+                          disabled={savingId === selectedUser.id}
+                          maxLength={80}
                           value={editForm.examType}
                           onChange={(event) =>
                             updateEdit("examType", event.target.value)
@@ -552,6 +587,8 @@ export default function Members({
                       <label>
                         준비기간
                         <input
+                          disabled={savingId === selectedUser.id}
+                          maxLength={80}
                           value={editForm.prepDuration}
                           onChange={(event) =>
                             updateEdit("prepDuration", event.target.value)
@@ -561,6 +598,8 @@ export default function Members({
                       <label className="admin-member-directory-edit-note">
                         메모
                         <textarea
+                          disabled={savingId === selectedUser.id}
+                          maxLength={500}
                           value={editForm.notes}
                           onChange={(event) =>
                             updateEdit("notes", event.target.value)
@@ -571,6 +610,7 @@ export default function Members({
                       <label className="admin-member-directory-check">
                         <input
                           checked={editForm.isActive}
+                          disabled={savingId === selectedUser.id}
                           onChange={(event) =>
                             updateEdit("isActive", event.target.checked)
                           }
@@ -578,6 +618,14 @@ export default function Members({
                         />
                         등록 활성 상태
                       </label>
+                      {editError && (
+                        <p
+                          className="admin-member-directory-edit-error"
+                          role="alert"
+                        >
+                          {editError}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -719,6 +767,7 @@ export default function Members({
                         onClick={() => {
                           setEditingId("");
                           setEditForm(null);
+                          setEditError("");
                         }}
                         type="button"
                       >

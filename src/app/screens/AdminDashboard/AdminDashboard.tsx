@@ -20,6 +20,7 @@ import {
   getAdminUsers,
   getAllAdminMembers,
   preRegisterUser,
+  type UpdateAdminUserInput,
   updateAdminMemberStatus,
   updateAdminUser,
 } from "../../services/admin.service";
@@ -807,13 +808,35 @@ export default function AdminDashboard() {
 
   async function saveUserProfile(
     userId: string,
-    input: Partial<(typeof data.users)[number]>,
-  ) {
-    if (!isAdmin) return;
-    await runAdminAction(async () => {
-      await updateAdminUser(userId, input);
-      await load();
-    }, "회원 정보를 저장하지 못했습니다.");
+    input: UpdateAdminUserInput,
+  ): Promise<AdminUser> {
+    if (!isAdmin) {
+      throw new Error("회원 정보를 수정할 권한이 없습니다.");
+    }
+
+    setError("");
+    try {
+      const updated = await updateAdminUser(userId, input);
+      setData((current) => ({
+        ...current,
+        users: current.users.map((user) =>
+          user.id === updated.id ? { ...user, ...updated } : user,
+        ),
+        allMembers: current.allMembers.map((user) =>
+          user.id === updated.id ? { ...user, ...updated } : user,
+        ),
+      }));
+      void loadMemberDirectory(pages.users).catch(() => {
+        setError(
+          "저장은 완료됐지만 회원 목록 요약을 새로고침하지 못했습니다.",
+        );
+      });
+      return updated;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "회원 정보를 저장하지 못했습니다.";
+      throw err instanceof Error ? err : new Error(message);
+    }
   }
 
   async function saveMemberStatus(

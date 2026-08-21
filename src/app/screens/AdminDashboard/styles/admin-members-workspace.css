@@ -1084,6 +1084,15 @@
   grid-column: 1 / -1;
 }
 
+.admin-member-directory-edit-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--bad);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 .admin-member-directory-check {
   display: flex !important;
   grid-template-columns: none;
