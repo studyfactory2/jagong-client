@@ -646,6 +646,16 @@
   color: var(--accent-deep);
 }
 
+.admin-challenge-weeks article.is-skipped {
+  border-style: dashed;
+  background: var(--admin-panel-muted);
+}
+
+.admin-challenge-weeks article.is-skipped > strong,
+.admin-challenge-weeks article.is-skipped > em {
+  color: var(--muted);
+}
+
 .admin-challenge-detail-foot {
   margin-top: 12px;
   border-top: 1px solid var(--admin-line);

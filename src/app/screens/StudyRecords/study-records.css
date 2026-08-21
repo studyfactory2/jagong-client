@@ -507,6 +507,11 @@
   background: var(--accent-soft);
 }
 
+.study-records-challenge-weeks article.is-skipped {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--line-soft) 45%, var(--card));
+}
+
 .study-records-challenge-weeks span {
   color: var(--study-records-secondary);
   font-size: 8px;
@@ -554,6 +559,15 @@
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.study-records-challenge-result p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--study-records-secondary);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .study-records-challenge-dialog {

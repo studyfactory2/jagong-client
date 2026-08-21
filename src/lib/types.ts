@@ -673,7 +673,11 @@ export type StudyChallengeStatus =
   | "FAILED"
   | "CANCELLED";
 
-export type StudyChallengeWeekStatus = "PENDING" | "PASSED" | "FAILED";
+export type StudyChallengeWeekStatus =
+  | "PENDING"
+  | "PASSED"
+  | "FAILED"
+  | "SKIPPED";
 
 export interface StudyChallengeRules {
   version: string;
@@ -766,6 +770,7 @@ export interface AdminStudyChallengeListItem extends AdminStudyChallengeCore {
     passed: number;
     failed: number;
     pending: number;
+    skipped?: number;
     finalizedStudySeconds: number;
   };
   currentWeekNumber: number | null;

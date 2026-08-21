@@ -118,6 +118,7 @@ function weekStatusLabel(
 ): string {
   if (week.status === "PASSED") return "달성";
   if (week.status === "FAILED") return "미달";
+  if (week.status === "SKIPPED") return "미진행";
   return week.weekNumber === currentWeekNumber ? "진행 중" : "대기";
 }
 
@@ -125,9 +126,23 @@ function weekStudySeconds(
   detail: AdminStudyChallengeDetail,
   week: AdminStudyChallengeDetailWeek,
 ): number | null {
+  if (week.status === "SKIPPED") return null;
   return detail.currentWeekProgress?.weekNumber === week.weekNumber
     ? detail.currentWeekProgress.studySeconds
     : week.studySeconds;
+}
+
+function skippedWeekCount(item: AdminStudyChallengeListItem): number {
+  return (
+    item.weekSummary.skipped ??
+    Math.max(
+      0,
+      item.weekSummary.total -
+        item.weekSummary.passed -
+        item.weekSummary.failed -
+        item.weekSummary.pending,
+    )
+  );
 }
 
 function memberMeta(item: AdminStudyChallengeListItem): string {
@@ -439,7 +454,8 @@ export default function Challenges() {
                 <span className="admin-challenge-list-progress">
                   <b>
                     달성 {item.weekSummary.passed} · 미달 {item.weekSummary.failed}
-                    · 대기 {item.weekSummary.pending}
+                    · 미진행 {skippedWeekCount(item)} · 대기{" "}
+                    {item.weekSummary.pending}
                   </b>
                   <small>
                     {item.currentWeekNumber
@@ -571,7 +587,8 @@ export default function Challenges() {
                   <strong>주차별 현황</strong>
                   <span>
                     달성 {detail.weekSummary.passed} · 미달 {detail.weekSummary.failed}
-                    · 대기 {detail.weekSummary.pending}
+                    · 미진행 {skippedWeekCount(detail)} · 대기{" "}
+                    {detail.weekSummary.pending}
                   </span>
                 </header>
                 <div>
@@ -590,7 +607,11 @@ export default function Challenges() {
                         <span className="admin-challenge-week-period">
                           {periodText(week.startsAt, week.endsAtExclusive)}
                         </span>
-                        <strong>{durationText(seconds)}</strong>
+                        <strong>
+                          {week.status === "SKIPPED"
+                            ? "-"
+                            : durationText(seconds)}
+                        </strong>
                         <em>
                           {weekStatusLabel(week, detail.currentWeekNumber)}
                         </em>

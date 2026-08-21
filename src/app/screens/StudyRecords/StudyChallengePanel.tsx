@@ -37,8 +37,10 @@ type ChallengeAgreementSnapshot = {
 const REFRESH_INTERVAL_MS = 60000;
 const CHALLENGE_WINDOW_CHANGED_MESSAGE =
   "도전 기간이 변경되었습니다. 최신 기간을 다시 확인하고 동의해 주세요.";
+const FIRST_FAILURE_ENDS_RULES_VERSION = "2026-08-21-v2";
 const RULES_REWARD_LABELS: Record<string, string> = {
   "2026-07-31-v1": "이용기간 1개월 연장",
+  [FIRST_FAILURE_ENDS_RULES_VERSION]: "이용기간 1개월 연장",
 };
 
 const challengeDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -98,6 +100,7 @@ function challengeStatusLabel(status: StudyChallengeStatus): string {
 function weekLabel(week: StudyChallengeWeek): string {
   if (week.status === "PASSED") return "달성";
   if (week.status === "FAILED") return "미달성";
+  if (week.status === "SKIPPED") return "미진행";
   return formatProgress(week.studySeconds);
 }
 
@@ -111,6 +114,20 @@ function isCurrentWeek(week: StudyChallengeWeek, referenceAt: Date): boolean {
 
 function resultLabel(challenge: StudyChallenge): string {
   return challenge.status === "PASSED" ? "지난 도전 성공" : "지난 도전 결과";
+}
+
+function earlyFailureResultMessage(challenge: StudyChallenge): string | null {
+  if (
+    challenge.status !== "FAILED" ||
+    challenge.rulesVersion !== FIRST_FAILURE_ENDS_RULES_VERSION
+  ) {
+    return null;
+  }
+  const failedWeek = challenge.weeks.find((week) => week.status === "FAILED");
+  if (!failedWeek || !challenge.weeks.some((week) => week.status === "SKIPPED")) {
+    return null;
+  }
+  return `${failedWeek.weekNumber}주차 목표 미달성으로 도전이 조기 종료되었습니다. 이후 주차는 미진행 처리되었습니다.`;
 }
 
 function agreementSignature(
@@ -569,6 +586,9 @@ export default function StudyChallengePanel({
   );
 
   const latestResult = data.latestResult;
+  const latestResultMessage = latestResult
+    ? earlyFailureResultMessage(latestResult)
+    : null;
 
   return (
     <>
@@ -590,6 +610,7 @@ export default function StudyChallengePanel({
                 latestResult.endsAtExclusive,
               )}
             </small>
+            {latestResultMessage && <p>{latestResultMessage}</p>}
           </div>
         )}
 
@@ -656,11 +677,23 @@ export default function StudyChallengePanel({
                   {visibleAgreementSnapshot.rules.requiredWeeks}주 모두 각각
                   달성해야 하며 남은 시간은 다음 주로 이월되지 않습니다.
                 </li>
+                {visibleAgreementSnapshot.rules.version ===
+                  FIRST_FAILURE_ENDS_RULES_VERSION && (
+                  <li>
+                    한 주라도 목표에 미달하면 해당 주차 종료 후 도전이 즉시
+                    종료되며, 이후 주차는 진행·집계되지 않습니다.
+                  </li>
+                )}
                 <li>
                   휴식 상태는 제외되며, 휴식시간에 ‘계속 공부하기’를 선택한
                   시간은 포함됩니다.
                 </li>
-                <li>{visibleAgreementSnapshot.rewardLabel}</li>
+                <li>
+                  {visibleAgreementSnapshot.rules.version ===
+                  FIRST_FAILURE_ENDS_RULES_VERSION
+                    ? "4주 모두 달성하면 이용기간 1개월 연장 보상이 지급되며, 해당 보상 이용권으로 다음 도전에 다시 참여할 수 있습니다."
+                    : visibleAgreementSnapshot.rewardLabel}
+                </li>
                 <li>참여 확정 후 변경이 필요하면 관리자에게 문의해 주세요.</li>
               </ul>
 
