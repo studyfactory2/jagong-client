@@ -24,6 +24,10 @@ import type {
   StudyChallengeWeek,
   StudyStatisticsWindow,
 } from "../../../lib/types";
+import {
+  FIRST_FAILURE_ENDS_RULES_VERSION,
+  studyChallengeRewardLabel,
+} from "../../utils/study-challenge-rules";
 
 type StudyChallengePanelProps = {
   refreshToken: number;
@@ -40,11 +44,6 @@ type ChallengeAgreementSnapshot = {
 const REFRESH_INTERVAL_MS = 60000;
 const CHALLENGE_WINDOW_CHANGED_MESSAGE =
   "도전 기간이 변경되었습니다. 최신 기간을 다시 확인하고 동의해 주세요.";
-const FIRST_FAILURE_ENDS_RULES_VERSION = "2026-08-21-v2";
-const RULES_REWARD_LABELS: Record<string, string> = {
-  "2026-07-31-v1": "이용기간 1개월 연장",
-  [FIRST_FAILURE_ENDS_RULES_VERSION]: "이용기간 1개월 연장",
-};
 
 const challengeDateFormatter = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -396,7 +395,7 @@ export default function StudyChallengePanel({
     if (!data?.canJoin || !isSubmittableChallengeWindow(data.nextChallenge)) {
       return;
     }
-    const rewardLabel = RULES_REWARD_LABELS[data.joinRules.version];
+    const rewardLabel = studyChallengeRewardLabel(data.joinRules.version);
     if (!rewardLabel) return;
 
     terminationSnapshotRef.current = null;
@@ -734,7 +733,7 @@ export default function StudyChallengePanel({
   const rules = challenge
     ? (data.acceptedRules ?? data.joinRules)
     : data.joinRules;
-  const rewardLabel = RULES_REWARD_LABELS[rules.version] ?? null;
+  const rewardLabel = studyChallengeRewardLabel(rules.version);
   const now = new Date();
 
   const panel = challenge ? (

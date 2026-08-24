@@ -672,8 +672,7 @@
   box-shadow: 0 0 0 1px var(--admin-line-strong);
 }
 
-.admin-challenge-lifecycle li.is-terminated
-  .admin-challenge-lifecycle-marker {
+.admin-challenge-lifecycle li.is-terminated .admin-challenge-lifecycle-marker {
   background: var(--accent);
 }
 
@@ -1165,13 +1164,517 @@
   cursor: not-allowed;
 }
 
+.admin-challenge-enrollment-trigger {
+  border-color: color-mix(in srgb, var(--gold) 48%, var(--admin-line));
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.admin-challenge-enrollment-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: max(18px, env(safe-area-inset-top)) 16px
+    max(18px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ink) 46%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.admin-challenge-enrollment-dialog-card {
+  width: min(780px, 100%);
+  max-height: calc(100dvh - 36px);
+  display: grid;
+  gap: 13px;
+  overflow-y: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-panel);
+  padding: 22px;
+  color: var(--ink);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 24%, transparent);
+}
+
+.admin-challenge-enrollment-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.admin-challenge-enrollment-dialog-heading > span {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--admin-line));
+  border-radius: 13px;
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.admin-challenge-enrollment-dialog-heading > span svg {
+  font-size: 25px;
+}
+
+.admin-challenge-enrollment-dialog-heading > div {
+  min-width: 0;
+}
+
+.admin-challenge-enrollment-dialog-heading small {
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.admin-challenge-enrollment-dialog-heading h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+
+.admin-challenge-enrollment-dialog-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.admin-challenge-enrollment-member-search,
+.admin-challenge-enrollment-preview {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: 11px;
+  background: var(--admin-panel-muted);
+  padding: 12px;
+}
+
+.admin-challenge-enrollment-member-search > label {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-challenge-enrollment-member-search > label > span,
+.admin-challenge-enrollment-consent-fields label > span,
+.admin-challenge-enrollment-evidence > span {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.admin-challenge-enrollment-member-search > label > div {
+  position: relative;
+}
+
+.admin-challenge-enrollment-member-search > label svg {
+  position: absolute;
+  top: 50%;
+  left: 11px;
+  color: var(--muted);
+  font-size: 18px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.admin-challenge-enrollment-member-search > label input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 0 11px 0 36px;
+  font: inherit;
+  font-size: 11.5px;
+}
+
+.admin-challenge-enrollment-member-list {
+  min-height: 74px;
+  max-height: 218px;
+  overflow-y: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  background: var(--admin-panel);
+}
+
+.admin-challenge-enrollment-member-list > p {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+  padding: 12px;
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+.admin-challenge-enrollment-member-list > button {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-bottom: 1px solid var(--admin-line);
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-challenge-enrollment-member-list > button:last-child {
+  border-bottom: 0;
+}
+
+.admin-challenge-enrollment-member-list > button:hover,
+.admin-challenge-enrollment-member-list > button.is-selected {
+  background: var(--gold-soft);
+}
+
+.admin-challenge-enrollment-member-list > button > span:first-child,
+.admin-challenge-enrollment-preview > header > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--admin-panel);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.admin-challenge-enrollment-member-list > button > span:nth-child(2) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.admin-challenge-enrollment-member-list strong,
+.admin-challenge-enrollment-member-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-challenge-enrollment-member-list strong {
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.admin-challenge-enrollment-member-list small,
+.admin-challenge-enrollment-search-guide {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 750;
+}
+
+.admin-challenge-enrollment-member-list em {
+  border-radius: 999px;
+  background: var(--admin-panel-muted);
+  color: var(--muted);
+  padding: 5px 7px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.admin-challenge-enrollment-search-guide {
+  text-align: right;
+}
+
+.admin-challenge-enrollment-search-error,
+.admin-challenge-enrollment-preview-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 8px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.admin-challenge-enrollment-search-error button,
+.admin-challenge-enrollment-preview-error button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 7px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 0 8px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-challenge-enrollment-preview > header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.admin-challenge-enrollment-preview > header > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-challenge-enrollment-preview > header strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-challenge-enrollment-preview > header small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-challenge-enrollment-preview-state {
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.admin-challenge-enrollment-unavailable,
+.admin-challenge-enrollment-interest-warning {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 9px 10px;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.admin-challenge-enrollment-unavailable strong {
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.admin-challenge-enrollment-contract {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 0.7fr;
+  gap: 1px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  background: var(--admin-line);
+}
+
+.admin-challenge-enrollment-contract > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  background: var(--admin-panel);
+  padding: 9px 10px;
+}
+
+.admin-challenge-enrollment-contract dt {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.admin-challenge-enrollment-contract dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.admin-challenge-enrollment-rules {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-challenge-enrollment-rules li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.admin-challenge-enrollment-rules li::before {
+  position: absolute;
+  top: 0.57em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  content: "";
+}
+
+.admin-challenge-enrollment-consent-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  gap: 8px;
+}
+
+.admin-challenge-enrollment-consent-fields label,
+.admin-challenge-enrollment-evidence {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-challenge-enrollment-consent-fields select,
+.admin-challenge-enrollment-consent-fields input,
+.admin-challenge-enrollment-evidence textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-challenge-enrollment-consent-fields select,
+.admin-challenge-enrollment-consent-fields input {
+  min-height: 40px;
+}
+
+.admin-challenge-enrollment-evidence textarea {
+  min-height: 76px;
+  resize: vertical;
+  padding-block: 9px;
+  line-height: 1.5;
+}
+
+.admin-challenge-enrollment-evidence > small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.admin-challenge-enrollment-agreement {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--admin-line));
+  border-radius: 10px;
+  background: var(--gold-soft);
+  padding: 11px;
+  cursor: pointer;
+}
+
+.admin-challenge-enrollment-agreement input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--gold);
+}
+
+.admin-challenge-enrollment-agreement span {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.admin-challenge-enrollment-dialog-error {
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 9px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.admin-challenge-enrollment-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-challenge-enrollment-dialog-actions button {
+  min-height: 44px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.admin-challenge-enrollment-dialog-actions button:last-child {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.admin-challenge-enrollment-dialog-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-challenge-termination-action button:focus-visible,
+.admin-challenge-enrollment-trigger:focus-visible,
 .admin-challenge-action-notice:focus-visible,
 .admin-challenge-completion-notice:focus-visible,
 .admin-challenge-termination-dialog-card:focus-visible,
 .admin-challenge-termination-dialog button:focus-visible,
 .admin-challenge-termination-dialog input:focus-visible,
-.admin-challenge-termination-dialog textarea:focus-visible {
+.admin-challenge-termination-dialog textarea:focus-visible,
+.admin-challenge-enrollment-dialog-card:focus-visible,
+.admin-challenge-enrollment-dialog button:focus-visible,
+.admin-challenge-enrollment-dialog input:focus-visible,
+.admin-challenge-enrollment-dialog select:focus-visible,
+.admin-challenge-enrollment-dialog textarea:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -1345,6 +1848,55 @@
   }
 
   .admin-challenge-termination-dialog-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 799px) {
+  .admin-challenge-enrollment-member-list > button,
+  .admin-challenge-enrollment-search-error button,
+  .admin-challenge-enrollment-preview-error button,
+  .admin-challenge-enrollment-consent-fields select,
+  .admin-challenge-enrollment-consent-fields input {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 559px) {
+  .admin-challenge-enrollment-dialog {
+    place-items: end center;
+    padding: max(12px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom));
+  }
+
+  .admin-challenge-enrollment-dialog-card {
+    max-height: calc(100dvh - 20px);
+    gap: 11px;
+    border-radius: 13px;
+    padding: 16px;
+  }
+
+  .admin-challenge-enrollment-dialog-heading h2 {
+    font-size: 18px;
+  }
+
+  .admin-challenge-enrollment-contract,
+  .admin-challenge-enrollment-consent-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-challenge-enrollment-search-error,
+  .admin-challenge-enrollment-preview-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-challenge-enrollment-search-error button,
+  .admin-challenge-enrollment-preview-error button {
+    width: 100%;
+  }
+
+  .admin-challenge-enrollment-dialog-actions {
     grid-template-columns: 1fr;
   }
 }

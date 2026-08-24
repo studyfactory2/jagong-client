@@ -738,6 +738,23 @@ export interface JoinStudyChallengeResult {
   challenge: StudyChallenge;
 }
 
+export type AdminStudyChallengeEnrollmentPreview = MyStudyChallengeStatus;
+
+export type AdminStudyChallengeConsentMethod = Exclude<
+  StudyChallengeConsentMethod,
+  "IN_APP"
+>;
+
+export interface AdminEnrollStudyChallengeInput {
+  confirmedMemberConsent: true;
+  rulesVersion: string;
+  startsAt: string;
+  endsAtExclusive: string;
+  consentMethod: AdminStudyChallengeConsentMethod;
+  consentedAt: string;
+  consentEvidence: string;
+}
+
 export type TerminateMyStudyChallengeInput = {
   confirmedTermination: true;
   reasonNote?: string;

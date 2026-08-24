@@ -8,6 +8,22 @@ export const http = axios.create({
 
 let activeAuthToken: string | null = null;
 
+export class HttpRequestError extends Error {
+  readonly status: number | null;
+  readonly transportCode: string | null;
+
+  constructor(
+    message: string,
+    status: number | null,
+    transportCode: string | null,
+  ) {
+    super(message);
+    this.name = "HttpRequestError";
+    this.status = status;
+    this.transportCode = transportCode;
+  }
+}
+
 export function setHttpAuthToken(token: string | null): void {
   activeAuthToken = token;
 }
@@ -54,6 +70,10 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (res) => res,
   (err) => {
-    return Promise.reject(new Error(koreanErrorMessage(err)));
+    const status = axios.isAxiosError(err) ? (err.response?.status ?? null) : null;
+    const transportCode = axios.isAxiosError(err) ? (err.code ?? null) : null;
+    return Promise.reject(
+      new HttpRequestError(koreanErrorMessage(err), status, transportCode),
+    );
   },
 );

@@ -1,4 +1,5 @@
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -12,6 +13,7 @@ import {
 } from "../../services/study-challenge.service";
 import AdminChallengeDetail from "./challenges/AdminChallengeDetail";
 import AdminChallengeDirectory from "./challenges/AdminChallengeDirectory";
+import AdminChallengeEnrollmentDialog from "./challenges/AdminChallengeEnrollmentDialog";
 import AdminChallengeTerminationDialog from "./challenges/AdminChallengeTerminationDialog";
 import {
   EMPTY_RESULT,
@@ -38,6 +40,7 @@ export default function Challenges() {
   const terminationSnapshotRef = useRef<AdminStudyChallengeDetail | null>(null);
   const selectedRowRef = useRef<HTMLButtonElement | null>(null);
   const mobileBackRef = useRef<HTMLButtonElement | null>(null);
+  const enrollmentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const terminationTriggerRef = useRef<HTMLButtonElement | null>(null);
   const actionNoticeRef = useRef<HTMLParagraphElement | null>(null);
   const completionNoticeRef = useRef<HTMLParagraphElement | null>(null);
@@ -55,6 +58,7 @@ export default function Challenges() {
   const [listError, setListError] = useState("");
   const [detailError, setDetailError] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  const [enrollmentOpen, setEnrollmentOpen] = useState(false);
   const [terminationSnapshot, setTerminationSnapshot] =
     useState<AdminStudyChallengeDetail | null>(null);
   const [terminationReason, setTerminationReason] = useState("");
@@ -64,6 +68,7 @@ export default function Challenges() {
   const [actionNotice, setActionNotice] = useState("");
   const [completionNotice, setCompletionNotice] = useState("");
   const visibleTerminationSnapshot =
+    !enrollmentOpen &&
     terminationSnapshot &&
     detail?.id === terminationSnapshot.id &&
     selectedId === terminationSnapshot.id &&
@@ -283,7 +288,11 @@ export default function Challenges() {
   }
 
   function openTerminationDialog(challenge: AdminStudyChallengeDetail) {
-    if (terminationInFlightRef.current || !canTerminateChallenge(challenge)) {
+    if (
+      enrollmentOpen ||
+      terminationInFlightRef.current ||
+      !canTerminateChallenge(challenge)
+    ) {
       return;
     }
     terminationSnapshotRef.current = challenge;
@@ -449,9 +458,42 @@ export default function Challenges() {
   }
 
   function refreshWorkspace() {
-    if (terminationInFlightRef.current) return;
+    if (enrollmentOpen || terminationInFlightRef.current) return;
     void loadList();
     if (selectedId) void loadDetail(selectedId);
+  }
+
+  function openEnrollmentDialog() {
+    if (
+      enrollmentOpen ||
+      visibleTerminationSnapshot ||
+      terminationInFlightRef.current ||
+      terminating
+    ) {
+      return;
+    }
+    resetTerminationDialog();
+    setActionNotice("");
+    setCompletionNotice("");
+    setEnrollmentOpen(true);
+  }
+
+  function closeEnrollmentDialog() {
+    setEnrollmentOpen(false);
+  }
+
+  function resolveEnrollment(
+    memberName: string,
+    outcome: "created" | "observed",
+  ) {
+    setEnrollmentOpen(false);
+    setActionNotice("");
+    setCompletionNotice(
+      outcome === "created"
+        ? `${memberName} 회원의 공부 도전을 등록했습니다.`
+        : `${memberName} 회원이 최신 도전에 등록된 상태를 확인했습니다.`,
+    );
+    void loadList();
   }
 
   function changeTerminationReason(value: string) {
@@ -477,8 +519,22 @@ export default function Challenges() {
         </div>
         <span className="admin-challenge-total">총 {result.total}건</span>
         <button
+          className="admin-challenge-enrollment-trigger"
+          disabled={
+            enrollmentOpen || Boolean(visibleTerminationSnapshot) || terminating
+          }
+          onClick={openEnrollmentDialog}
+          ref={enrollmentTriggerRef}
+          type="button"
+        >
+          <PersonAddAltOutlinedIcon />
+          <span>회원 도전 등록</span>
+        </button>
+        <button
           aria-label="도전 현황 새로고침"
-          disabled={listLoading || detailLoading || terminating}
+          disabled={
+            listLoading || detailLoading || terminating || enrollmentOpen
+          }
           onClick={refreshWorkspace}
           type="button"
         >
@@ -556,6 +612,14 @@ export default function Challenges() {
           reasonMaxLength={TERMINATION_REASON_MAX_LENGTH}
           returnFocusRef={terminationTriggerRef}
           submitting={terminating}
+        />
+      )}
+
+      {enrollmentOpen && (
+        <AdminChallengeEnrollmentDialog
+          onRequestClose={closeEnrollmentDialog}
+          onResolved={resolveEnrollment}
+          returnFocusRef={enrollmentTriggerRef}
         />
       )}
     </section>

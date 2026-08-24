@@ -204,7 +204,7 @@ export default function AdminChallengeDetail({
                       <header>
                         <strong>{lifecycleEventLabel(event)}</strong>
                         <time dateTime={event.occurredAt}>
-                          {dateTimeText(event.occurredAt)}
+                          처리 {dateTimeText(event.occurredAt)}
                         </time>
                       </header>
                       <p>
@@ -217,6 +217,10 @@ export default function AdminChallengeDetail({
                           <div>
                             <dt>동의 방법</dt>
                             <dd>{consentMethodLabel(event.consent.method)}</dd>
+                          </div>
+                          <div>
+                            <dt>동의 시각</dt>
+                            <dd>{dateTimeText(event.consent.consentedAt)}</dd>
                           </div>
                           <div>
                             <dt>규칙 버전</dt>

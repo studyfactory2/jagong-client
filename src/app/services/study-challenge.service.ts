@@ -1,5 +1,7 @@
 import { http } from "./http";
 import type {
+  AdminEnrollStudyChallengeInput,
+  AdminStudyChallengeEnrollmentPreview,
   AdminStudyChallengeDetail,
   AdminStudyChallengeListResult,
   JoinStudyChallengeInput,
@@ -64,6 +66,26 @@ export async function getAdminStudyChallenge(
 ): Promise<AdminStudyChallengeDetail> {
   const { data } = await http.get<AdminStudyChallengeDetail>(
     `/study-challenges/admin/${encodeURIComponent(challengeId)}`,
+  );
+  return data;
+}
+
+export async function getAdminStudyChallengeEnrollment(
+  userId: string,
+): Promise<AdminStudyChallengeEnrollmentPreview> {
+  const { data } = await http.get<AdminStudyChallengeEnrollmentPreview>(
+    `/study-challenges/admin/enrollments/${encodeURIComponent(userId)}`,
+  );
+  return data;
+}
+
+export async function enrollAdminStudyChallenge(
+  userId: string,
+  input: AdminEnrollStudyChallengeInput,
+): Promise<JoinStudyChallengeResult> {
+  const { data } = await http.post<JoinStudyChallengeResult>(
+    `/study-challenges/admin/enrollments/${encodeURIComponent(userId)}`,
+    input,
   );
   return data;
 }
