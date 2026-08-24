@@ -1,4 +1,5 @@
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import {
   useCallback,
   useEffect,
@@ -12,12 +13,14 @@ import { createPortal } from "react-dom";
 import {
   getMyStudyChallenge,
   joinStudyChallenge,
+  terminateMyStudyChallenge,
 } from "../../services/study-challenge.service";
 import type {
   MyStudyChallengeStatus,
   StudyChallenge,
   StudyChallengeRules,
   StudyChallengeStatus,
+  StudyChallengeTerminationResult,
   StudyChallengeWeek,
   StudyStatisticsWindow,
 } from "../../../lib/types";
@@ -198,24 +201,68 @@ function isSubmittableChallengeWindow(
   );
 }
 
+function canTerminateChallenge(challenge: StudyChallenge): boolean {
+  return (
+    Boolean(challenge.confirmedAt) &&
+    (challenge.status === "SCHEDULED" || challenge.status === "ACTIVE")
+  );
+}
+
+function applyTerminationResult(
+  challenge: StudyChallenge,
+  result: StudyChallengeTerminationResult,
+): StudyChallenge {
+  return {
+    ...challenge,
+    status: result.status,
+    finalizedAt: result.finalizedAt,
+    weeks: challenge.weeks.map((week) =>
+      week.status === "PENDING"
+        ? {
+            ...week,
+            status: "SKIPPED",
+            studySeconds: 0,
+            finalizedAt: result.finalizedAt,
+          }
+        : week,
+    ),
+  };
+}
+
+function terminationCompletedMessage(
+  status: StudyChallengeTerminationResult["status"],
+): string {
+  return status === "CANCELLED"
+    ? "도전 참여 취소가 처리되었습니다."
+    : "도전 중도 포기가 처리되었습니다.";
+}
+
 export default function StudyChallengePanel({
   refreshToken,
 }: StudyChallengePanelProps) {
   const titleId = useId();
   const descriptionId = useId();
   const requestRef = useRef(0);
+  const terminationSnapshotRef = useRef<StudyChallenge | null>(null);
   const agreementRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const completionNoticeRef = useRef<HTMLParagraphElement>(null);
   const [data, setData] = useState<MyStudyChallengeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionNotice, setActionNotice] = useState("");
+  const [completionNotice, setCompletionNotice] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [agreementSnapshot, setAgreementSnapshot] =
     useState<ChallengeAgreementSnapshot | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [terminationSnapshot, setTerminationSnapshot] =
+    useState<StudyChallenge | null>(null);
+  const [terminationConfirmed, setTerminationConfirmed] = useState(false);
+  const [terminationError, setTerminationError] = useState("");
+  const [terminating, setTerminating] = useState(false);
   const visibleAgreementSnapshot =
     dialogOpen &&
     agreementSnapshot &&
@@ -228,6 +275,16 @@ export default function StudyChallengePanel({
       agreementSnapshot.signature
       ? agreementSnapshot
       : null;
+  const visibleTerminationSnapshot =
+    terminationSnapshot &&
+    data?.isParticipating &&
+    data.currentChallenge &&
+    data.currentChallenge.id === terminationSnapshot.id &&
+    canTerminateChallenge(data.currentChallenge)
+      ? terminationSnapshot
+      : null;
+  const visibleDialogSnapshot =
+    visibleAgreementSnapshot ?? visibleTerminationSnapshot;
 
   const loadChallenge = useCallback(async (showLoading: boolean) => {
     const requestId = requestRef.current + 1;
@@ -239,6 +296,38 @@ export default function StudyChallengePanel({
       if (requestRef.current !== requestId) return undefined;
       setData(next);
       setLoadError("");
+      const pendingTermination = terminationSnapshotRef.current;
+      if (pendingTermination) {
+        const currentChallenge = next.currentChallenge;
+        const stillTerminable = Boolean(
+          next.isParticipating &&
+            currentChallenge?.id === pendingTermination.id &&
+            canTerminateChallenge(currentChallenge),
+        );
+        if (!stillTerminable) {
+          const latestResult = next.latestResult;
+          const terminationStatus =
+            latestResult?.id === pendingTermination.id &&
+            (latestResult.status === "CANCELLED" ||
+              latestResult.status === "WITHDRAWN")
+              ? latestResult.status
+              : null;
+          terminationSnapshotRef.current = null;
+          setTerminationSnapshot(null);
+          setTerminationConfirmed(false);
+          setTerminationError("");
+          setCompletionNotice(
+            terminationStatus
+              ? terminationCompletedMessage(terminationStatus)
+              : "",
+          );
+          setActionNotice(
+            terminationStatus
+              ? ""
+              : "도전 상태가 이미 변경되어 최신 내용을 표시합니다.",
+          );
+        }
+      }
       return next;
     } catch (error) {
       if (requestRef.current !== requestId) return undefined;
@@ -268,7 +357,7 @@ export default function StudyChallengePanel({
   }, [loadChallenge, refreshToken]);
 
   useEffect(() => {
-    if (!visibleAgreementSnapshot) return;
+    if (!visibleDialogSnapshot) return;
 
     const previouslyFocused =
       document.activeElement instanceof HTMLElement
@@ -285,7 +374,23 @@ export default function StudyChallengePanel({
       document.body.style.overflow = previousOverflow;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-  }, [visibleAgreementSnapshot]);
+  }, [visibleDialogSnapshot]);
+
+  useEffect(() => {
+    if (!visibleDialogSnapshot || (!joining && !terminating)) return;
+    const focusFrame = window.requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [joining, terminating, visibleDialogSnapshot]);
+
+  useEffect(() => {
+    if (!completionNotice) return;
+    const focusFrame = window.requestAnimationFrame(() => {
+      completionNoticeRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(focusFrame);
+  }, [completionNotice]);
 
   const openDialog = () => {
     if (!data?.canJoin || !isSubmittableChallengeWindow(data.nextChallenge)) {
@@ -294,6 +399,10 @@ export default function StudyChallengePanel({
     const rewardLabel = RULES_REWARD_LABELS[data.joinRules.version];
     if (!rewardLabel) return;
 
+    terminationSnapshotRef.current = null;
+    setTerminationSnapshot(null);
+    setTerminationConfirmed(false);
+    setTerminationError("");
     setAgreementSnapshot({
       joinContractVersion: data.joinContractVersion,
       rules: data.joinRules,
@@ -308,6 +417,7 @@ export default function StudyChallengePanel({
     setAgreed(false);
     setActionError("");
     setActionNotice("");
+    setCompletionNotice("");
     setDialogOpen(true);
   };
 
@@ -319,14 +429,49 @@ export default function StudyChallengePanel({
     setActionError("");
   };
 
+  const openTerminationDialog = (challenge: StudyChallenge) => {
+    if (!canTerminateChallenge(challenge)) return;
+
+    setDialogOpen(false);
+    setAgreementSnapshot(null);
+    setAgreed(false);
+    setActionError("");
+    setActionNotice("");
+    setCompletionNotice("");
+    terminationSnapshotRef.current = challenge;
+    setTerminationSnapshot(challenge);
+    setTerminationConfirmed(false);
+    setTerminationError("");
+  };
+
+  const resetTerminationDialog = () => {
+    terminationSnapshotRef.current = null;
+    setTerminationSnapshot(null);
+    setTerminationConfirmed(false);
+    setTerminationError("");
+  };
+
+  const closeTerminationDialog = () => {
+    if (terminating) return;
+    resetTerminationDialog();
+  };
+
+  const closeActiveDialog = () => {
+    if (visibleTerminationSnapshot) {
+      closeTerminationDialog();
+      return;
+    }
+    closeDialog();
+  };
+
   const handleDialogClick = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) closeDialog();
+    if (event.target === event.currentTarget) closeActiveDialog();
   };
 
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      closeDialog();
+      closeActiveDialog();
       return;
     }
 
@@ -340,20 +485,25 @@ export default function StudyChallengePanel({
     const last = focusable.at(-1);
     if (!first || !last) {
       event.preventDefault();
+      dialogRef.current?.focus();
       return;
     }
 
+    const activeElement = document.activeElement;
+    const dialogHasFocus = activeElement === dialogRef.current;
     if (
       event.shiftKey &&
-      (document.activeElement === first ||
-        !dialogRef.current?.contains(document.activeElement))
+      (dialogHasFocus ||
+        activeElement === first ||
+        !dialogRef.current?.contains(activeElement))
     ) {
       event.preventDefault();
       last.focus();
     } else if (
       !event.shiftKey &&
-      (document.activeElement === last ||
-        !dialogRef.current?.contains(document.activeElement))
+      (dialogHasFocus ||
+        activeElement === last ||
+        !dialogRef.current?.contains(activeElement))
     ) {
       event.preventDefault();
       first.focus();
@@ -466,6 +616,81 @@ export default function StudyChallengePanel({
     }
   };
 
+  const handleTerminate = async () => {
+    const snapshot = terminationSnapshot;
+    if (!snapshot || !terminationConfirmed || terminating) return;
+
+    setTerminating(true);
+    setTerminationError("");
+    try {
+      const result = await terminateMyStudyChallenge(snapshot.id, {
+        confirmedTermination: true,
+      });
+      setData((current) => {
+        if (!current || current.currentChallenge?.id !== result.challengeId) {
+          return current;
+        }
+        const terminatedChallenge = applyTerminationResult(
+          current.currentChallenge,
+          result,
+        );
+        return {
+          ...current,
+          isParticipating: false,
+          canJoin: false,
+          unavailableReason:
+            "종료한 도전의 기존 4주 기간이 끝난 뒤 다시 참여할 수 있습니다.",
+          currentChallenge: null,
+          latestResult: terminatedChallenge,
+        };
+      });
+      resetTerminationDialog();
+      setActionNotice("");
+      setCompletionNotice(terminationCompletedMessage(result.status));
+      void loadChallenge(false);
+    } catch (error) {
+      const originalError =
+        error instanceof Error
+          ? error.message
+          : "공부 도전을 종료하지 못했습니다.";
+      setTerminationConfirmed(false);
+      setTerminationError(originalError);
+
+      const refreshed = await loadChallenge(false);
+      if (refreshed === undefined || refreshed === null) return;
+
+      const latestResult = refreshed.latestResult;
+      if (
+        latestResult?.id === snapshot.id &&
+        (latestResult.status === "CANCELLED" ||
+          latestResult.status === "WITHDRAWN")
+      ) {
+        resetTerminationDialog();
+        setActionNotice("");
+        setCompletionNotice(
+          terminationCompletedMessage(latestResult.status),
+        );
+        return;
+      }
+
+      const refreshedChallenge = refreshed.currentChallenge;
+      if (
+        !refreshed.isParticipating ||
+        !refreshedChallenge ||
+        refreshedChallenge.id !== snapshot.id ||
+        !canTerminateChallenge(refreshedChallenge)
+      ) {
+        resetTerminationDialog();
+        setCompletionNotice("");
+        setActionNotice(
+          "도전 상태가 이미 변경되어 최신 내용을 표시합니다.",
+        );
+      }
+    } finally {
+      setTerminating(false);
+    }
+  };
+
   if (!data && loading) {
     return (
       <section aria-busy="true" className="study-records-challenge is-loading">
@@ -550,10 +775,22 @@ export default function StudyChallengePanel({
         ))}
       </div>
 
-      <p className="study-records-challenge-note">
-        실제 공부 상태로 기록된 시간만 반영되며, 주차별 목표는 각각 달성해야
-        합니다.
-      </p>
+      <div className="study-records-challenge-member-actions">
+        <p className="study-records-challenge-note">
+          실제 공부 상태로 기록된 시간만 반영되며, 주차별 목표는 각각 달성해야
+          합니다.
+        </p>
+        {canTerminateChallenge(challenge) && (
+          <button
+            className="study-records-challenge-terminate"
+            disabled={terminating}
+            onClick={() => openTerminationDialog(challenge)}
+            type="button"
+          >
+            도전 종료
+          </button>
+        )}
+      </div>
     </>
   ) : (
     <>
@@ -619,7 +856,7 @@ export default function StudyChallengePanel({
   return (
     <>
       <section
-        aria-busy={loading || joining}
+        aria-busy={loading || joining || terminating}
         className={`study-records-challenge${challenge ? " is-participating" : ""}`}
       >
         {panel}
@@ -651,6 +888,17 @@ export default function StudyChallengePanel({
             {actionNotice}
           </p>
         )}
+
+        {completionNotice && (
+          <p
+            className="study-records-challenge-complete"
+            ref={completionNoticeRef}
+            role="status"
+            tabIndex={-1}
+          >
+            {completionNotice}
+          </p>
+        )}
       </section>
 
       {visibleAgreementSnapshot &&
@@ -661,6 +909,7 @@ export default function StudyChallengePanel({
             role="presentation"
           >
             <div
+              aria-busy={joining}
               aria-describedby={descriptionId}
               aria-labelledby={titleId}
               aria-modal="true"
@@ -668,6 +917,7 @@ export default function StudyChallengePanel({
               onKeyDown={handleDialogKeyDown}
               ref={dialogRef}
               role="dialog"
+              tabIndex={-1}
             >
               <span
                 className="study-records-challenge-dialog-icon"
@@ -732,7 +982,10 @@ export default function StudyChallengePanel({
                     ? "4주 모두 달성하면 이용기간 1개월 연장 보상이 지급되며, 해당 보상 이용권으로 다음 도전에 다시 참여할 수 있습니다."
                     : visibleAgreementSnapshot.rewardLabel}
                 </li>
-                <li>참여 확정 후 변경이 필요하면 관리자에게 문의해 주세요.</li>
+                <li>
+                  참여 확정 후 취소·중도 포기를 선택할 수 있지만, 위 참여
+                  기회와 기간 제한은 그대로 적용됩니다.
+                </li>
               </ul>
 
               <label className="study-records-challenge-agreement">
@@ -768,6 +1021,114 @@ export default function StudyChallengePanel({
                   type="button"
                 >
                   {joining ? "참여 확정 중…" : "동의하고 참여하기"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {visibleTerminationSnapshot &&
+        createPortal(
+          <div
+            className="study-records-challenge-dialog"
+            onClick={handleDialogClick}
+            role="presentation"
+          >
+            <div
+              aria-busy={terminating}
+              aria-describedby={descriptionId}
+              aria-labelledby={titleId}
+              aria-modal="true"
+              className="study-records-challenge-dialog-card is-termination"
+              onKeyDown={handleDialogKeyDown}
+              ref={dialogRef}
+              role="dialog"
+              tabIndex={-1}
+            >
+              <span
+                className="study-records-challenge-dialog-icon"
+                aria-hidden="true"
+              >
+                <ReportProblemOutlinedIcon />
+              </span>
+              <div className="study-records-challenge-dialog-heading">
+                <small>도전 종료</small>
+                <h2 id={titleId}>4주 공부 도전을 종료할까요?</h2>
+                <p id={descriptionId}>
+                  서버 처리 시각이 시작 전이면 참여 취소, 시작 후이면 중도
+                  포기로 기록됩니다.
+                </p>
+              </div>
+
+              <div className="study-records-challenge-dialog-period">
+                <span>현재 도전 기간</span>
+                <strong>
+                  {formatPeriod(
+                    visibleTerminationSnapshot.startsAt,
+                    visibleTerminationSnapshot.endsAtExclusive,
+                  )}
+                </strong>
+              </div>
+
+              <ul className="study-records-challenge-rules">
+                <li>
+                  이번 도전에 사용한 참여 기회는 종료 후에도 복구되지
+                  않습니다.
+                </li>
+                <li>
+                  처음 안내된 4주 기간이 끝나기 전에는 새로운 도전에 참여할
+                  수 없습니다.
+                </li>
+                <li>
+                  남은 주차는 미진행으로 처리되며, 이후 공부시간은 이 도전
+                  실적으로 집계되지 않습니다.
+                </li>
+                <li>
+                  이 도전으로 추가된 이용기간이 있다면 종료와 함께
+                  회수됩니다.
+                </li>
+              </ul>
+
+              <label className="study-records-challenge-agreement">
+                <input
+                  checked={terminationConfirmed}
+                  disabled={terminating}
+                  onChange={(event) =>
+                    setTerminationConfirmed(event.target.checked)
+                  }
+                  ref={agreementRef}
+                  type="checkbox"
+                />
+                <span>
+                  참여 기회가 복구되지 않으며 기존 도전 기간 동안 다시 참여할
+                  수 없음을 확인했습니다.
+                </span>
+              </label>
+
+              {terminationError && (
+                <p
+                  className="study-records-challenge-dialog-error"
+                  role="alert"
+                >
+                  {terminationError}
+                </p>
+              )}
+
+              <div className="study-records-challenge-dialog-actions is-termination">
+                <button
+                  disabled={terminating}
+                  onClick={closeTerminationDialog}
+                  type="button"
+                >
+                  도전 유지
+                </button>
+                <button
+                  disabled={!terminationConfirmed || terminating}
+                  onClick={() => void handleTerminate()}
+                  type="button"
+                >
+                  {terminating ? "종료 처리 중…" : "종료하기"}
                 </button>
               </div>
             </div>

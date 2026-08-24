@@ -738,6 +738,20 @@ export interface JoinStudyChallengeResult {
   challenge: StudyChallenge;
 }
 
+export type TerminateMyStudyChallengeInput = {
+  confirmedTermination: true;
+  reasonNote?: string;
+};
+
+export interface StudyChallengeTerminationResult {
+  challengeId: string;
+  userId: string;
+  status: "CANCELLED" | "WITHDRAWN";
+  terminationKind: "CANCELLED" | "WITHDRAWN";
+  finalizedAt: string;
+  requestId: string;
+}
+
 export type StudyChallengeEligibilityKind = "PAYMENT" | "REWARD" | "INVALID";
 
 export interface AdminStudyChallengeMember {

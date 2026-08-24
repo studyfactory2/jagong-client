@@ -446,7 +446,8 @@
 
 .study-records-challenge-unavailable,
 .study-records-challenge-note,
-.study-records-challenge-stale {
+.study-records-challenge-stale,
+.study-records-challenge-complete {
   margin: 0;
   border-radius: 9px;
   padding: 9px 10px;
@@ -466,10 +467,52 @@
   color: var(--study-records-secondary);
 }
 
+.study-records-challenge-member-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.study-records-challenge-terminate {
+  min-height: 36px;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--study-records-coral-ink);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.study-records-challenge-terminate:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.study-records-challenge-terminate:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .study-records-challenge-stale {
   border: 1px solid var(--accent-line);
   background: var(--accent-soft);
   color: var(--study-records-coral-ink);
+}
+
+.study-records-challenge-complete {
+  border: 1px solid var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--ink);
+}
+
+.study-records-challenge-complete:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .study-records-challenge-weeks {
@@ -621,6 +664,13 @@
   font-size: 27px;
 }
 
+.study-records-challenge-dialog-card.is-termination
+  .study-records-challenge-dialog-icon {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--study-records-coral-ink);
+}
+
 .study-records-challenge-dialog-heading small {
   color: var(--study-records-secondary);
   font-size: 9px;
@@ -663,6 +713,18 @@
   color: var(--ink);
   font-size: 12px;
   font-weight: 900;
+}
+
+.study-records-challenge-dialog-card.is-termination
+  .study-records-challenge-dialog-period,
+.study-records-challenge-dialog-card.is-termination
+  .study-records-challenge-agreement {
+  border-color: var(--accent-line);
+}
+
+.study-records-challenge-dialog-card.is-termination
+  .study-records-challenge-dialog-period {
+  background: var(--accent-soft);
 }
 
 .study-records-challenge-rules {
@@ -762,6 +824,7 @@
   opacity: 0.5;
 }
 
+.study-records-challenge-dialog-card:focus-visible,
 .study-records-challenge-dialog button:focus-visible,
 .study-records-challenge-dialog input:focus-visible {
   outline: 2px solid var(--ink);
@@ -1041,6 +1104,14 @@
   .study-records-status.is-error {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .study-records-challenge-member-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .study-records-challenge-terminate {
+    width: 100%;
   }
 }
 

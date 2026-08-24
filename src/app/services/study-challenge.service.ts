@@ -5,7 +5,9 @@ import type {
   JoinStudyChallengeInput,
   JoinStudyChallengeResult,
   MyStudyChallengeStatus,
+  StudyChallengeTerminationResult,
   StudyChallengeStatus,
+  TerminateMyStudyChallengeInput,
 } from "../../lib/types";
 
 /** STUDY CHALLENGE API **/
@@ -22,6 +24,17 @@ export async function joinStudyChallenge(
 ): Promise<JoinStudyChallengeResult> {
   const { data } = await http.post<JoinStudyChallengeResult>(
     "/study-challenges/join",
+    input,
+  );
+  return data;
+}
+
+export async function terminateMyStudyChallenge(
+  challengeId: string,
+  input: TerminateMyStudyChallengeInput,
+): Promise<StudyChallengeTerminationResult> {
+  const { data } = await http.post<StudyChallengeTerminationResult>(
+    `/study-challenges/${encodeURIComponent(challengeId)}/terminate`,
     input,
   );
   return data;
