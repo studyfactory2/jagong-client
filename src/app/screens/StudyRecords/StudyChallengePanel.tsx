@@ -94,13 +94,25 @@ function challengeStatusLabel(status: StudyChallengeStatus): string {
   if (status === "ACTIVE") return "도전 진행 중";
   if (status === "PASSED") return "도전 성공";
   if (status === "FAILED") return "도전 미달성";
-  return "도전 취소";
+  if (status === "CANCELLED") return "도전 취소";
+  return "도전 중도 포기";
 }
 
-function weekLabel(week: StudyChallengeWeek): string {
+function weekLabel(
+  week: StudyChallengeWeek,
+  challengeStatus: StudyChallengeStatus,
+): string {
   if (week.status === "PASSED") return "달성";
   if (week.status === "FAILED") return "미달성";
   if (week.status === "SKIPPED") return "미진행";
+  if (
+    challengeStatus === "PASSED" ||
+    challengeStatus === "FAILED" ||
+    challengeStatus === "CANCELLED" ||
+    challengeStatus === "WITHDRAWN"
+  ) {
+    return "미진행";
+  }
   return formatProgress(week.studySeconds);
 }
 
@@ -113,7 +125,20 @@ function isCurrentWeek(week: StudyChallengeWeek, referenceAt: Date): boolean {
 }
 
 function resultLabel(challenge: StudyChallenge): string {
-  return challenge.status === "PASSED" ? "지난 도전 성공" : "지난 도전 결과";
+  if (challenge.status === "PASSED") return "지난 도전 성공";
+  if (challenge.status === "CANCELLED") return "지난 도전 취소";
+  if (challenge.status === "WITHDRAWN") return "지난 도전 중도 포기";
+  return "지난 도전 결과";
+}
+
+function terminationResultMessage(challenge: StudyChallenge): string | null {
+  if (challenge.status === "CANCELLED") {
+    return "도전 참여가 취소되었습니다.";
+  }
+  if (challenge.status === "WITHDRAWN") {
+    return "도전 진행 중 중도 포기로 종료되었습니다.";
+  }
+  return null;
 }
 
 function earlyFailureResultMessage(challenge: StudyChallenge): string | null {
@@ -520,7 +545,7 @@ export default function StudyChallengePanel({
             key={week.weekNumber}
           >
             <span>{week.weekNumber}주차</span>
-            <strong>{weekLabel(week)}</strong>
+            <strong>{weekLabel(week, challenge.status)}</strong>
           </article>
         ))}
       </div>
@@ -587,7 +612,8 @@ export default function StudyChallengePanel({
 
   const latestResult = data.latestResult;
   const latestResultMessage = latestResult
-    ? earlyFailureResultMessage(latestResult)
+    ? earlyFailureResultMessage(latestResult) ??
+      terminationResultMessage(latestResult)
     : null;
 
   return (

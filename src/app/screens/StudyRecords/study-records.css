@@ -554,6 +554,13 @@
   font-weight: 900;
 }
 
+.study-records-challenge-result.is-cancelled strong,
+.study-records-challenge-result.is-withdrawn strong {
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--study-records-coral-ink);
+}
+
 .study-records-challenge-result small {
   overflow: hidden;
   text-align: right;

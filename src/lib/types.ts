@@ -671,7 +671,8 @@ export type StudyChallengeStatus =
   | "ACTIVE"
   | "PASSED"
   | "FAILED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "WITHDRAWN";
 
 export type StudyChallengeWeekStatus =
   | "PENDING"
@@ -785,6 +786,51 @@ export interface AdminStudyChallengeDetailWeek extends StudyChallengeWeek {
   id: string;
 }
 
+export type StudyChallengeLifecycleEventType =
+  | "ENROLLMENT_CONFIRMED"
+  | "TERMINATED";
+
+export type StudyChallengeLifecycleSource =
+  | "MEMBER_SELF"
+  | "ADMIN_ASSISTED"
+  | "ADMIN_ACTION"
+  | "PAYMENT_REFUND";
+
+export type StudyChallengeConsentMethod =
+  | "IN_APP"
+  | "PHONE"
+  | "IN_PERSON"
+  | "WRITTEN";
+
+export type StudyChallengeTerminationKind = "CANCELLED" | "WITHDRAWN";
+
+export interface AdminStudyChallengeLifecycleEvent {
+  id: string;
+  eventType: StudyChallengeLifecycleEventType;
+  source: StudyChallengeLifecycleSource;
+  actor: {
+    id: string;
+    name: string;
+  };
+  actorRole: RoleName;
+  occurredAt: string;
+  requestId: string;
+  consent: {
+    consentedAt: string;
+    method: StudyChallengeConsentMethod | null;
+    rulesVersion: string | null;
+    startsAt: string | null;
+    endsAtExclusive: string | null;
+    evidence: string | null;
+  } | null;
+  termination: {
+    kind: StudyChallengeTerminationKind;
+    reasonCode: string | null;
+    reasonNote: string | null;
+    relatedPaymentId: string | null;
+  } | null;
+}
+
 export interface AdminStudyChallengeDetail
   extends AdminStudyChallengeListItem {
   weeks: AdminStudyChallengeDetailWeek[];
@@ -793,6 +839,7 @@ export interface AdminStudyChallengeDetail
     studySeconds: number;
     countedThroughAt: string;
   } | null;
+  lifecycleEvents: AdminStudyChallengeLifecycleEvent[];
   generatedAt: string;
 }
 

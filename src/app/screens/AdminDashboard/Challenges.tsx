@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   AdminStudyChallengeDetail,
   AdminStudyChallengeDetailWeek,
+  AdminStudyChallengeLifecycleEvent,
   AdminStudyChallengeListItem,
   AdminStudyChallengeListResult,
   StudyChallengeStatus,
@@ -41,7 +42,15 @@ const STATUS_OPTIONS: Array<{
   { value: "PASSED", label: "성공" },
   { value: "FAILED", label: "실패" },
   { value: "CANCELLED", label: "취소" },
+  { value: "WITHDRAWN", label: "중도 포기" },
 ];
+
+const TERMINAL_STATUSES = new Set<StudyChallengeStatus>([
+  "PASSED",
+  "FAILED",
+  "CANCELLED",
+  "WITHDRAWN",
+]);
 
 const challengeDateFormatter = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -101,7 +110,8 @@ function statusLabel(status: StudyChallengeStatus): string {
   if (status === "ACTIVE") return "진행 중";
   if (status === "PASSED") return "성공";
   if (status === "FAILED") return "실패";
-  return "취소";
+  if (status === "CANCELLED") return "취소";
+  return "중도 포기";
 }
 
 function eligibilityLabel(
@@ -113,12 +123,14 @@ function eligibilityLabel(
 }
 
 function weekStatusLabel(
+  challengeStatus: StudyChallengeStatus,
   week: AdminStudyChallengeDetailWeek,
   currentWeekNumber: number | null,
 ): string {
   if (week.status === "PASSED") return "달성";
   if (week.status === "FAILED") return "미달";
   if (week.status === "SKIPPED") return "미진행";
+  if (TERMINAL_STATUSES.has(challengeStatus)) return "미진행";
   return week.weekNumber === currentWeekNumber ? "진행 중" : "대기";
 }
 
@@ -143,6 +155,61 @@ function skippedWeekCount(item: AdminStudyChallengeListItem): number {
         item.weekSummary.pending,
     )
   );
+}
+
+function displayedUnstartedWeekCount(
+  item: AdminStudyChallengeListItem,
+): number {
+  return (
+    skippedWeekCount(item) +
+    (TERMINAL_STATUSES.has(item.status) ? item.weekSummary.pending : 0)
+  );
+}
+
+function displayedPendingWeekCount(item: AdminStudyChallengeListItem): number {
+  return TERMINAL_STATUSES.has(item.status) ? 0 : item.weekSummary.pending;
+}
+
+function lifecycleEventLabel(
+  event: AdminStudyChallengeLifecycleEvent,
+): string {
+  if (event.eventType === "ENROLLMENT_CONFIRMED") return "참여 확정";
+  return event.termination?.kind === "WITHDRAWN" ? "중도 포기" : "참여 취소";
+}
+
+function lifecycleSourceLabel(
+  source: AdminStudyChallengeLifecycleEvent["source"],
+): string {
+  if (source === "MEMBER_SELF") return "회원 직접 처리";
+  if (source === "ADMIN_ASSISTED") return "관리자 대리 등록";
+  if (source === "ADMIN_ACTION") return "관리자 처리";
+  return "결제 환불 처리";
+}
+
+function actorRoleLabel(
+  role: AdminStudyChallengeLifecycleEvent["actorRole"],
+): string {
+  if (role === "ADMIN") return "관리자";
+  if (role === "STAFF") return "직원";
+  if (role === "MEMBER") return "회원";
+  return role;
+}
+
+function consentMethodLabel(
+  method: NonNullable<
+    AdminStudyChallengeLifecycleEvent["consent"]
+  >["method"],
+): string {
+  if (method === "IN_APP") return "앱 직접 동의";
+  if (method === "PHONE") return "전화 동의";
+  if (method === "IN_PERSON") return "대면 동의";
+  if (method === "WRITTEN") return "서면 동의";
+  return "동의 방법 확인 필요";
+}
+
+function terminationReasonLabel(reasonCode: string | null): string {
+  if (reasonCode === "PAYMENT_REFUND") return "결제 환불";
+  return reasonCode || "사유 확인 필요";
 }
 
 function memberMeta(item: AdminStudyChallengeListItem): string {
@@ -346,6 +413,7 @@ export default function Challenges() {
 
   const detailTarget = detail?.weeklyTargetSeconds ?? 0;
   const currentStudySeconds = detail?.currentWeekProgress?.studySeconds ?? 0;
+  const lifecycleEvents = detail?.lifecycleEvents ?? [];
   const detailMatchesSelection = detail?.id === selectedId;
 
   return (
@@ -454,8 +522,8 @@ export default function Challenges() {
                 <span className="admin-challenge-list-progress">
                   <b>
                     달성 {item.weekSummary.passed} · 미달 {item.weekSummary.failed}
-                    · 미진행 {skippedWeekCount(item)} · 대기{" "}
-                    {item.weekSummary.pending}
+                    · 미진행 {displayedUnstartedWeekCount(item)} · 대기{" "}
+                    {displayedPendingWeekCount(item)}
                   </b>
                   <small>
                     {item.currentWeekNumber
@@ -563,6 +631,102 @@ export default function Challenges() {
                 </div>
               </dl>
 
+              <section className="admin-challenge-lifecycle">
+                <header>
+                  <strong>참여·종료 기록</strong>
+                  <span>{lifecycleEvents.length}건</span>
+                </header>
+                {lifecycleEvents.length ? (
+                  <ol>
+                    {lifecycleEvents.map((event) => (
+                      <li
+                        className={`is-${event.eventType.toLowerCase()}`}
+                        key={event.id}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="admin-challenge-lifecycle-marker"
+                        />
+                        <div>
+                          <header>
+                            <strong>{lifecycleEventLabel(event)}</strong>
+                            <time dateTime={event.occurredAt}>
+                              {dateTimeText(event.occurredAt)}
+                            </time>
+                          </header>
+                          <p>
+                            {event.actor.name} ({actorRoleLabel(event.actorRole)})
+                            {" · "}
+                            {lifecycleSourceLabel(event.source)}
+                          </p>
+                          {event.consent && (
+                            <dl>
+                              <div>
+                                <dt>동의 방법</dt>
+                                <dd>{consentMethodLabel(event.consent.method)}</dd>
+                              </div>
+                              <div>
+                                <dt>규칙 버전</dt>
+                                <dd>{event.consent.rulesVersion ?? "확인 필요"}</dd>
+                              </div>
+                              <div>
+                                <dt>확정 기간</dt>
+                                <dd>
+                                  {event.consent.startsAt &&
+                                  event.consent.endsAtExclusive
+                                    ? periodText(
+                                        event.consent.startsAt,
+                                        event.consent.endsAtExclusive,
+                                      )
+                                    : "확인 필요"}
+                                </dd>
+                              </div>
+                              {event.consent.evidence && (
+                                <div>
+                                  <dt>동의 근거</dt>
+                                  <dd>{event.consent.evidence}</dd>
+                                </div>
+                              )}
+                            </dl>
+                          )}
+                          {event.termination && (
+                            <dl>
+                              <div>
+                                <dt>종료 구분</dt>
+                                <dd>
+                                  {event.termination.kind === "WITHDRAWN"
+                                    ? "중도 포기"
+                                    : "참여 취소"}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt>종료 사유</dt>
+                                <dd>
+                                  {terminationReasonLabel(
+                                    event.termination.reasonCode,
+                                  )}
+                                </dd>
+                              </div>
+                              {event.termination.reasonNote && (
+                                <div>
+                                  <dt>관리 메모</dt>
+                                  <dd>{event.termination.reasonNote}</dd>
+                                </div>
+                              )}
+                            </dl>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="admin-challenge-lifecycle-empty">
+                    표시할 참여·종료 기록이 없습니다. 감사 기록 도입 이전 도전일
+                    수 있습니다.
+                  </p>
+                )}
+              </section>
+
               {detail.currentWeekProgress && (
                 <section className="admin-challenge-live-progress">
                   <div>
@@ -587,8 +751,8 @@ export default function Challenges() {
                   <strong>주차별 현황</strong>
                   <span>
                     달성 {detail.weekSummary.passed} · 미달 {detail.weekSummary.failed}
-                    · 미진행 {skippedWeekCount(detail)} · 대기{" "}
-                    {detail.weekSummary.pending}
+                    · 미진행 {displayedUnstartedWeekCount(detail)} · 대기{" "}
+                    {displayedPendingWeekCount(detail)}
                   </span>
                 </header>
                 <div>
@@ -598,7 +762,12 @@ export default function Challenges() {
                       detail.currentWeekProgress?.weekNumber === week.weekNumber;
                     return (
                       <article
-                        className={`${current ? "is-current " : ""}is-${week.status.toLowerCase()}`}
+                        className={`${current ? "is-current " : ""}is-${week.status.toLowerCase()}${
+                          week.status === "PENDING" &&
+                          TERMINAL_STATUSES.has(detail.status)
+                            ? " is-terminal-pending"
+                            : ""
+                        }`}
                         key={week.id}
                       >
                         <span className="admin-challenge-week-number">
@@ -608,12 +777,18 @@ export default function Challenges() {
                           {periodText(week.startsAt, week.endsAtExclusive)}
                         </span>
                         <strong>
-                          {week.status === "SKIPPED"
+                          {week.status === "SKIPPED" ||
+                          (week.status === "PENDING" &&
+                            TERMINAL_STATUSES.has(detail.status))
                             ? "-"
                             : durationText(seconds)}
                         </strong>
                         <em>
-                          {weekStatusLabel(week, detail.currentWeekNumber)}
+                          {weekStatusLabel(
+                            detail.status,
+                            week,
+                            detail.currentWeekNumber,
+                          )}
                         </em>
                       </article>
                     );

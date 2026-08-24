@@ -355,7 +355,8 @@
 }
 
 .admin-challenge-status.is-failed,
-.admin-challenge-status.is-cancelled {
+.admin-challenge-status.is-cancelled,
+.admin-challenge-status.is-withdrawn {
   border-color: var(--accent-line);
   background: var(--accent-soft);
   color: var(--accent-deep);
@@ -499,6 +500,157 @@
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-challenge-lifecycle {
+  display: grid;
+  gap: 9px;
+  margin-top: 13px;
+  border: 1px solid var(--admin-line);
+  border-radius: 9px;
+  background: var(--admin-panel-muted);
+  padding: 11px;
+}
+
+.admin-challenge-lifecycle > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-challenge-lifecycle > header strong {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-challenge-lifecycle > header span {
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  padding: 3px 7px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.admin-challenge-lifecycle ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-challenge-lifecycle li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  padding: 0 0 12px;
+}
+
+.admin-challenge-lifecycle li:last-child {
+  padding-bottom: 0;
+}
+
+.admin-challenge-lifecycle li:not(:last-child)::before {
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  left: 6px;
+  width: 1px;
+  background: var(--admin-line-strong);
+  content: "";
+}
+
+.admin-challenge-lifecycle-marker {
+  position: relative;
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 1px var(--admin-line-strong);
+}
+
+.admin-challenge-lifecycle li.is-terminated
+  .admin-challenge-lifecycle-marker {
+  background: var(--accent);
+}
+
+.admin-challenge-lifecycle li > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-challenge-lifecycle li header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.admin-challenge-lifecycle li header strong {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 950;
+}
+
+.admin-challenge-lifecycle time,
+.admin-challenge-lifecycle li > div > p,
+.admin-challenge-lifecycle-empty {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.admin-challenge-lifecycle time {
+  white-space: nowrap;
+}
+
+.admin-challenge-lifecycle li > div > p,
+.admin-challenge-lifecycle-empty {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.admin-challenge-lifecycle dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: 7px;
+  background: var(--admin-line);
+}
+
+.admin-challenge-lifecycle dl > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  background: #ffffff;
+  padding: 7px 8px;
+}
+
+.admin-challenge-lifecycle dt {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.admin-challenge-lifecycle dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.4;
 }
 
 .admin-challenge-live-progress {
@@ -646,13 +798,16 @@
   color: var(--accent-deep);
 }
 
-.admin-challenge-weeks article.is-skipped {
+.admin-challenge-weeks article.is-skipped,
+.admin-challenge-weeks article.is-terminal-pending {
   border-style: dashed;
   background: var(--admin-panel-muted);
 }
 
 .admin-challenge-weeks article.is-skipped > strong,
-.admin-challenge-weeks article.is-skipped > em {
+.admin-challenge-weeks article.is-skipped > em,
+.admin-challenge-weeks article.is-terminal-pending > strong,
+.admin-challenge-weeks article.is-terminal-pending > em {
   color: var(--muted);
 }
 
@@ -795,5 +950,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 3px;
+  }
+
+  .admin-challenge-lifecycle li header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .admin-challenge-lifecycle dl {
+    grid-template-columns: 1fr;
   }
 }
