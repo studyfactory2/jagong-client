@@ -7,6 +7,7 @@ import type {
   MyStudyChallengeStatus,
   StudyChallengeTerminationResult,
   StudyChallengeStatus,
+  TerminateAdminStudyChallengeInput,
   TerminateMyStudyChallengeInput,
 } from "../../lib/types";
 
@@ -63,6 +64,17 @@ export async function getAdminStudyChallenge(
 ): Promise<AdminStudyChallengeDetail> {
   const { data } = await http.get<AdminStudyChallengeDetail>(
     `/study-challenges/admin/${encodeURIComponent(challengeId)}`,
+  );
+  return data;
+}
+
+export async function terminateAdminStudyChallenge(
+  challengeId: string,
+  input: TerminateAdminStudyChallengeInput,
+): Promise<StudyChallengeTerminationResult> {
+  const { data } = await http.post<StudyChallengeTerminationResult>(
+    `/study-challenges/admin/${encodeURIComponent(challengeId)}/terminate`,
+    input,
   );
   return data;
 }

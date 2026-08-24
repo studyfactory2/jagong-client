@@ -1,4 +1,4 @@
-/* Read-only study challenge workspace. */
+/* Study challenge administration workspace. */
 .admin-challenge-page {
   display: grid;
   gap: 12px;
@@ -502,6 +502,101 @@
   white-space: nowrap;
 }
 
+.admin-challenge-termination-action {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  padding: 10px;
+}
+
+.admin-challenge-termination-action > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--accent-deep);
+}
+
+.admin-challenge-termination-action > span svg {
+  font-size: 19px;
+}
+
+.admin-challenge-termination-action > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-challenge-termination-action strong {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.admin-challenge-termination-action small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.admin-challenge-termination-action button {
+  min-height: 36px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 0 11px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.admin-challenge-termination-action button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-challenge-settlement-notice {
+  margin: 12px 0 0;
+  border: 1px solid var(--gold);
+  border-radius: 9px;
+  background: var(--gold-soft);
+  color: var(--ink);
+  padding: 10px 11px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.admin-challenge-action-notice,
+.admin-challenge-completion-notice {
+  margin: 0;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--ink);
+  padding: 9px 10px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.admin-challenge-completion-notice {
+  border-color: var(--mint-line);
+  background: var(--mint-soft);
+  color: var(--ink);
+}
+
 .admin-challenge-lifecycle {
   display: grid;
   gap: 9px;
@@ -821,6 +916,266 @@
   text-align: right;
 }
 
+.admin-challenge-termination-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: max(18px, env(safe-area-inset-top)) 16px
+    max(18px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ink) 46%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.admin-challenge-termination-dialog-card {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 36px);
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-panel);
+  padding: 22px;
+  color: var(--ink);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--ink) 24%, transparent);
+}
+
+.admin-challenge-termination-dialog-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent-line);
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+
+.admin-challenge-termination-dialog-icon svg {
+  font-size: 25px;
+}
+
+.admin-challenge-termination-dialog-heading small {
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.admin-challenge-termination-dialog-heading h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 950;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+
+.admin-challenge-termination-dialog-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.admin-challenge-termination-member {
+  display: grid;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+  gap: 1px;
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-line);
+}
+
+.admin-challenge-termination-member > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  background: var(--admin-panel-muted);
+  padding: 10px 11px;
+}
+
+.admin-challenge-termination-member dt {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.admin-challenge-termination-member dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.admin-challenge-termination-refund-warning {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 10px 11px;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.admin-challenge-termination-refund-warning strong {
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.admin-challenge-termination-rules {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-challenge-termination-rules li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.admin-challenge-termination-rules li::before {
+  position: absolute;
+  top: 0.6em;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+
+.admin-challenge-termination-reason {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-challenge-termination-reason > span {
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 900;
+}
+
+.admin-challenge-termination-reason textarea {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  padding: 10px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.admin-challenge-termination-reason > small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  text-align: right;
+}
+
+.admin-challenge-termination-agreement {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--admin-panel-muted);
+  padding: 11px;
+  cursor: pointer;
+}
+
+.admin-challenge-termination-agreement input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.admin-challenge-termination-agreement span {
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.admin-challenge-termination-dialog-error {
+  margin: 0;
+  border: 1px solid var(--accent-line);
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  padding: 9px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.admin-challenge-termination-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-challenge-termination-dialog-actions button {
+  min-height: 44px;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: var(--admin-panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.admin-challenge-termination-dialog-actions button:last-child {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.admin-challenge-termination-dialog-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-challenge-termination-action button:focus-visible,
+.admin-challenge-action-notice:focus-visible,
+.admin-challenge-completion-notice:focus-visible,
+.admin-challenge-termination-dialog-card:focus-visible,
+.admin-challenge-termination-dialog button:focus-visible,
+.admin-challenge-termination-dialog input:focus-visible,
+.admin-challenge-termination-dialog textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 @media (max-width: 1099px) {
   .admin-challenge-layout {
     grid-template-columns: minmax(300px, 0.8fr) minmax(390px, 1.2fr);
@@ -882,6 +1237,7 @@
   .admin-challenge-page-head > button,
   .admin-challenge-mobile-back,
   .admin-challenge-detail-state > button,
+  .admin-challenge-termination-action button,
   .admin-challenge-filters input,
   .admin-challenge-filters select,
   .admin-challenge-directory .admin-list-pager button {
@@ -959,6 +1315,36 @@
   }
 
   .admin-challenge-lifecycle dl {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-challenge-termination-action {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .admin-challenge-termination-action button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .admin-challenge-termination-dialog {
+    place-items: end center;
+    padding: max(12px, env(safe-area-inset-top)) 8px
+      max(8px, env(safe-area-inset-bottom));
+  }
+
+  .admin-challenge-termination-dialog-card {
+    max-height: calc(100dvh - 20px);
+    gap: 11px;
+    border-radius: 13px;
+    padding: 17px;
+  }
+
+  .admin-challenge-termination-member {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-challenge-termination-dialog-actions {
     grid-template-columns: 1fr;
   }
 }

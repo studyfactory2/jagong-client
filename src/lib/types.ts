@@ -743,6 +743,11 @@ export type TerminateMyStudyChallengeInput = {
   reasonNote?: string;
 };
 
+export type TerminateAdminStudyChallengeInput = {
+  confirmedTermination: true;
+  reasonNote: string;
+};
+
 export interface StudyChallengeTerminationResult {
   challengeId: string;
   userId: string;
