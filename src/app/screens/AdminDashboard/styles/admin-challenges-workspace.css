@@ -747,6 +747,24 @@
   line-height: 1.4;
 }
 
+dd.admin-challenge-rules-version-reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 7px;
+  overflow: visible;
+  white-space: normal;
+}
+
+.admin-challenge-rules-version-reference a {
+  color: var(--ink);
+  font-size: 8.5px;
+  font-weight: 900;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
 .admin-challenge-live-progress {
   display: grid;
   gap: 8px;
@@ -1548,6 +1566,21 @@
   content: "";
 }
 
+.admin-challenge-enrollment-policy-link {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--admin-line));
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--ink);
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .admin-challenge-enrollment-consent-fields {
   display: grid;
   grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
@@ -1672,9 +1705,12 @@
 .admin-challenge-termination-dialog textarea:focus-visible,
 .admin-challenge-enrollment-dialog-card:focus-visible,
 .admin-challenge-enrollment-dialog button:focus-visible,
+.admin-challenge-enrollment-dialog a:focus-visible,
 .admin-challenge-enrollment-dialog input:focus-visible,
 .admin-challenge-enrollment-dialog select:focus-visible,
-.admin-challenge-enrollment-dialog textarea:focus-visible {
+.admin-challenge-enrollment-dialog textarea:focus-visible,
+.admin-challenge-lifecycle a:focus-visible,
+.admin-challenge-facts a:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }

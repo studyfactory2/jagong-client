@@ -467,6 +467,27 @@
   color: var(--study-records-secondary);
 }
 
+.study-records-challenge-policy-link {
+  width: fit-content;
+  color: var(--ink);
+  font-weight: 900;
+  text-decoration-color: var(--gold);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.study-records-challenge-dialog-card
+  > .study-records-challenge-policy-link {
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.study-records-challenge-policy-link:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
 .study-records-challenge-member-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

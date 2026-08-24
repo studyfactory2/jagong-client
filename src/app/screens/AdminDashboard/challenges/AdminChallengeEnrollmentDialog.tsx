@@ -26,6 +26,7 @@ import {
 import {
   FIRST_FAILURE_ENDS_RULES_VERSION,
   studyChallengeRewardLabel,
+  studyChallengeRulesPdfUrl,
 } from "../../../utils/study-challenge-rules";
 import { periodText, targetText } from "./admin-challenge.helpers";
 
@@ -519,6 +520,9 @@ export default function AdminChallengeEnrollmentDialog({
   const rewardLabel = visiblePreview
     ? studyChallengeRewardLabel(visiblePreview.joinRules.version)
     : null;
+  const rulesPdfUrl = visiblePreview
+    ? studyChallengeRulesPdfUrl(visiblePreview.joinRules.version)
+    : null;
   const firstFailureEndsChallenge =
     visiblePreview?.joinRules.version === FIRST_FAILURE_ENDS_RULES_VERSION;
   const canSubmit = Boolean(
@@ -830,6 +834,17 @@ export default function AdminChallengeEnrollmentDialog({
                 상담에서 표시한 참여 희망만으로는 동의가 되지 않습니다. 위
                 규칙과 기간에 대한 회원의 실제 답변을 기록해 주세요.
               </p>
+
+              {rulesPdfUrl && (
+                <a
+                  className="admin-challenge-enrollment-policy-link"
+                  href={rulesPdfUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  도전 규칙 전문 PDF 보기 (새 창)
+                </a>
+              )}
 
               <label className="admin-challenge-enrollment-agreement">
                 <input

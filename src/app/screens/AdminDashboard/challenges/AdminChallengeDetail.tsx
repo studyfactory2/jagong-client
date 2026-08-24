@@ -6,6 +6,7 @@ import type {
   AdminStudyChallengeDetail,
   AdminStudyChallengeListItem,
 } from "../../../../lib/types";
+import { studyChallengeRulesPdfUrl } from "../../../utils/study-challenge-rules";
 import {
   actorRoleLabel,
   canTerminateChallenge,
@@ -41,6 +42,30 @@ type AdminChallengeDetailProps = {
   onRetry: (challengeId: string) => void;
   onRequestTermination: (detail: AdminStudyChallengeDetail) => void;
 };
+
+function RulesVersionReference({
+  rulesVersion,
+}: {
+  rulesVersion: string | null | undefined;
+}) {
+  const pdfUrl = studyChallengeRulesPdfUrl(rulesVersion);
+
+  return (
+    <dd className="admin-challenge-rules-version-reference">
+      <span>{rulesVersion ?? "확인 필요"}</span>
+      {pdfUrl && (
+        <a
+          aria-label={`${rulesVersion} 도전 규칙 전문 PDF 새 창에서 보기`}
+          href={pdfUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          전문 PDF 보기 (새 창)
+        </a>
+      )}
+    </dd>
+  );
+}
 
 export default function AdminChallengeDetail({
   selectedSummary,
@@ -147,7 +172,7 @@ export default function AdminChallengeDetail({
             </div>
             <div>
               <dt>규칙 버전</dt>
-              <dd>{detail.rulesVersion ?? "확인 필요"}</dd>
+              <RulesVersionReference rulesVersion={detail.rulesVersion} />
             </div>
             <div>
               <dt>최종 정산</dt>
@@ -224,7 +249,9 @@ export default function AdminChallengeDetail({
                           </div>
                           <div>
                             <dt>규칙 버전</dt>
-                            <dd>{event.consent.rulesVersion ?? "확인 필요"}</dd>
+                            <RulesVersionReference
+                              rulesVersion={event.consent.rulesVersion}
+                            />
                           </div>
                           <div>
                             <dt>확정 기간</dt>

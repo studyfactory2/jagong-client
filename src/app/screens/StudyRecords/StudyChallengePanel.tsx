@@ -27,6 +27,7 @@ import type {
 import {
   FIRST_FAILURE_ENDS_RULES_VERSION,
   studyChallengeRewardLabel,
+  studyChallengeRulesPdfUrl,
 } from "../../utils/study-challenge-rules";
 
 type StudyChallengePanelProps = {
@@ -734,6 +735,12 @@ export default function StudyChallengePanel({
     ? (data.acceptedRules ?? data.joinRules)
     : data.joinRules;
   const rewardLabel = studyChallengeRewardLabel(rules.version);
+  const currentChallengeRulesPdfUrl = challenge
+    ? studyChallengeRulesPdfUrl(challenge.rulesVersion)
+    : null;
+  const agreementRulesPdfUrl = visibleAgreementSnapshot
+    ? studyChallengeRulesPdfUrl(visibleAgreementSnapshot.rules.version)
+    : null;
   const now = new Date();
 
   const panel = challenge ? (
@@ -778,6 +785,19 @@ export default function StudyChallengePanel({
         <p className="study-records-challenge-note">
           실제 공부 상태로 기록된 시간만 반영되며, 주차별 목표는 각각 달성해야
           합니다.
+          {currentChallengeRulesPdfUrl && (
+            <>
+              {" "}
+              <a
+                className="study-records-challenge-policy-link"
+                href={currentChallengeRulesPdfUrl}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                도전 규칙 전문 PDF 보기 (새 창)
+              </a>
+            </>
+          )}
         </p>
         {canTerminateChallenge(challenge) && (
           <button
@@ -986,6 +1006,17 @@ export default function StudyChallengePanel({
                   기회와 기간 제한은 그대로 적용됩니다.
                 </li>
               </ul>
+
+              {agreementRulesPdfUrl && (
+                <a
+                  className="study-records-challenge-policy-link"
+                  href={agreementRulesPdfUrl}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  도전 규칙 전문 PDF 보기 (새 창)
+                </a>
+              )}
 
               <label className="study-records-challenge-agreement">
                 <input
