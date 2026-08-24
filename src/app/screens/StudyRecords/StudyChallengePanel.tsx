@@ -1,4 +1,5 @@
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import {
   useCallback,
@@ -738,9 +739,15 @@ export default function StudyChallengePanel({
   const currentChallengeRulesPdfUrl = challenge
     ? studyChallengeRulesPdfUrl(challenge.rulesVersion)
     : null;
+  const availableChallengeRulesPdfUrl = challenge
+    ? null
+    : studyChallengeRulesPdfUrl(rules.version);
   const agreementRulesPdfUrl = visibleAgreementSnapshot
     ? studyChallengeRulesPdfUrl(visibleAgreementSnapshot.rules.version)
     : null;
+  const agreementUsesFirstFailureRule =
+    visibleAgreementSnapshot?.rules.version ===
+    FIRST_FAILURE_ENDS_RULES_VERSION;
   const now = new Date();
 
   const panel = challenge ? (
@@ -842,6 +849,19 @@ export default function StudyChallengePanel({
           <strong>{rewardLabel ?? "규칙 업데이트 필요"}</strong>
         </span>
       </div>
+
+      {availableChallengeRulesPdfUrl && (
+        <a
+          aria-label="도전 규칙 전문 PDF 새 창에서 보기"
+          className="study-records-challenge-policy-link is-prominent"
+          href={availableChallengeRulesPdfUrl}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          <PictureAsPdfOutlinedIcon aria-hidden="true" />
+          <span>전체 도전 규칙 PDF 보기</span>
+        </a>
+      )}
 
       {data.canJoin &&
       rewardLabel &&
@@ -966,55 +986,46 @@ export default function StudyChallengePanel({
                 <li>
                   {`매주 월요일부터 일요일까지 실제 공부시간 ${formatTarget(
                     visibleAgreementSnapshot.rules.weeklyTargetSeconds,
-                  )}을 달성해야 합니다.`}
+                  )}을 ${visibleAgreementSnapshot.rules.requiredWeeks}주 모두 각각 달성해야 합니다. 남은 시간은 이월되지 않으며, 휴식 상태는 제외되고 ‘계속 공부하기’로 전환한 시간부터 다시 포함됩니다.`}
                 </li>
-                <li>
-                  {visibleAgreementSnapshot.rules.requiredWeeks}주 모두 각각
-                  달성해야 하며 남은 시간은 다음 주로 이월되지 않습니다.
-                </li>
-                {visibleAgreementSnapshot.rules.version ===
-                  FIRST_FAILURE_ENDS_RULES_VERSION && (
+                {agreementUsesFirstFailureRule ? (
                   <>
                     <li>
-                      참여 확정 시 유료 이용권은 1개월분당 1회, 도전 보상
-                      이용권은 1회분의 참여 기회를 사용하며,
-                      성공·미달성·취소·중도 포기 여부와 관계없이 복구되지
+                      참여 기회는 유료 이용권 1개월당 1회, 도전 보상 이용권당
+                      1회이며, 결과·취소·중도 포기와 관계없이 복구되지
                       않습니다.
                     </li>
                     <li>
-                      도전이 조기 종료되거나 취소되어도 처음 안내된 4주
-                      기간이 끝나기 전에는 다음 도전에 참여할 수 없습니다.
+                      한 주라도 목표에 미달하면 해당 주 종료 후 즉시 종료되고
+                      이후 주차는 집계되지 않습니다. 취소·중도 포기 후에도
+                      안내된 4주 기간이 끝나야 다시 참여할 수 있습니다.
                     </li>
                     <li>
-                      한 주라도 목표에 미달하면 해당 주차 종료 후 도전이 즉시
-                      종료되며, 이후 주차는 진행·집계되지 않습니다.
+                      4주 모두 달성하면 이용기간 1개월이 연장되고, 그 보상
+                      이용권으로 다음 도전에 참여할 수 있습니다.
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>{visibleAgreementSnapshot.rewardLabel}</li>
+                    <li>
+                      참여 확정 후 취소·중도 포기를 선택할 수 있지만, 참여
+                      기회와 기간 제한은 그대로 적용됩니다.
                     </li>
                   </>
                 )}
-                <li>
-                  휴식 상태는 제외되며, 휴식시간에 ‘계속 공부하기’를 선택한
-                  시간은 포함됩니다.
-                </li>
-                <li>
-                  {visibleAgreementSnapshot.rules.version ===
-                  FIRST_FAILURE_ENDS_RULES_VERSION
-                    ? "4주 모두 달성하면 이용기간 1개월 연장 보상이 지급되며, 해당 보상 이용권으로 다음 도전에 다시 참여할 수 있습니다."
-                    : visibleAgreementSnapshot.rewardLabel}
-                </li>
-                <li>
-                  참여 확정 후 취소·중도 포기를 선택할 수 있지만, 위 참여
-                  기회와 기간 제한은 그대로 적용됩니다.
-                </li>
               </ul>
 
               {agreementRulesPdfUrl && (
                 <a
-                  className="study-records-challenge-policy-link"
+                  aria-label="도전 규칙 전문 PDF 새 창에서 보기"
+                  className="study-records-challenge-policy-link is-prominent"
                   href={agreementRulesPdfUrl}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  도전 규칙 전문 PDF 보기 (새 창)
+                  <PictureAsPdfOutlinedIcon aria-hidden="true" />
+                  <span>전체 도전 규칙 PDF 보기</span>
                 </a>
               )}
 
