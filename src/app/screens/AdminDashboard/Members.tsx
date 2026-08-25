@@ -12,6 +12,7 @@ import type {
 import type { UpdateAdminUserInput } from "../../services/admin.service";
 import AdminPager from "./AdminPager";
 import MemberOvernightStudyReport from "./MemberOvernightStudyReport";
+import MemberStudyStatistics from "./MemberStudyStatistics";
 import { dDayText, userDetail } from "./admin.utils";
 
 export type MemberStatusFilter = "ALL" | MemberStatus;
@@ -651,6 +652,11 @@ export default function Members({
                           <dd>{dDayText(selectedUser.membershipEnd)}</dd>
                         </div>
                       </dl>
+
+                      <MemberStudyStatistics
+                        key={`study-statistics-${selectedUser.id}`}
+                        memberId={selectedUser.id}
+                      />
 
                       <MemberOvernightStudyReport
                         key={selectedUser.id}

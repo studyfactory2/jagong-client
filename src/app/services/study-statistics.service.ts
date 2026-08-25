@@ -17,6 +17,17 @@ export async function getMyStudyStatistics(
   return data;
 }
 
+export async function getMemberStudyStatistics(
+  memberId: string,
+  options: { signal?: AbortSignal } = {},
+): Promise<MyStudyStatistics> {
+  const { data } = await http.get<MyStudyStatistics>(
+    `/study-statistics/members/${memberId}`,
+    { signal: options.signal },
+  );
+  return data;
+}
+
 export async function getMyMonthlyStudyReport(
   month: string,
 ): Promise<MonthlyStudyReport> {
