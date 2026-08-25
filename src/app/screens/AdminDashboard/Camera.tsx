@@ -14,6 +14,7 @@ import type {
   TimetableSlot,
 } from "../../../lib/types";
 import { issueCamToken } from "../../services/cam.service";
+import { observeAdaptiveCameraFit } from "../../utils/adaptive-camera-fit";
 import { dDayText, dateText, userDetail } from "./admin.utils";
 
 type CameraProps = {
@@ -87,9 +88,11 @@ function LiveVideo({ track }: { track: RemoteVideoTrack }) {
     if (!element) return undefined;
 
     track.attach(element);
+    const stopObservingCameraFit = observeAdaptiveCameraFit(element);
     element.play().catch(() => undefined);
 
     return () => {
+      stopObservingCameraFit();
       track.detach(element);
     };
   }, [track]);

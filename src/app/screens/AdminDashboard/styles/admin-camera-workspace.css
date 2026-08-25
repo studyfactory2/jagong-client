@@ -179,6 +179,12 @@
   background: var(--ink);
 }
 
+.app-shell.admin-shell
+  .admin-redesign
+  .admin-camera-stream[data-camera-fit="contain"] {
+  object-fit: contain;
+}
+
 .app-shell.admin-shell .admin-redesign .admin-camera-video > svg {
   position: relative;
   z-index: 1;
