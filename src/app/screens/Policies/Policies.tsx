@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import {
   getCurrentPolicy,
@@ -106,6 +105,7 @@ function PolicySectionArticle({
 
 export default function Policies() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [current, setCurrent] = useState<CurrentPolicy | null>(null);
   const [documents, setDocuments] = useState<PolicyDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +146,12 @@ export default function Policies() {
   }, []);
 
   const pdfUrl = current?.pdfUrl;
+  const returnPath =
+    searchParams.get("from") === "booking"
+      ? "/booking"
+      : searchParams.get("from") === "register"
+        ? "/register"
+        : null;
   const navItems = useMemo(
     () =>
       documents.map((document) => ({
@@ -157,10 +163,26 @@ export default function Policies() {
     [documents],
   );
 
+  function goBack() {
+    if (returnPath) {
+      window.close();
+      window.setTimeout(() => {
+        if (!window.closed) navigate(returnPath, { replace: true });
+      }, 0);
+      return;
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/login", { replace: true });
+  }
+
   return (
     <main className="policy">
       <header className="policy-head">
-        <button onClick={() => navigate(-1)} type="button">
+        <button onClick={goBack} type="button">
           <ArrowBackIcon /> 뒤로가기
         </button>
 
@@ -170,10 +192,9 @@ export default function Policies() {
 
         {pdfUrl && (
           <div className="policy-actions">
-            <a href={pdfUrl} target="_blank" rel="noreferrer">
+            <a href={pdfUrl}>
               <PictureAsPdfOutlinedIcon />
               PDF 보기
-              <OpenInNewOutlinedIcon className="policy-action-small" />
             </a>
             <a href={pdfUrl} download>
               <DownloadOutlinedIcon />

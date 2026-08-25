@@ -228,7 +228,11 @@ export default function Register() {
           <span>
             [필수] 서비스 이용약관, 개인정보 처리방침, 결제 및 환불정책,
             카메라 이용 동의, 운영수칙을 확인하고 동의합니다.
-            <a href="/policies" target="_blank" rel="noreferrer">
+            <a
+              href="/policies?from=register"
+              target="_blank"
+              rel="noreferrer"
+            >
               전문보기
             </a>
           </span>

@@ -375,7 +375,11 @@ export default function ConsultationBooking() {
           />
           <span>
             [필수] 이용을 위한 개인정보 수집 및 이용에 동의합니다.
-            <a href="/policies#privacy" target="_blank" rel="noreferrer">
+            <a
+              href="/policies?from=booking#privacy"
+              target="_blank"
+              rel="noreferrer"
+            >
               전문보기
             </a>
           </span>
