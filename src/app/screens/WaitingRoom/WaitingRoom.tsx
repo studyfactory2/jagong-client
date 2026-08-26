@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -359,6 +359,65 @@ type FameBoardMember = WeeklyStudyLeaderboardMember & {
   presence: "working" | "waiting" | "unknown";
 };
 
+const RANKING_MEMBER_LIMIT = 6;
+
+const DEVELOPMENT_RANKING_PREVIEW_MEMBERS: FameBoardMember[] = [
+  {
+    rank: 1,
+    userId: "ranking-preview-1",
+    name: "김공부",
+    studySeconds: 46 * 60 * 60 + 18 * 60,
+    isMe: true,
+    examType: "감정평가사",
+    presence: "waiting",
+  },
+  {
+    rank: 2,
+    userId: "ranking-preview-2",
+    name: "이합격",
+    studySeconds: 42 * 60 * 60 + 7 * 60,
+    isMe: false,
+    examType: "공인중개사",
+    presence: "waiting",
+  },
+  {
+    rank: 3,
+    userId: "ranking-preview-3",
+    name: "박집중",
+    studySeconds: 38 * 60 * 60 + 54 * 60,
+    isMe: false,
+    examType: "공무원",
+    presence: "waiting",
+  },
+  {
+    rank: 4,
+    userId: "ranking-preview-4",
+    name: "최꾸준",
+    studySeconds: 35 * 60 * 60 + 31 * 60,
+    isMe: false,
+    examType: "세무사",
+    presence: "waiting",
+  },
+  {
+    rank: 5,
+    userId: "ranking-preview-5",
+    name: "정성실",
+    studySeconds: 31 * 60 * 60 + 42 * 60,
+    isMe: false,
+    examType: "노무사",
+    presence: "waiting",
+  },
+  {
+    rank: 6,
+    userId: "ranking-preview-6",
+    name: "한도전",
+    studySeconds: 28 * 60 * 60 + 16 * 60,
+    isMe: false,
+    examType: "임용고시",
+    presence: "waiting",
+  },
+];
+
 function WorkerPreviewVideo({
   blurred,
   track,
@@ -393,8 +452,11 @@ function WorkerPreviewVideo({
 
 export default function WaitingRoom() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { session, logout } = useAuth();
   const { connected, socket, unreadNotificationCount } = useSocket();
+  const showRankingPreview =
+    import.meta.env.DEV && searchParams.get("preview") === "ranking";
 
   const [slots, setSlots] = useState<TimetableSlot[]>(FALLBACK_TIMETABLE);
   const [now, setNow] = useState(() => new Date());
@@ -755,16 +817,15 @@ export default function WaitingRoom() {
     [weeklyLeaderboard],
   );
   const fameMembers = useMemo<FameBoardMember[]>(() => {
+    if (showRankingPreview) return DEVELOPMENT_RANKING_PREVIEW_MEMBERS;
     if (weeklyRankedMembers.length === 0) return [];
 
     const roomMemberById = new Map(
       (roomMembers ?? []).map((member) => [member.id, member]),
     );
-    const cutoffIndex = Math.min(7, weeklyRankedMembers.length - 1);
-    const cutoffSeconds = weeklyRankedMembers[cutoffIndex].studySeconds;
 
     return weeklyRankedMembers
-      .filter((member) => member.studySeconds >= cutoffSeconds)
+      .slice(0, RANKING_MEMBER_LIMIT)
       .map((member): FameBoardMember => {
         const roomMember = roomMemberById.get(member.userId);
 
@@ -779,14 +840,16 @@ export default function WaitingRoom() {
                 : "unknown",
         };
       });
-  }, [roomMembers, weeklyRankedMembers]);
+  }, [roomMembers, showRankingPreview, weeklyRankedMembers]);
   const livePreviewIds = useMemo(
     () =>
-      fameMembers
-        .filter((member) => member.presence === "working")
-        .slice(0, 8)
-        .map((member) => member.userId),
-    [fameMembers],
+      showRankingPreview
+        ? []
+        : fameMembers
+            .filter((member) => member.presence === "working")
+            .slice(0, RANKING_MEMBER_LIMIT)
+            .map((member) => member.userId),
+    [fameMembers, showRankingPreview],
   );
   const hasLivePreviews = livePreviewIds.length > 0;
   const effectivePreviewStatus = hasLivePreviews ? previewStatus : "idle";
@@ -1189,7 +1252,10 @@ export default function WaitingRoom() {
 
           </div>
 
-          <div aria-busy={weeklyLeaderboardLoading} className="wr-worker-grid">
+          <div
+            aria-busy={!showRankingPreview && weeklyLeaderboardLoading}
+            className="wr-worker-grid"
+          >
             {fameMembers.map((worker, index) => {
               const video = previewVideoByUser.get(worker.userId);
               const isWorking = worker.presence === "working";
@@ -1280,7 +1346,9 @@ export default function WaitingRoom() {
 
           {(effectivePreviewStatus === "connecting" ||
             effectivePreviewStatus === "error" ||
-            (weeklyLeaderboardError && fameMembers.length > 0)) && (
+            (!showRankingPreview &&
+              weeklyLeaderboardError &&
+              fameMembers.length > 0)) && (
             <div className="wr-preview-note" aria-live="polite">
               {effectivePreviewStatus === "connecting" && (
                 <span>실시간 화면을 연결하고 있습니다.</span>
@@ -1296,7 +1364,9 @@ export default function WaitingRoom() {
                   </button>
                 </>
               )}
-              {weeklyLeaderboardError && fameMembers.length > 0 && (
+              {!showRankingPreview &&
+                weeklyLeaderboardError &&
+                fameMembers.length > 0 && (
                 <>
                   <span className="wr-preview-error">
                     최신 순위를 확인하지 못해 이전 기록을 표시합니다.
@@ -1309,7 +1379,7 @@ export default function WaitingRoom() {
                     다시 시도
                   </button>
                 </>
-              )}
+                )}
             </div>
           )}
         </section>
