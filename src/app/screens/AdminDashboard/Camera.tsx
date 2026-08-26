@@ -48,6 +48,10 @@ type RemoteVideo = {
 };
 
 const PAGE_SIZE = 12;
+const CAMERA_TILE_STATUS_ORDER: Record<CameraTile["status"], number> = {
+  working: 0,
+  waiting: 1,
+};
 const WARNING_PRESETS = [
   { type: "SLEEP", label: "졸음", message: "졸지 말고 다시 집중해주세요." },
   {
@@ -148,18 +152,24 @@ export default function Camera({
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
-    return members.map((user) => {
-      const live = liveByUser.get(user.id);
-      return {
-        id: user.id,
-        name: user.name,
-        status: live ? "working" : "waiting",
-        age: user.age,
-        membershipEnd: user.membershipEnd,
-        slot: live?.slot,
-        joinedAt: live?.joinedAt ?? live?.date,
-      };
-    });
+    return members
+      .map((user) => {
+        const live = liveByUser.get(user.id);
+        return {
+          id: user.id,
+          name: user.name,
+          status: live ? "working" : "waiting",
+          age: user.age,
+          membershipEnd: user.membershipEnd,
+          slot: live?.slot,
+          joinedAt: live?.joinedAt ?? live?.date,
+        } satisfies CameraTile;
+      })
+      .sort(
+        (left, right) =>
+          CAMERA_TILE_STATUS_ORDER[left.status] -
+          CAMERA_TILE_STATUS_ORDER[right.status],
+      );
   }, [camSessions, users, searchText]);
 
   const totalPages = Math.max(1, Math.ceil(tiles.length / PAGE_SIZE));

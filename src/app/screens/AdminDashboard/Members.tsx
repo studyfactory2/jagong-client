@@ -648,6 +648,10 @@ export default function Members({
                           <dd>{userDetail(selectedUser.prepDuration)}</dd>
                         </div>
                         <div>
+                          <dt>연락처</dt>
+                          <dd>{userDetail(selectedUser.phone, "미입력")}</dd>
+                        </div>
+                        <div>
                           <dt>이용권 만료</dt>
                           <dd>{dDayText(selectedUser.membershipEnd)}</dd>
                         </div>

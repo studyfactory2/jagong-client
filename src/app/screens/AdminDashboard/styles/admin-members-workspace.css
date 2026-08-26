@@ -556,9 +556,7 @@
   border-right: 0;
 }
 
-.admin-member-directory-fields > div:last-child {
-  grid-column: 1 / -1;
-  border-right: 0;
+.admin-member-directory-fields > div:nth-last-child(-n + 2) {
   border-bottom: 0;
 }
 
@@ -1573,6 +1571,7 @@
 
   .admin-member-directory-fields > div,
   .admin-member-directory-fields > div:nth-child(2n),
+  .admin-member-directory-fields > div:nth-last-child(-n + 2),
   .admin-member-directory-fields > div:last-child {
     grid-column: auto;
     border-right: 0;
