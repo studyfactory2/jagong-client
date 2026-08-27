@@ -70,7 +70,9 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (res) => res,
   (err) => {
-    const status = axios.isAxiosError(err) ? (err.response?.status ?? null) : null;
+    const status = axios.isAxiosError(err)
+      ? (err.response?.status ?? null)
+      : null;
     const transportCode = axios.isAxiosError(err) ? (err.code ?? null) : null;
     return Promise.reject(
       new HttpRequestError(koreanErrorMessage(err), status, transportCode),
