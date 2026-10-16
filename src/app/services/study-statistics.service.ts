@@ -1,5 +1,6 @@
 import { http } from "./http";
 import type {
+  AdminCameraWeeklyStudy,
   MonthlyStudyReport,
   MyStudyStatistics,
   OvernightVoluntaryStudyReport,
@@ -23,6 +24,16 @@ export async function getMemberStudyStatistics(
 ): Promise<MyStudyStatistics> {
   const { data } = await http.get<MyStudyStatistics>(
     `/study-statistics/members/${memberId}`,
+    { signal: options.signal },
+  );
+  return data;
+}
+
+export async function getAdminCameraWeeklyStudy(
+  options: { signal?: AbortSignal } = {},
+): Promise<AdminCameraWeeklyStudy> {
+  const { data } = await http.get<AdminCameraWeeklyStudy>(
+    "/study-statistics/camera/weekly",
     { signal: options.signal },
   );
   return data;

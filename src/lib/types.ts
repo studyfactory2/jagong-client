@@ -612,6 +612,17 @@ export interface MyStudyStatistics {
   currentMonth: StudyDurationTotal;
 }
 
+export interface AdminCameraWeeklyStudyMember {
+  userId: string;
+  studySeconds: number;
+}
+
+export interface AdminCameraWeeklyStudy {
+  generatedAt: string;
+  window: StudyStatisticsWindow;
+  members: AdminCameraWeeklyStudyMember[];
+}
+
 export interface MonthlyStudyDay {
   date: string;
   studySeconds: number;

@@ -3,6 +3,7 @@ import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import NavigateBeforeOutlinedIcon from "@mui/icons-material/NavigateBeforeOutlined";
 import NavigateNextOutlinedIcon from "@mui/icons-material/NavigateNextOutlined";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import SendOutlinedIcon from "@mui/icons-material/SendOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -14,6 +15,7 @@ import type {
   TimetableSlot,
 } from "../../../lib/types";
 import { issueCamToken } from "../../services/cam.service";
+import { getAdminCameraWeeklyStudy } from "../../services/study-statistics.service";
 import { observeAdaptiveCameraFit } from "../../utils/adaptive-camera-fit";
 import { dDayText, dateText, userDetail } from "./admin.utils";
 
@@ -84,6 +86,17 @@ function currentSlot(slots: TimetableSlot[]) {
   });
 }
 
+function formatWeeklyStudyTime(studySeconds: number | undefined): string {
+  if (studySeconds === undefined || !Number.isFinite(studySeconds)) return "—";
+
+  const safeSeconds = Math.max(0, Math.floor(studySeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+
+  if (hours === 0) return `${minutes}분`;
+  return `${hours}시간 ${String(minutes).padStart(2, "0")}분`;
+}
+
 function LiveVideo({ track }: { track: RemoteVideoTrack }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -131,8 +144,11 @@ export default function Camera({
     "connecting" | "connected" | "stub" | "error"
   >("connecting");
   const [liveError, setLiveError] = useState("");
+  const [weeklyStudySecondsByUserId, setWeeklyStudySecondsByUserId] =
+    useState<Record<string, number> | null>(null);
   const roomRef = useRef<Room | null>(null);
   const visibleIdsRef = useRef<string[]>([]);
+  const weeklyStudyRequestIdRef = useRef(0);
 
   /** DERIVED **/
   const activeSlot = useMemo(() => currentSlot(timetable), [timetable]);
@@ -222,6 +238,59 @@ export default function Camera({
     visibleIdsRef.current = visibleIds;
     syncVisibleSubscriptions();
   }, [syncVisibleSubscriptions, visibleIds]);
+
+  useEffect(() => {
+    let disposed = false;
+    let activeController: AbortController | null = null;
+
+    async function refreshWeeklyStudy() {
+      activeController?.abort();
+      const controller = new AbortController();
+      activeController = controller;
+      const requestId = ++weeklyStudyRequestIdRef.current;
+
+      try {
+        const response = await getAdminCameraWeeklyStudy({
+          signal: controller.signal,
+        });
+        if (
+          disposed ||
+          controller.signal.aborted ||
+          requestId !== weeklyStudyRequestIdRef.current
+        ) {
+          return;
+        }
+
+        const totalsByUserId = response.members.reduce<Record<string, number>>(
+          (totals, member) => {
+            totals[member.userId] = Math.max(0, Math.floor(member.studySeconds));
+            return totals;
+          },
+          {},
+        );
+        setWeeklyStudySecondsByUserId(totalsByUserId);
+      } catch (error) {
+        if (
+          disposed ||
+          controller.signal.aborted ||
+          requestId !== weeklyStudyRequestIdRef.current
+        ) {
+          return;
+        }
+        console.error("Admin camera weekly study load failed", error);
+      }
+    }
+
+    void refreshWeeklyStudy();
+    const timer = window.setInterval(() => void refreshWeeklyStudy(), 60_000);
+
+    return () => {
+      disposed = true;
+      weeklyStudyRequestIdRef.current += 1;
+      activeController?.abort();
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -387,6 +456,9 @@ export default function Camera({
         {visibleTiles.map((tile, index) => {
           const video = videoForUser(tile.id);
           const isWorking = tile.status === "working";
+          const weeklyStudyTime = formatWeeklyStudyTime(
+            weeklyStudySecondsByUserId?.[tile.id],
+          );
 
           return (
             <article
@@ -424,6 +496,16 @@ export default function Camera({
                     <OpenInFullOutlinedIcon /> 크게보기
                   </button>
                 )}
+              </div>
+
+              <div
+                aria-label={`이번 주 공부시간 ${weeklyStudyTime}`}
+                className="admin-camera-weekly-time"
+              >
+                <span>
+                  <AccessTimeOutlinedIcon aria-hidden="true" /> 이번 주
+                </span>
+                <strong title={weeklyStudyTime}>{weeklyStudyTime}</strong>
               </div>
 
               {!isStudyTime && (
